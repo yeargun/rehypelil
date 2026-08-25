@@ -1,0 +1,104 @@
+import { arrLen, asString, escapeAttr, escapeText, isVoidTag, nodeType } from "./host.lil";
+
+string classAttr(JsValue value) {
+  if (JS.isArray(value)) {
+    string out = "";
+    int n = arrLen(value);
+    int i = 0;
+    while (i < n) {
+      string part = asString(value[i]);
+      if (part.length > 0) {
+        if (out.length > 0) {
+          out = out + " ";
+        }
+        out = out + part;
+      }
+      i = i + 1;
+    }
+    return out;
+  }
+  return asString(value);
+}
+
+string attrsOf(JsValue properties) {
+  if (JS.isUndefined(properties) || JS.isNullish(properties) || JS.typeOf(properties) != "object") {
+    return "";
+  }
+  string out = "";
+  for (string key in properties) {
+    if (key == "children" || key == "tagName") {
+      continue;
+    }
+    JsValue value = properties[key];
+    if (JS.isUndefined(value) || JS.isNullish(value) || JS.isFalse(value)) {
+      continue;
+    }
+    string name = key;
+    if (key == "className") {
+      name = "class";
+      string joined = classAttr(value);
+      if (joined.length == 0) {
+        continue;
+      }
+      out = out + " " + name + "=\"" + escapeAttr(joined) + "\"";
+      continue;
+    }
+    if (value is bool) {
+      if (value) {
+        out = out + " " + name;
+      }
+      continue;
+    }
+    out = out + " " + name + "=\"" + escapeAttr(asString(value)) + "\"";
+  }
+  return out;
+}
+
+string htmlOf(JsValue node, bool allowHtml) {
+  string t = nodeType(node);
+  if (t == "root") {
+    return htmlChildren(node["children"], allowHtml);
+  }
+  if (t == "text") {
+    return escapeText(asString(node["value"]));
+  }
+  if (t == "comment") {
+    return "<!--" + asString(node["value"]) + "-->";
+  }
+  if (t == "raw") {
+    if (allowHtml) {
+      return asString(node["value"]);
+    }
+    return escapeText(asString(node["value"]));
+  }
+  if (t == "element") {
+    string tag = asString(node["tagName"]);
+    string attrs = attrsOf(node["properties"]);
+    if (isVoidTag(tag)) {
+      return "<" + tag + attrs + ">";
+    }
+    return "<" + tag + attrs + ">" + htmlChildren(node["children"], allowHtml) + "</" + tag + ">";
+  }
+  if (JS.isArray(node["children"])) {
+    return htmlChildren(node["children"], allowHtml);
+  }
+  return "";
+}
+
+string htmlChildren(JsValue nodes, bool allowHtml) {
+  if (!JS.isArray(nodes)) {
+    return "";
+  }
+  string out = "";
+  int n = arrLen(nodes);
+  int i = 0;
+  while (i < n) {
+    out = out + htmlOf(nodes[i], allowHtml);
+    i = i + 1;
+  }
+  return out;
+}
+
+export string toHtml(JsValue tree, bool allowHtml) {
+  return htmlOf(tree, allowHtml);
+}

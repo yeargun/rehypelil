@@ -1,0 +1,193 @@
+import { h, hComment, hRoot, hText, isNameChar, isVoidTag, isWs, pushNode } from "./host.lil";
+
+class Scan {
+  string src;
+  int pos;
+  int len;
+
+  init(string src) {
+    this.src = src;
+    this.pos = 0;
+    this.len = src.length;
+  }
+}
+
+int peek(Scan s) {
+  if (s.pos >= s.len) {
+    return 0;
+  }
+  return s.src.charCodeAt(s.pos);
+}
+
+void skipWs(Scan s) {
+  while (s.pos < s.len && isWs(peek(s))) {
+    s.pos = s.pos + 1;
+  }
+}
+
+string readName(Scan s) {
+  int start = s.pos;
+  while (s.pos < s.len && isNameChar(peek(s))) {
+    s.pos = s.pos + 1;
+  }
+  return s.src.slice(start, s.pos).toLowerCase();
+}
+
+string decodeEnt(string src) {
+  Regex amp = new Regex("&amp;", "g");
+  amp.lastIndex = 0;
+  string a = src.replace(amp, "&");
+  Regex lt = new Regex("&lt;", "g");
+  lt.lastIndex = 0;
+  string b = a.replace(lt, "<");
+  Regex gt = new Regex("&gt;", "g");
+  gt.lastIndex = 0;
+  string c = b.replace(gt, ">");
+  Regex quot = new Regex("&quot;", "g");
+  quot.lastIndex = 0;
+  return c.replace(quot, "\"");
+}
+
+JsValue classList(string value) {
+  JsValue list = JS.array();
+  string[] parts = value.split(" ");
+  int i = 0;
+  while (i < parts.length) {
+    if (parts[i].length > 0) {
+      JS.push(list, parts[i]);
+    }
+    i = i + 1;
+  }
+  return list;
+}
+
+JsValue readAttrs(Scan s) {
+  JsValue props = JS.object();
+  while (s.pos < s.len) {
+    skipWs(s);
+    int c = peek(s);
+    if (c == 0 || c == 62 || c == 47) {
+      break;
+    }
+    string name = readName(s);
+    if (name.length == 0) {
+      s.pos = s.pos + 1;
+      continue;
+    }
+    skipWs(s);
+    JsValue value = true;
+    if (peek(s) == 61) {
+      s.pos = s.pos + 1;
+      skipWs(s);
+      int q = peek(s);
+      if (q == 34 || q == 39) {
+        s.pos = s.pos + 1;
+        int start = s.pos;
+        while (s.pos < s.len && peek(s) != q) {
+          s.pos = s.pos + 1;
+        }
+        value = decodeEnt(s.src.slice(start, s.pos));
+        if (peek(s) == q) {
+          s.pos = s.pos + 1;
+        }
+      } else {
+        int start = s.pos;
+        while (s.pos < s.len && !isWs(peek(s)) && peek(s) != 62) {
+          s.pos = s.pos + 1;
+        }
+        value = decodeEnt(s.src.slice(start, s.pos));
+      }
+    }
+    if (name == "class" && value is string) {
+      JS.set(props, "className", classList(value));
+    } else {
+      JS.set(props, name, value);
+    }
+  }
+  return props;
+}
+
+JsValue parseNodes(Scan s, string stop) {
+  JsValue kids = JS.array();
+  while (s.pos < s.len) {
+    if (peek(s) != 60) {
+      int start = s.pos;
+      while (s.pos < s.len && peek(s) != 60) {
+        s.pos = s.pos + 1;
+      }
+      string text = decodeEnt(s.src.slice(start, s.pos));
+      if (text.length > 0) {
+        pushNode(kids, hText(text));
+      }
+      continue;
+    }
+    if (s.pos + 3 < s.len && s.src.slice(s.pos, s.pos + 4) == "<!--") {
+      s.pos = s.pos + 4;
+      int end = s.src.indexOf("-->", s.pos);
+      if (end < 0) {
+        end = s.len;
+        string body = s.src.slice(s.pos, end);
+        s.pos = s.len;
+        pushNode(kids, hComment(body));
+      } else {
+        string body = s.src.slice(s.pos, end);
+        s.pos = end + 3;
+        pushNode(kids, hComment(body));
+      }
+      continue;
+    }
+    if (s.pos + 1 < s.len && s.src.charCodeAt(s.pos + 1) == 33) {
+      int end = s.src.indexOf(">", s.pos);
+      if (end < 0) {
+        s.pos = s.len;
+      } else {
+        s.pos = end + 1;
+      }
+      continue;
+    }
+    if (s.pos + 1 < s.len && s.src.charCodeAt(s.pos + 1) == 47) {
+      s.pos = s.pos + 2;
+      string name = readName(s);
+      int end = s.src.indexOf(">", s.pos);
+      if (end < 0) {
+        s.pos = s.len;
+      } else {
+        s.pos = end + 1;
+      }
+      if (stop.length > 0 && (name == stop || name.length == 0)) {
+        break;
+      }
+      continue;
+    }
+    s.pos = s.pos + 1;
+    string tag = readName(s);
+    if (tag.length == 0) {
+      pushNode(kids, hText("<"));
+      continue;
+    }
+    JsValue props = readAttrs(s);
+    skipWs(s);
+    bool selfClose = false;
+    if (peek(s) == 47) {
+      selfClose = true;
+      s.pos = s.pos + 1;
+    }
+    if (peek(s) == 62) {
+      s.pos = s.pos + 1;
+    }
+    JsValue children = JS.array();
+    if (!selfClose && !isVoidTag(tag)) {
+      children = parseNodes(s, tag);
+    }
+    pushNode(kids, h(tag, props, children));
+    if (stop.length > 0 && tag == stop && selfClose) {
+      break;
+    }
+  }
+  return kids;
+}
+
+export JsValue fromHtml(string src) {
+  Scan s = new Scan(src);
+  return hRoot(parseNodes(s, ""));
+}

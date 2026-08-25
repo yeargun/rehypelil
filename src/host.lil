@@ -1,0 +1,103 @@
+export extern class HtmlOptions {
+  JsValue allowDangerousHtml;
+}
+
+export extern class Processor {
+  JsValue parser;
+  JsValue compiler;
+  JsValue use;
+  JsValue parse;
+  JsValue runSync;
+  JsValue run;
+  JsValue stringify;
+  JsValue processSync;
+  JsValue process;
+  JsValue data;
+}
+
+export extern class VFile {
+  JsValue value;
+  JsValue result;
+  JsValue messages;
+  JsValue data;
+}
+
+export bool optionFlag(JsValue value, bool fallback) {
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return fallback;
+  }
+  return value.truthy();
+}
+
+export int arrLen(JsValue arr) {
+  return JS.number(arr["length"]).toInt();
+}
+
+export void pushNode(JsValue arr, JsValue item) {
+  JS.push(arr, item);
+}
+
+export string asString(JsValue value) {
+  if (value is string) {
+    return value;
+  }
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return "";
+  }
+  return JS.string(value);
+}
+
+export string nodeType(JsValue node) {
+  JsValue t = node["type"];
+  if (t is string) {
+    return t;
+  }
+  return "";
+}
+
+export bool isVoidTag(string tag) {
+  return tag == "area" || tag == "base" || tag == "br" || tag == "col" || tag == "embed" || tag == "hr" || tag == "img" || tag == "input" || tag == "link" || tag == "meta" || tag == "param" || tag == "source" || tag == "track" || tag == "wbr";
+}
+
+export string escapeText(string src) {
+  Regex amp = new Regex("&", "g");
+  amp.lastIndex = 0;
+  string a = src.replace(amp, "&amp;");
+  Regex lt = new Regex("<", "g");
+  lt.lastIndex = 0;
+  string b = a.replace(lt, "&lt;");
+  Regex gt = new Regex(">", "g");
+  gt.lastIndex = 0;
+  return b.replace(gt, "&gt;");
+}
+
+export string escapeAttr(string src) {
+  string a = escapeText(src);
+  Regex quot = new Regex("\"", "g");
+  quot.lastIndex = 0;
+  return a.replace(quot, "&quot;");
+}
+
+export bool isNameChar(int c) {
+  return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 45 || c == 95 || c == 58;
+}
+
+export bool isWs(int c) {
+  return c == 32 || c == 9 || c == 10 || c == 13;
+}
+
+export JsValue h(string tag, JsValue properties, JsValue children) {
+  return JS.object("type", "element", "tagName", tag, "properties", properties, "children", children);
+}
+
+export JsValue hText(string value) {
+  return JS.object("type", "text", "value", value);
+}
+
+export JsValue hRoot(JsValue children) {
+  return JS.object("type", "root", "children", children);
+}
+
+export JsValue hComment(string value) {
+  return JS.object("type", "comment", "value", value);
+}

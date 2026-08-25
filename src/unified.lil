@@ -1,0 +1,178 @@
+import { Processor, VFile, asString } from "./host.lil";
+
+export bool looksLikeTree(JsValue value) {
+  if (value is string) {
+    return false;
+  }
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return false;
+  }
+  if (JS.typeOf(value) != "object") {
+    return false;
+  }
+  JsValue t = value["type"];
+  if (!(t is string)) {
+    return false;
+  }
+  return t == "root" || t == "element";
+}
+
+JsValue fileFrom(JsValue input) {
+  if (input is string) {
+    VFile file = JS.assume(JS.object());
+    file.value = input;
+    file.result = JS.undefined();
+    file.messages = JS.array();
+    file.data = JS.object();
+    JS.set(file, "toString", JS.method0((JsValue self) => {
+      return JS.get(self, "value");
+    }));
+    return file;
+  }
+  if (!JS.isUndefined(input) && !JS.isNullish(input) && JS.typeOf(input) == "object") {
+    JsValue existing = JS.get(input, "value");
+    if (!JS.isUndefined(existing) || JS.get(input, "messages").truthy()) {
+      return input;
+    }
+  }
+  VFile file = JS.assume(JS.object());
+  file.value = input;
+  file.result = JS.undefined();
+  file.messages = JS.array();
+  file.data = JS.object();
+  JS.set(file, "toString", JS.method0((JsValue self) => {
+    return JS.get(self, "value");
+  }));
+  return file;
+}
+
+JsValue dataCall(JsValue self, JsValue args) {
+  JsValue bag = JS.get(self, "__data");
+  if (JS.isUndefined(bag) || JS.isNullish(bag)) {
+    bag = JS.object("settings", JS.object());
+    JS.set(self, "__data", bag);
+  }
+  int n = JS.number(args["length"]).toInt();
+  if (n == 0) {
+    return bag;
+  }
+  string key = asString(args[0]);
+  if (n == 1) {
+    return JS.get(bag, key);
+  }
+  JS.set(bag, key, args[1]);
+  return self;
+}
+
+JsValue useCall(JsValue self, JsValue args) {
+  int n = JS.number(args["length"]).toInt();
+  if (n == 0) {
+    return self;
+  }
+  JsValue plugin = args[0];
+  JsValue options = JS.undefined();
+  if (n > 1) {
+    options = args[1];
+  }
+  JsValue result = JS.call(plugin, self, options);
+  if (JS.typeOf(result) == "function") {
+    JsValue list = JS.get(self, "transformers");
+    if (!JS.isArray(list)) {
+      list = JS.array();
+      JS.set(self, "transformers", list);
+    }
+    JS.push(list, result);
+  }
+  return self;
+}
+
+JsValue parseCall(JsValue self, JsValue file) {
+  Processor proc = JS.assume(self);
+  JsValue parser = proc.parser;
+  if (JS.typeOf(parser) != "function") {
+    if (looksLikeTree(file)) {
+      return file;
+    }
+    JsValue v = JS.get(file, "value");
+    if (looksLikeTree(v)) {
+      return v;
+    }
+    return JS.object("type", "root", "children", JS.array());
+  }
+  return JS.call(parser, self, file, file);
+}
+
+JsValue runSyncImpl(JsValue self, JsValue tree, JsValue file) {
+  JsValue list = JS.get(self, "transformers");
+  JsValue next = tree;
+  if (JS.isArray(list)) {
+    int n = JS.number(list["length"]).toInt();
+    int i = 0;
+    while (i < n) {
+      JsValue fn = list[i];
+      JsValue out = JS.call(fn, self, next, file);
+      if (!JS.isUndefined(out) && !JS.isNullish(out)) {
+        next = out;
+      }
+      i = i + 1;
+    }
+  }
+  return next;
+}
+
+JsValue runSyncCall(JsValue self, JsValue tree, JsValue file) {
+  return runSyncImpl(self, tree, file);
+}
+
+JsValue runCall(JsValue self, JsValue tree, JsValue file) {
+  return Task.resolve(runSyncImpl(self, tree, file));
+}
+
+JsValue stringifyCall(JsValue self, JsValue tree, JsValue file) {
+  Processor proc = JS.assume(self);
+  JsValue compiler = proc.compiler;
+  if (JS.typeOf(compiler) != "function") {
+    return "";
+  }
+  return JS.call(compiler, self, tree, file);
+}
+
+JsValue processSyncCall(JsValue self, JsValue input) {
+  JsValue file = fileFrom(input);
+  JsValue tree = JS.undefined();
+  if (looksLikeTree(input)) {
+    tree = input;
+  } else {
+    JsValue inner = JS.get(file, "value");
+    if (looksLikeTree(inner)) {
+      tree = inner;
+    } else {
+      tree = parseCall(self, file);
+    }
+  }
+  tree = runSyncImpl(self, tree, file);
+  JsValue out = stringifyCall(self, tree, file);
+  VFile vf = JS.assume(file);
+  vf.value = out;
+  vf.result = out;
+  return file;
+}
+
+JsValue processCall(JsValue self, JsValue input) {
+  return Task.resolve(processSyncCall(self, input));
+}
+
+export JsValue createProcessor() {
+  Processor proc = JS.assume(JS.object());
+  JS.set(proc, "__data", JS.object("settings", JS.object()));
+  JS.set(proc, "transformers", JS.array());
+  proc.data = JS.methodRest(dataCall);
+  proc.use = JS.methodRest(useCall);
+  proc.parse = JS.method1(parseCall);
+  proc.runSync = JS.method2(runSyncCall);
+  proc.run = JS.method2(runCall);
+  proc.stringify = JS.method2(stringifyCall);
+  proc.processSync = JS.method1(processSyncCall);
+  proc.process = JS.method1(processCall);
+  return proc;
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="rehype reimplemented in LilScript. Parse HTML to hast, run plugins, stringify back." />
+    <title>@itslil/rehype — LilScript lab</title>
+    
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="nav shell">
+      <a class="wordmark" href="#top">
+        <span class="mark">rh</span>
+        <span>@itslil/rehype</span>
+      </a>
+      <nav>
+        <a href="#lab">lab</a>
+        <a href="https://www.npmjs.com/package/@itslil/rehype">npm</a>
+        <a href="https://github.com/yeargun/rehypelil">GitHub</a>
+      </nav>
+    </header>
+    <main id="top">
+      <section class="hero shell">
+        <p class="eyebrow">@itslil/rehype · LilScript · zero runtime deps</p>
+        <h1>HTML,<br />as a tree.</h1>
+        <p class="lede">rehype reimplemented in LilScript. Parse HTML to hast, run plugins, stringify back.</p>
+        <div class="install-row">
+          <code>npm install @itslil/rehype</code>
+          <button class="copy" type="button" data-copy="npm install @itslil/rehype">copy</button>
+        </div>
+      </section>
+      <section class="ticker" aria-label="Features">
+        <div>rehype()<span>✦</span>from-html<span>✦</span>to-html<span>✦</span>processSync<span>✦</span>tree-shake</div>
+      </section>
+      <section class="lab shell" id="lab">
+        <h2>Live lab</h2>
+        <p class="section-lead">This page loads the compiled ESM from this repo. Library lane keeps host-visible keys. Closed lane is <code>dist/*.closed.js</code>.</p>
+        <div class="samples" id="samples"></div>
+        <div class="toggles" id="toggles"></div>
+        
+        <div class="play-grid">
+          <textarea id="input" spellcheck="false" aria-label="Input"></textarea>
+          <div>
+            <div id="preview" class="preview" hidden></div>
+            <iframe id="frame" title="Rendered output" sandbox="allow-same-origin" hidden></iframe>
+            <pre id="output"></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="shell">
+      <span>@itslil/rehype · MIT · LilScript reimplementation</span>
+      <a href="https://yeargun.github.io/rehypelil/">yeargun.github.io/rehypelil</a>
+    </footer>
+  </body>
+</html>

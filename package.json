@@ -1,0 +1,66 @@
+{
+  "name": "@itslil/rehype",
+  "version": "13.0.2",
+  "description": "rehype reimplemented in LilScript",
+  "keywords": [
+    "rehype",
+    "html",
+    "unified",
+    "lilscript",
+    "itslil"
+  ],
+  "homepage": "https://yeargun.github.io/rehypelil/",
+  "bugs": "https://github.com/yeargun/rehypelil/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yeargun/rehypelil.git"
+  },
+  "license": "MIT",
+  "author": "yeargun",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "./dist/rehype.cjs",
+  "module": "./dist/rehype.esm.js",
+  "types": "./dist/rehype.d.ts",
+  "unpkg": "./dist/rehype.umd.js",
+  "jsdelivr": "./dist/rehype.umd.js",
+  "exports": {
+    ".": {
+      "types": "./dist/rehype.d.ts",
+      "import": "./dist/rehype.esm.js",
+      "require": "./dist/rehype.cjs",
+      "default": "./dist/rehype.esm.js"
+    },
+    "./closed": "./dist/rehype.closed.js",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "dist/rehype.esm.js",
+    "dist/rehype.cjs",
+    "dist/rehype.umd.js",
+    "dist/rehype.closed.js",
+    "dist/rehype.d.ts",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs --compile",
+    "build:site": "node scripts/build-site.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check:site": "npm run build:site && node --test test/site.test.mjs",
+    "check:pack": "node scripts/check-pack.mjs",
+    "prepublishOnly": "npm test && npm run check:pack && npm run check:site"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1"
+  }
+}
