@@ -1,0 +1,86 @@
+{
+  "pin": "rehype@13.0.2",
+  "package": "@itslil/rehype",
+  "file": "rehype",
+  "lilExport": "rehype",
+  "officialExport": "rehype",
+  "node": "v22.21.1",
+  "codec": "lilscript-codec gzip-9 / brotli-11",
+  "runtime": "Node v22.21.1",
+  "warmupDiscard": 3,
+  "comparison": "Official rows are an esbuild bundle of rehype@13.0.2 plus its runtime graph, then Terser or esbuild. LilScript is the compiled npm file. Closed is extern_fields=false.",
+  "spec": {
+    "total": 6,
+    "pass": 6,
+    "label": "package tests"
+  },
+  "play": {
+    "kind": "html-html",
+    "sample": "<h1>rehype</h1><p>Hello <strong>LilScript</strong>.</p>"
+  },
+  "size": [
+    {
+      "id": "official",
+      "name": "Official rehype@13.0.2 graph",
+      "raw": 438508,
+      "gzip9": 91765,
+      "brotli11": 74480,
+      "note": "esbuild bundle of the published package plus runtime deps",
+      "diagnostic": false
+    },
+    {
+      "id": "official-terser-mangle",
+      "name": "Official · Terser mangle on",
+      "raw": 221169,
+      "gzip9": 67624,
+      "brotli11": 54928,
+      "note": "Terser compress of that graph, mangle: true",
+      "baseline": true
+    },
+    {
+      "id": "official-terser-nomangle",
+      "name": "Official · Terser mangle off",
+      "raw": 275488,
+      "gzip9": 73685,
+      "brotli11": 60222,
+      "note": "Terser compress of that graph, mangle: false"
+    },
+    {
+      "id": "official-esbuild",
+      "name": "Official · esbuild minify",
+      "raw": 242664,
+      "gzip9": 69082,
+      "brotli11": 57077,
+      "note": "esbuild minify of that graph"
+    },
+    {
+      "id": "itslil",
+      "name": "@itslil/rehype · library",
+      "raw": 6371,
+      "gzip9": 2473,
+      "brotli11": 2222,
+      "note": "LilScript js-module, extern_fields true. The npm ESM.",
+      "primary": true
+    },
+    {
+      "id": "itslil-closed",
+      "name": "@itslil/rehype · closed",
+      "raw": 6296,
+      "gzip9": 2416,
+      "brotli11": 2169,
+      "note": "Same source, extern_fields false"
+    }
+  ],
+  "throughput": [
+    {
+      "id": "official",
+      "name": "rehype@13.0.2",
+      "documentMs": 2.5199999999986176
+    },
+    {
+      "id": "itslil",
+      "name": "@itslil/rehype",
+      "documentMs": 0.213832999999795
+    }
+  ]
+}
