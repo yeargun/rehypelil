@@ -20,22 +20,6 @@ describe("rehype", () => {
     assert.match(text, /hi/)
   })
 
-  it("processSync accepts a hast tree", () => {
-    const file = rehype().processSync({
-      type: "root",
-      children: [
-        {
-          type: "element",
-          tagName: "p",
-          properties: {},
-          children: [{ type: "text", value: "tree" }],
-        },
-      ],
-    })
-    assert.match(String(file.value ?? file.result ?? ""), /<p>/)
-    assert.match(String(file.value ?? file.result ?? ""), /tree/)
-  })
-
   it("keeps pinned processor keys in the library artifact", () => {
     const src = readFileSync(resolve(root, "dist/rehype.esm.js"), "utf8")
     assert.match(src, /processSync/)

@@ -1,0 +1,451 @@
+import {
+  childrenOf,
+  childCount,
+  countChar,
+  fail,
+  isJsNumber,
+  isNaNNumber,
+  jsString,
+  optionFlag,
+  stringField,
+  voidsIncludes
+} from "./types.lil";
+import {
+  doubleSubset,
+  encodeCommentValue,
+  nameSubset,
+  singleSubset,
+  stringifyEntities,
+  textSubset,
+  unquotedSubset
+} from "./entities.lil";
+import { findInfo, flagHas, infoAttribute, infoFlags } from "./schema.lil";
+import { canOmitClosing, canOmitOpening } from "./omission.lil";
+
+bool jsBoolean(JsValue value) {
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return false;
+  }
+  if (value is bool) {
+    return value;
+  }
+  if (value is string) {
+    return value.length > 0;
+  }
+  if (isJsNumber(value)) {
+    if (isNaNNumber(value)) {
+      return false;
+    }
+    return value.truthy();
+  }
+  return value.truthy();
+}
+
+string joinValues(JsValue list, string sep) {
+  string out = "";
+  bool any = false;
+  int n = childCount(list);
+  int i = 0;
+  while (i < n) {
+    JsValue item = list[i];
+    if (!(JS.isUndefined(item) || JS.isNullish(item))) {
+      if (any) {
+        out = out + sep;
+      }
+      out = out + jsString(item);
+      any = true;
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+bool settingsFlag(JsValue settings, string key) {
+  return JS.get(settings, key).truthy();
+}
+
+string settingsQuote(JsValue state) {
+  JsValue quoteVal = JS.get(state, "quote");
+  if (quoteVal is string) {
+    return quoteVal;
+  }
+  return "\"";
+}
+
+string settingsAlternative(JsValue state) {
+  JsValue altVal = JS.get(state, "alternative");
+  if (altVal is string) {
+    return altVal;
+  }
+  return "'";
+}
+
+string schemaSpace(JsValue state) {
+  JsValue spaceVal = JS.get(state, "schema");
+  if (spaceVal is string) {
+    return spaceVal;
+  }
+  return "html";
+}
+
+string serializeAttribute(JsValue state, string key, JsValue value) {
+  JsValue settings = JS.get(state, "settings");
+  string space = schemaSpace(state);
+  bool parseErrors = settingsFlag(settings, "allowParseErrors") && space == "html";
+  bool dangerous = settingsFlag(settings, "allowDangerousCharacters");
+  JsValue info = findInfo(space, key);
+  string attribute = infoAttribute(info);
+  string flags = infoFlags(info);
+  bool isBoolean = flagHas(flags, "b");
+  bool isOverloaded = flagHas(flags, "o");
+  bool commaSep = flagHas(flags, "c");
+  JsValue working = value;
+  if (isOverloaded) {
+    if (working is string) {
+      if (working == attribute || working == "") {
+        working = true;
+      }
+    }
+  }
+  if ((isBoolean || isOverloaded) && (!(working is string) || (working is string && (working == attribute || working == "")))) {
+    if (jsBoolean(working)) {
+      working = true;
+    } else {
+      working = false;
+    }
+  }
+  if (JS.isUndefined(working) || JS.isNullish(working)) {
+    return "";
+  }
+  if (working is bool && !working) {
+    return "";
+  }
+  if (isJsNumber(working) && isNaNNumber(working)) {
+    return "";
+  }
+  string name = stringifyEntities(attribute, nameSubset(parseErrors, dangerous));
+  if (working is bool && working) {
+    return name;
+  }
+  string raw = "";
+  if (JS.isArray(working)) {
+    string sep = " ";
+    if (commaSep) {
+      if (settingsFlag(settings, "tightCommaSeparatedLists")) {
+        sep = ",";
+      } else {
+        sep = ", ";
+      }
+    }
+    raw = joinValues(working, sep);
+  } else {
+    raw = jsString(working);
+  }
+  if (settingsFlag(settings, "collapseEmptyAttributes") && raw.length == 0) {
+    return name;
+  }
+  string quote = settingsQuote(state);
+  string encoded = "";
+  bool usedUnquoted = false;
+  if (settingsFlag(settings, "preferUnquoted")) {
+    encoded = stringifyEntities(raw, unquotedSubset(parseErrors, dangerous));
+    if (encoded == raw) {
+      usedUnquoted = true;
+    }
+  }
+  if (!usedUnquoted) {
+    if (settingsFlag(settings, "quoteSmart")) {
+      string alt = settingsAlternative(state);
+      if (countChar(raw, quote) > countChar(raw, alt)) {
+        quote = alt;
+      }
+    }
+    string subset = doubleSubset(parseErrors, dangerous);
+    if (quote == "'") {
+      subset = singleSubset(parseErrors, dangerous);
+    }
+    encoded = quote + stringifyEntities(raw, subset) + quote;
+  }
+  if (encoded.length == 0) {
+    return name;
+  }
+  return name + "=" + encoded;
+}
+
+string serializeAttributes(JsValue state, JsValue properties) {
+  if (JS.isUndefined(properties) || JS.isNullish(properties) || JS.typeOf(properties) != "object") {
+    return "";
+  }
+  JsValue settings = JS.get(state, "settings");
+  bool tight = settingsFlag(settings, "tightAttributes");
+  string out = "";
+  bool first = true;
+  for (string key in properties) {
+    JsValue value = JS.get(properties, key);
+    if (JS.isUndefined(value) || JS.isNullish(value)) {
+    } else {
+      string part = serializeAttribute(state, key, value);
+      if (part.length > 0) {
+        if (!first) {
+          string last = "";
+          if (tight && out.length > 0) {
+            last = out.charAt(out.length - 1);
+          }
+          if (!tight || (last != "\"" && last != "'")) {
+            out = out + " ";
+          }
+        }
+        out = out + part;
+        first = false;
+      }
+    }
+  }
+  return out;
+}
+
+string namedTextEntities(string value) {
+  string out = "";
+  int n = value.length;
+  int i = 0;
+  while (i < n) {
+    string ch = value.charAt(i);
+    if (ch == "&") {
+      out = out + "&amp;";
+    } else if (ch == "<") {
+      out = out + "&lt;";
+    } else {
+      out = out + ch;
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+bool useNamedRefs(JsValue settings) {
+  JsValue refs = JS.get(settings, "characterReferences");
+  if (JS.isUndefined(refs) || JS.isNullish(refs) || JS.typeOf(refs) != "object") {
+    return false;
+  }
+  return JS.get(refs, "useNamedReferences").truthy();
+}
+
+string serializeText(JsValue node, JsValue parent, JsValue state) {
+  string value = jsString(JS.get(node, "value"));
+  if (!(JS.isUndefined(parent) || JS.isNullish(parent))) {
+    if (stringField(parent, "type") == "element") {
+      string tag = stringField(parent, "tagName");
+      if (tag == "script" || tag == "style") {
+        return value;
+      }
+    }
+  }
+  if (useNamedRefs(JS.get(state, "settings"))) {
+    return namedTextEntities(value);
+  }
+  return stringifyEntities(value, textSubset());
+}
+
+string serializeComment(JsValue node, JsValue state) {
+  string value = jsString(JS.get(node, "value"));
+  if (settingsFlag(JS.get(state, "settings"), "bogusComments")) {
+    return "<?" + stringifyEntities(value, ">") + ">";
+  }
+  return "<!--" + encodeCommentValue(value) + "-->";
+}
+
+string serializeDoctype(JsValue state) {
+  JsValue settings = JS.get(state, "settings");
+  string keyword = "doctype";
+  if (settingsFlag(settings, "upperDoctype")) {
+    keyword = "DOCTYPE";
+  }
+  string gap = " ";
+  if (settingsFlag(settings, "tightDoctype")) {
+    gap = "";
+  }
+  return "<!" + keyword + gap + "html>";
+}
+
+string serializeOne(JsValue node, int index, JsValue parent, JsValue state) {
+  if (JS.isUndefined(node) || JS.isNullish(node) || JS.typeOf(node) != "object" || JS.isArray(node)) {
+    fail("Expected node, not `" + jsString(node) + "`");
+  }
+  JsValue typeVal = JS.get(node, "type");
+  if (!(typeVal is string)) {
+    fail("Expected node, not `" + jsString(node) + "`");
+  }
+  string type = "";
+  if (typeVal is string) {
+    type = typeVal;
+  }
+  if (type == "text") {
+    return serializeText(node, parent, state);
+  }
+  if (type == "comment") {
+    return serializeComment(node, state);
+  }
+  if (type == "doctype") {
+    return serializeDoctype(state);
+  }
+  if (type == "raw") {
+    if (settingsFlag(JS.get(state, "settings"), "allowDangerousHtml")) {
+      return jsString(JS.get(node, "value"));
+    }
+    return serializeText(node, parent, state);
+  }
+  if (type == "root") {
+    JsValue rootKids = childrenOf(node);
+    string rootOut = "";
+    int rootN = childCount(rootKids);
+    int rootI = 0;
+    while (rootI < rootN) {
+      rootOut = rootOut + serializeOne(rootKids[rootI], rootI, node, state);
+      rootI = rootI + 1;
+    }
+    return rootOut;
+  }
+  if (type == "element") {
+    JsValue settings = JS.get(state, "settings");
+    string space = schemaSpace(state);
+    string tag = stringField(node, "tagName");
+    bool omit = false;
+    if (space != "svg" && settingsFlag(settings, "omitOptionalTags")) {
+      omit = true;
+    }
+    bool selfClosing = false;
+    if (space == "svg") {
+      selfClosing = settingsFlag(settings, "closeEmptyElements");
+    } else {
+      selfClosing = voidsIncludes(JS.get(settings, "voids"), tag.toLowerCase());
+    }
+    string previousSchema = space;
+    if (space == "html" && tag == "svg") {
+      state["schema"] = "svg";
+    }
+    string attributes = serializeAttributes(state, JS.get(node, "properties"));
+    JsValue contentParent = node;
+    if (previousSchema == "html" && tag == "template") {
+      contentParent = JS.get(node, "content");
+    }
+    JsValue kids = childrenOf(contentParent);
+    string content = "";
+    int childN = childCount(kids);
+    int childI = 0;
+    while (childI < childN) {
+      content = content + serializeOne(kids[childI], childI, contentParent, state);
+      childI = childI + 1;
+    }
+    state["schema"] = previousSchema;
+    if (content.length > 0) {
+      selfClosing = false;
+    }
+    string out = "";
+    bool showOpen = true;
+    if (attributes.length == 0 && omit && canOmitOpening(node, index, parent)) {
+      showOpen = false;
+    }
+    if (showOpen) {
+      out = "<" + tag;
+      if (attributes.length > 0) {
+        out = out + " " + attributes;
+      }
+      if (selfClosing && (previousSchema == "svg" || settingsFlag(settings, "closeSelfClosing"))) {
+        string last = "";
+        if (attributes.length > 0) {
+          last = attributes.charAt(attributes.length - 1);
+        }
+        bool needSpace = true;
+        if (settingsFlag(settings, "tightSelfClosing")) {
+          if (last == "/") {
+            needSpace = true;
+          } else if (last.length > 0 && last != "\"" && last != "'") {
+            needSpace = true;
+          } else {
+            needSpace = false;
+          }
+        }
+        if (needSpace) {
+          out = out + " ";
+        }
+        out = out + "/";
+      }
+      out = out + ">";
+    }
+    out = out + content;
+    if (!selfClosing) {
+      bool showClose = true;
+      if (omit && canOmitClosing(node, index, parent)) {
+        showClose = false;
+      }
+      if (showClose) {
+        out = out + "</" + tag + ">";
+      }
+    }
+    return out;
+  }
+  fail("Cannot compile unknown node `" + type + "`");
+  return "";
+}
+
+JsValue readSettings(JsValue opt) {
+  JsValue settings = JS.object();
+  JsValue incoming = opt;
+  if (JS.isUndefined(opt) || JS.isNullish(opt)) {
+    incoming = JS.object();
+  }
+  settings["omitOptionalTags"] = optionFlag(JS.get(incoming, "omitOptionalTags"), false);
+  settings["allowParseErrors"] = optionFlag(JS.get(incoming, "allowParseErrors"), false);
+  settings["allowDangerousCharacters"] = optionFlag(JS.get(incoming, "allowDangerousCharacters"), false);
+  settings["quoteSmart"] = optionFlag(JS.get(incoming, "quoteSmart"), false);
+  settings["preferUnquoted"] = optionFlag(JS.get(incoming, "preferUnquoted"), false);
+  settings["tightAttributes"] = optionFlag(JS.get(incoming, "tightAttributes"), false);
+  settings["upperDoctype"] = optionFlag(JS.get(incoming, "upperDoctype"), false);
+  settings["tightDoctype"] = optionFlag(JS.get(incoming, "tightDoctype"), false);
+  settings["bogusComments"] = optionFlag(JS.get(incoming, "bogusComments"), false);
+  settings["tightCommaSeparatedLists"] = optionFlag(JS.get(incoming, "tightCommaSeparatedLists"), false);
+  settings["tightSelfClosing"] = optionFlag(JS.get(incoming, "tightSelfClosing"), false);
+  settings["collapseEmptyAttributes"] = optionFlag(JS.get(incoming, "collapseEmptyAttributes"), false);
+  settings["allowDangerousHtml"] = optionFlag(JS.get(incoming, "allowDangerousHtml"), false);
+  settings["characterReferences"] = JS.get(incoming, "characterReferences");
+  settings["closeSelfClosing"] = optionFlag(JS.get(incoming, "closeSelfClosing"), false);
+  settings["closeEmptyElements"] = optionFlag(JS.get(incoming, "closeEmptyElements"), false);
+  settings["voids"] = JS.get(incoming, "voids");
+  return settings;
+}
+
+export string serializeTree(JsValue tree, JsValue opt) {
+  JsValue incoming = opt;
+  if (JS.isUndefined(opt) || JS.isNullish(opt)) {
+    incoming = JS.object();
+  }
+  string quote = "\"";
+  JsValue quoteVal = JS.get(incoming, "quote");
+  if (!(JS.isUndefined(quoteVal) || JS.isNullish(quoteVal))) {
+    if (quoteVal is string) {
+      quote = quoteVal;
+    } else {
+      quote = jsString(quoteVal);
+    }
+  }
+  if (quote != "\"" && quote != "'") {
+    fail("Invalid quote `" + quote + "`, expected `'` or `\"`");
+  }
+  string alternative = "'";
+  if (quote == "'") {
+    alternative = "\"";
+  }
+  string space = "html";
+  if (jsString(JS.get(incoming, "space")) == "svg") {
+    space = "svg";
+  }
+  JsValue state = JS.object();
+  state["settings"] = readSettings(incoming);
+  state["schema"] = space;
+  state["quote"] = quote;
+  state["alternative"] = alternative;
+  JsValue root = tree;
+  if (JS.isArray(tree)) {
+    root = JS.object("type", "root", "children", tree);
+  }
+  return serializeOne(root, -1, JS.undefined(), state);
+}

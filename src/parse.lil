@@ -1,0 +1,50 @@
+import { fromHtml } from "./from-html.lil";
+
+void assignOwn(JsValue target, JsValue source) {
+  if (JS.isUndefined(source) || JS.isNullish(source) || JS.typeOf(source) != "object") {
+    return;
+  }
+  for (string key in source) {
+    JS.set(target, key, JS.get(source, key));
+  }
+}
+
+JsValue attach(JsValue self, JsValue options) {
+  JsValue settings = JS.object();
+  if (!(JS.isUndefined(self) || JS.isNullish(self))) {
+    JsValue dataFn = JS.get(self, "data");
+    if (JS.typeOf(dataFn) == "function") {
+      assignOwn(settings, JS.call(dataFn, self, "settings"));
+    }
+  }
+  assignOwn(settings, options);
+  JsValue emitParseErrors = JS.get(settings, "emitParseErrors");
+  if (!(JS.isUndefined(self) || JS.isNullish(self))) {
+    self["parser"] = JS.method2((JsValue _s, JsValue document, JsValue file) => {
+      JsValue next = JS.object();
+      assignOwn(next, settings);
+      if (emitParseErrors.truthy()) {
+        JS.set(next, "onerror", JS.method1((JsValue __s, JsValue message) => {
+          if (!(JS.isUndefined(file) || JS.isNullish(file))) {
+            JsValue path = JS.get(file, "path");
+            if (path.truthy()) {
+              JS.set(message, "name", JS.string(path) + ":" + JS.string(JS.get(message, "name")));
+              JS.set(message, "file", path);
+            }
+            JsValue messages = JS.get(file, "messages");
+            if (JS.isArray(messages)) {
+              JS.push(messages, message);
+            }
+          }
+          return JS.undefined();
+        }));
+      } else {
+        JS.set(next, "onerror", JS.undefined());
+      }
+      return fromHtml(document, next);
+    });
+  }
+  return JS.undefined();
+}
+
+export JsValue rehypeParse = JS.method1(attach);

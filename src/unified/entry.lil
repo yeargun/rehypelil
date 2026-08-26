@@ -1,0 +1,461 @@
+import {
+  Number,
+  Promise,
+  TypeError,
+  assertOk,
+  bail,
+  isFn,
+  looksLikeAValue,
+  objectHasOwn,
+  sliceArgs,
+  throwError,
+  throwType
+} from "./host.lil";
+import { isPlainObj } from "./plain.lil";
+import { cloneNamespace, extendWith } from "./extend.lil";
+import { trough } from "./trough.lil";
+import { asVFile } from "./vfile.lil";
+
+export extern class ProcessorApi {
+  JsValue use;
+  JsValue parse;
+  JsValue run;
+  JsValue runSync;
+  JsValue stringify;
+  JsValue process;
+  JsValue processSync;
+  JsValue data;
+  JsValue freeze;
+  JsValue attachers;
+  JsValue parser;
+  JsValue compiler;
+  JsValue Parser;
+  JsValue Compiler;
+}
+
+JsValue addFns = JS.object();
+JsValue processorFactory = JS.undefined();
+
+void assertParser(string name, JsValue value) {
+  if (!isFn(value)) {
+    throwType("Cannot `" + name + "` without `parser`");
+  }
+}
+
+void assertCompiler(string name, JsValue value) {
+  if (!isFn(value)) {
+    throwType("Cannot `" + name + "` without `compiler`");
+  }
+}
+
+void assertUnfrozen(string name, JsValue frozen) {
+  if (frozen.truthy()) {
+    throwError(
+      "Cannot call `" +
+        name +
+        "` on a frozen processor.\nCreate a new processor first, by calling it: use `processor()` instead of `processor`."
+    );
+  }
+}
+
+void assertNode(JsValue node) {
+  if (!isPlainObj(node) || JS.typeOf(JS.get(node, "type")) != "string") {
+    throwType("Expected node, got `" + JS.string(node) + "`");
+  }
+}
+
+void assertDone(string name, string asyncName, JsValue complete) {
+  if (!complete.truthy()) {
+    throwError("`" + name + "` finished async. Use `" + asyncName + "` instead");
+  }
+}
+
+JsValue pickParser(JsValue self) {
+  JsValue parser = JS.get(self, "parser");
+  if (!isFn(parser)) {
+    parser = JS.get(self, "Parser");
+  }
+  return parser;
+}
+
+JsValue pickCompiler(JsValue self) {
+  JsValue compiler = JS.get(self, "compiler");
+  if (!isFn(compiler)) {
+    compiler = JS.get(self, "Compiler");
+  }
+  return compiler;
+}
+
+void addPlugin(JsValue attachers, JsValue plugin, JsValue parameters) {
+  int index = -1;
+  int entryIndex = -1;
+  int n = attachers.length.toInt();
+  while (true) {
+    index = index + 1;
+    if (index >= n) {
+      break;
+    }
+    if (JS.strictEqual(attachers[index][0], plugin)) {
+      entryIndex = index;
+      break;
+    }
+  }
+  if (entryIndex == -1) {
+    JsValue entry = JS.array();
+    JS.push(entry, plugin);
+    int p = 0;
+    int pn = parameters.length.toInt();
+    while (p < pn) {
+      JS.push(entry, parameters[p]);
+      p = p + 1;
+    }
+    JS.push(attachers, entry);
+    return;
+  }
+  if (parameters.length.toInt() > 0) {
+    JsValue primary = parameters[0];
+    JsValue rest = sliceArgs(parameters, 1);
+    JsValue currentPrimary = attachers[entryIndex][1];
+    if (isPlainObj(currentPrimary) && isPlainObj(primary)) {
+      primary = extendWith(true, currentPrimary, primary);
+    }
+    JsValue entry = JS.array();
+    JS.push(entry, plugin);
+    JS.push(entry, primary);
+    int r = 0;
+    int rn = rest.length.toInt();
+    while (r < rn) {
+      JS.push(entry, rest[r]);
+      r = r + 1;
+    }
+    JS.splice(attachers, entryIndex * 1.0, 1.0, entry);
+  }
+}
+
+void addList(JsValue attachers, JsValue namespace, JsValue plugins) {
+  if (JS.isNullish(plugins)) {
+    return;
+  }
+  if (!plugins.isArray()) {
+    throwType("Expected a list of plugins, not `" + JS.string(plugins) + "`");
+  }
+  int index = -1;
+  int n = plugins.length.toInt();
+  while (true) {
+    index = index + 1;
+    if (index >= n) {
+      break;
+    }
+    JS.call(JS.get(addFns, "add"), JS.undefined(), attachers, namespace, plugins[index]);
+  }
+}
+
+void addPreset(JsValue attachers, JsValue namespace, JsValue result) {
+  if (!JS.in("plugins", result) && !JS.in("settings", result)) {
+    throwError(
+      "Expected usable value but received an empty preset, which is probably a mistake: presets typically come with `plugins` and sometimes with `settings`, but this has neither"
+    );
+  }
+  addList(attachers, namespace, JS.get(result, "plugins"));
+  JsValue settings = JS.get(result, "settings");
+  if (settings.truthy()) {
+    JS.set(namespace, "settings", extendWith(true, JS.get(namespace, "settings"), settings));
+  }
+}
+
+void addOne(JsValue attachers, JsValue namespace, JsValue value) {
+  if (isFn(value)) {
+    addPlugin(attachers, value, JS.array());
+    return;
+  }
+  if (JS.typeOf(value) == "object") {
+    if (value.isArray()) {
+      addPlugin(attachers, value[0], sliceArgs(value, 1));
+      return;
+    }
+    addPreset(attachers, namespace, value);
+    return;
+  }
+  throwType("Expected usable value, not `" + JS.string(value) + "`");
+}
+
+JS.set(addFns, "add", JS.method3((JsValue _s, JsValue attachers, JsValue namespace, JsValue value) => {
+  addOne(attachers, namespace, value);
+  return JS.undefined();
+}));
+
+JsValue useCall(JsValue self, JsValue args) {
+  assertUnfrozen("use", JS.get(self, "frozen"));
+  JsValue attachers = JS.get(self, "attachers");
+  JsValue namespace = JS.get(self, "namespace");
+  int n = args.length.toInt();
+  JsValue value = JS.undefined();
+  if (n > 0) {
+    value = args[0];
+  }
+  if (JS.isNullish(value)) {
+    return self;
+  }
+  if (isFn(value)) {
+    addPlugin(attachers, value, sliceArgs(args, 1));
+    return self;
+  }
+  if (JS.typeOf(value) == "object") {
+    if (value.isArray()) {
+      addList(attachers, namespace, value);
+    } else {
+      addPreset(attachers, namespace, value);
+    }
+    return self;
+  }
+  throw JS.construct(TypeError, "Expected usable value, not `" + JS.string(value) + "`");
+}
+
+JsValue dataCall(JsValue self, JsValue args) {
+  JsValue namespace = JS.get(self, "namespace");
+  int n = args.length.toInt();
+  JsValue key = JS.undefined();
+  if (n > 0) {
+    key = args[0];
+  }
+  if (key is string) {
+    if (n == 2) {
+      assertUnfrozen("data", JS.get(self, "frozen"));
+      JS.set(namespace, key, args[1]);
+      return self;
+    }
+    if (objectHasOwn(namespace, key)) {
+      JsValue got = JS.get(namespace, key);
+      if (got.truthy()) {
+        return got;
+      }
+    }
+    return JS.undefined();
+  }
+  if (key.truthy()) {
+    assertUnfrozen("data", JS.get(self, "frozen"));
+    JS.set(self, "namespace", key);
+    return self;
+  }
+  return namespace;
+}
+
+JsValue freezeCall(JsValue self) {
+  if (JS.get(self, "frozen").truthy()) {
+    return self;
+  }
+  JsValue attachers = JS.get(self, "attachers");
+  JsValue transformers = JS.get(self, "transformers");
+  while (true) {
+    float nextIndex = JS.number(JS.get(self, "freezeIndex")) + 1.0;
+    JS.set(self, "freezeIndex", nextIndex);
+    if (nextIndex >= attachers.length) {
+      break;
+    }
+    int idx = nextIndex.toInt();
+    JsValue entry = attachers[idx];
+    JsValue attacher = entry[0];
+    JsValue options = sliceArgs(entry, 1);
+    if (options.length.toInt() > 0 && JS.isFalse(options[0])) {
+      continue;
+    }
+    if (options.length.toInt() > 0 && JS.strictEqual(options[0], true)) {
+      JS.splice(options, 0.0, 1.0, JS.undefined());
+    }
+    JsValue transformer = JS.apply(attacher, self, options);
+    if (isFn(transformer)) {
+      JS.call(JS.get(transformers, "use"), transformers, transformer);
+    }
+  }
+  JS.set(self, "frozen", true);
+  JS.set(self, "freezeIndex", JS.get(Number, "POSITIVE_INFINITY"));
+  return self;
+}
+
+JsValue parseCall(JsValue self, JsValue file) {
+  JS.call(JS.get(self, "freeze"), self);
+  JsValue realFile = asVFile(file);
+  JsValue parser = pickParser(self);
+  assertParser("parse", parser);
+  return JS.call(parser, JS.undefined(), JS.string(realFile), realFile);
+}
+
+JsValue stringifyCall(JsValue self, JsValue tree, JsValue file) {
+  JS.call(JS.get(self, "freeze"), self);
+  JsValue realFile = asVFile(file);
+  JsValue compiler = pickCompiler(self);
+  assertCompiler("stringify", compiler);
+  assertNode(tree);
+  return JS.call(compiler, JS.undefined(), tree, realFile);
+}
+
+JsValue runCall(JsValue self, JsValue tree, JsValue file, JsValue done) {
+  assertNode(tree);
+  JS.call(JS.get(self, "freeze"), self);
+  if (!done.truthy() && isFn(file)) {
+    done = file;
+    file = JS.undefined();
+  }
+  JsValue transformers = JS.get(self, "transformers");
+  JsValue originalTree = tree;
+  JsValue executor = JS.method2((JsValue _t, JsValue resolve, JsValue reject) => {
+    JsValue realFile = asVFile(file);
+    JsValue realDone = JS.method3((JsValue _s, JsValue error, JsValue outputTree, JsValue outFile) => {
+      JsValue resulting = outputTree;
+      if (!resulting.truthy()) {
+        resulting = originalTree;
+      }
+      if (error.truthy()) {
+        JS.call(reject, JS.undefined(), error);
+        return JS.undefined();
+      }
+      if (resolve.truthy()) {
+        JS.call(resolve, JS.undefined(), resulting);
+        return JS.undefined();
+      }
+      JS.call(done, JS.undefined(), JS.undefined(), resulting, outFile);
+      return JS.undefined();
+    });
+    JS.call(JS.get(transformers, "run"), transformers, tree, realFile, realDone);
+    return JS.undefined();
+  });
+  if (done.truthy()) {
+    JS.call(executor, JS.undefined(), JS.undefined(), done);
+    return JS.undefined();
+  }
+  return JS.construct(Promise, executor);
+}
+
+JsValue runSyncCall(JsValue self, JsValue tree, JsValue file) {
+  JsValue state = JS.object();
+  JS.set(state, "complete", false);
+  JS.set(state, "result", JS.undefined());
+  JsValue realDone = JS.method3((JsValue _s, JsValue error, JsValue outTree, JsValue _f) => {
+    bail(error);
+    JS.set(state, "result", outTree);
+    JS.set(state, "complete", true);
+    return JS.undefined();
+  });
+  JS.call(JS.get(self, "run"), self, tree, file, realDone);
+  assertDone("runSync", "run", JS.get(state, "complete"));
+  assertOk(JS.get(state, "result"), "we either bailed on an error or have a tree");
+  return JS.get(state, "result");
+}
+
+JsValue processCall(JsValue self, JsValue file, JsValue done) {
+  JS.call(JS.get(self, "freeze"), self);
+  assertParser("process", pickParser(self));
+  assertCompiler("process", pickCompiler(self));
+  JsValue executor = JS.method2((JsValue _t, JsValue resolve, JsValue reject) => {
+    JsValue realFile = asVFile(file);
+    JsValue parseTree = JS.call(JS.get(self, "parse"), self, realFile);
+    JsValue runDone = JS.method3((JsValue _s, JsValue error, JsValue tree, JsValue outFile) => {
+      if (error.truthy() || !tree.truthy() || !outFile.truthy()) {
+        JS.call(reject, JS.undefined(), error);
+        return JS.undefined();
+      }
+      JsValue compileResult = JS.call(JS.get(self, "stringify"), self, tree, outFile);
+      if (looksLikeAValue(compileResult)) {
+        JS.set(outFile, "value", compileResult);
+      } else {
+        JS.set(outFile, "result", compileResult);
+      }
+      if (resolve.truthy()) {
+        JS.call(resolve, JS.undefined(), outFile);
+        return JS.undefined();
+      }
+      JS.call(done, JS.undefined(), JS.undefined(), outFile);
+      return JS.undefined();
+    });
+    JS.call(JS.get(self, "run"), self, parseTree, realFile, runDone);
+    return JS.undefined();
+  });
+  if (done.truthy()) {
+    JS.call(executor, JS.undefined(), JS.undefined(), done);
+    return JS.undefined();
+  }
+  return JS.construct(Promise, executor);
+}
+
+JsValue processSyncCall(JsValue self, JsValue file) {
+  JS.call(JS.get(self, "freeze"), self);
+  assertParser("processSync", pickParser(self));
+  assertCompiler("processSync", pickCompiler(self));
+  JsValue state = JS.object();
+  JS.set(state, "complete", false);
+  JS.set(state, "result", JS.undefined());
+  JsValue realDone = JS.method2((JsValue _s, JsValue error, JsValue outFile) => {
+    JS.set(state, "complete", true);
+    bail(error);
+    JS.set(state, "result", outFile);
+    return JS.undefined();
+  });
+  JS.call(JS.get(self, "process"), self, file, realDone);
+  assertDone("processSync", "process", JS.get(state, "complete"));
+  assertOk(JS.get(state, "result"), "we either bailed on an error or have a tree");
+  return JS.get(state, "result");
+}
+
+JsValue copyProcessor(JsValue self) {
+  JsValue destination = JS.call(processorFactory, JS.undefined());
+  JsValue attachers = JS.get(self, "attachers");
+  int index = -1;
+  int n = attachers.length.toInt();
+  while (true) {
+    index = index + 1;
+    if (index >= n) {
+      break;
+    }
+    JS.apply(JS.get(destination, "use"), destination, attachers[index]);
+  }
+  JS.call(JS.get(destination, "data"), destination, cloneNamespace(JS.get(self, "namespace")));
+  return destination;
+}
+
+JsValue useMethod = JS.methodRest(useCall);
+JsValue parseMethod = JS.method1(parseCall);
+JsValue runMethod = JS.method3(runCall);
+JsValue runSyncMethod = JS.method2(runSyncCall);
+JsValue stringifyMethod = JS.method2(stringifyCall);
+JsValue processMethod = JS.method2(processCall);
+JsValue processSyncMethod = JS.method1(processSyncCall);
+JsValue dataMethod = JS.methodRest(dataCall);
+JsValue freezeMethod = JS.method0(freezeCall);
+
+JsValue createProcessor() {
+  JsValue box = JS.object();
+  JsValue proc = JS.staticRest((JsValue _args) => {
+    return copyProcessor(JS.get(box, "self"));
+  });
+  JS.set(box, "self", proc);
+  JS.set(proc, "attachers", JS.array());
+  JS.set(proc, "compiler", JS.undefined());
+  JS.set(proc, "parser", JS.undefined());
+  JS.set(proc, "Compiler", JS.undefined());
+  JS.set(proc, "Parser", JS.undefined());
+  JS.set(proc, "freezeIndex", -1.0);
+  JS.set(proc, "frozen", JS.undefined());
+  JS.set(proc, "namespace", JS.object());
+  JS.set(proc, "transformers", trough());
+  ProcessorApi api = JS.assume(proc);
+  api.use = useMethod;
+  api.parse = parseMethod;
+  api.run = runMethod;
+  api.runSync = runSyncMethod;
+  api.stringify = stringifyMethod;
+  api.process = processMethod;
+  api.processSync = processSyncMethod;
+  api.data = dataMethod;
+  api.freeze = freezeMethod;
+  return proc;
+}
+
+processorFactory = JS.method0((JsValue _s) => {
+  return createProcessor();
+});
+
+JsValue unifiedValue = createProcessor();
+JS.call(JS.get(unifiedValue, "freeze"), unifiedValue);
+
+export JsValue unified = unifiedValue;
+export JsValue default = unifiedValue;

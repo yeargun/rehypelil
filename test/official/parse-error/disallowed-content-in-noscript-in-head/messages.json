@@ -1,0 +1,26 @@
+[
+  {
+    "column": 11,
+    "fatal": false,
+    "message": "Disallowed content inside `<noscript>` in `<head>`",
+    "line": 3,
+    "name": "index.html:3:11-3:14",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 11,
+        "offset": 80
+      },
+      "end": {
+        "line": 3,
+        "column": 14,
+        "offset": 83
+      }
+    },
+    "reason": "Disallowed content inside `<noscript>` in `<head>`",
+    "ruleId": "disallowed-content-in-noscript-in-head",
+    "source": "hast-util-from-html",
+    "note": "Unexpected text character `h`. Only use text in `<noscript>`s in `<body>`",
+    "file": "index.html"
+  }
+]

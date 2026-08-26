@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs"
 import { dirname, resolve } from "node:path"
@@ -16,7 +17,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const lilscriptRoot = process.env.LILSCRIPT_ROOT ?? resolve(root, "..", "lilscript")
 const dist = resolve(root, "dist")
 const file = "rehype"
-const banner = "/*! @itslil/rehype 13.0.2 | LilScript reimplementation of rehype | MIT */\n"
+const banner = "/*! @itslil/rehype 13.0.3 | LilScript reimplementation of rehype | MIT */\n"
 
 function compilerPath() {
   const candidates = [
@@ -27,8 +28,10 @@ function compilerPath() {
   for (const candidate of candidates) {
     try {
       accessSync(candidate, constants.X_OK)
-      return candidate
-    } catch {}
+    } catch {
+      continue
+    }
+    return candidate
   }
   return null
 }
@@ -50,7 +53,42 @@ function compileLil(compiler, configName, outputName) {
   ])
 }
 
-function compileIfRequested() {
+async function bundleParse5Host() {
+  await esbuild({
+    absWorkingDir: root,
+    entryPoints: [resolve(root, "src", "parse5-host.js")],
+    outfile: resolve(dist, "parse5-host.js"),
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    legalComments: "none",
+    minifyWhitespace: false,
+    minifyIdentifiers: false,
+    minifySyntax: false,
+    logLevel: "error",
+  })
+  copyFileSync(resolve(root, "src", "errors-host.js"), resolve(dist, "errors-host.js"))
+}
+
+async function bundleCompiled(entryName, outfile, format, extra) {
+  await esbuild({
+    absWorkingDir: dist,
+    entryPoints: [resolve(dist, entryName)],
+    outfile,
+    bundle: true,
+    format,
+    platform: "neutral",
+    legalComments: "none",
+    minifyWhitespace: format != "esm",
+    minifyIdentifiers: false,
+    minifySyntax: false,
+    banner: { js: banner },
+    logLevel: "error",
+    ...extra,
+  })
+}
+
+async function compileIfRequested() {
   if (!process.argv.includes("--compile") && existsSync(resolve(dist, `${file}.raw.js`))) {
     return
   }
@@ -59,11 +97,12 @@ function compileIfRequested() {
     throw new Error("LilScript compiler not found. Set LILSCRIPT_COMPILER or build lilscript.")
   }
   mkdirSync(dist, { recursive: true })
+  await bundleParse5Host()
   compileLil(compiler, "lilscript.toml", `${file}.raw.js`)
   compileLil(compiler, "lilscript.closed.toml", `${file}.closed.js`)
 }
 
-compileIfRequested()
+await compileIfRequested()
 mkdirSync(dist, { recursive: true })
 
 const rawPath = resolve(dist, `${file}.raw.js`)
@@ -71,22 +110,23 @@ if (!existsSync(rawPath)) {
   throw new Error(`dist/${file}.raw.js is missing. Run with --compile after building LilScript.`)
 }
 
-writeFileSync(resolve(dist, `${file}.esm.js`), `${banner}${readFileSync(rawPath, "utf8").trimEnd()}\n`)
+if (!existsSync(resolve(dist, "parse5-host.js"))) {
+  await bundleParse5Host()
+}
 
-await esbuild({
-  absWorkingDir: dist,
-  entryPoints: [resolve(dist, `${file}.esm.js`)],
-  outfile: resolve(dist, `${file}.cjs`),
-  bundle: true,
-  format: "cjs",
-  platform: "neutral",
-  legalComments: "none",
-  minifyWhitespace: true,
-  minifyIdentifiers: false,
-  minifySyntax: false,
-  banner: { js: banner },
-  logLevel: "error",
-})
+await bundleCompiled(`${file}.raw.js`, resolve(dist, `${file}.esm.js`), "esm")
+
+const closedPath = resolve(dist, `${file}.closed.js`)
+if (existsSync(closedPath) && readFileSync(closedPath, "utf8").includes("parse5-host.js")) {
+  const closedBundled = resolve(dist, `${file}.closed.bundled.js`)
+  await bundleCompiled(`${file}.closed.js`, closedBundled, "esm", { banner: undefined })
+  writeFileSync(closedPath, `${banner}${readFileSync(closedBundled, "utf8").trimEnd()}\n`)
+  try {
+    unlinkSync(closedBundled)
+  } catch {}
+}
+
+await bundleCompiled(`${file}.esm.js`, resolve(dist, `${file}.cjs`), "cjs")
 
 await esbuild({
   absWorkingDir: dist,

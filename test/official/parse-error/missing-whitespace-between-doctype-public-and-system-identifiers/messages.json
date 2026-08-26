@@ -1,0 +1,51 @@
+[
+  {
+    "column": 28,
+    "fatal": false,
+    "message": "Missing whitespace between public and system identifiers in doctype",
+    "line": 1,
+    "name": "index.html:1:28-1:28",
+    "place": {
+      "start": {
+        "line": 1,
+        "column": 28,
+        "offset": 27
+      },
+      "end": {
+        "line": 1,
+        "column": 28,
+        "offset": 27
+      }
+    },
+    "reason": "Missing whitespace between public and system identifiers in doctype",
+    "ruleId": "missing-whitespace-between-doctype-public-and-system-identifiers",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `\"`. Expected ASCII whitespace instead",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-missing-whitespace-between-doctype-public-and-system-identifiers",
+    "file": "index.html"
+  },
+  {
+    "column": 1,
+    "fatal": false,
+    "message": "Unexpected non-conforming doctype declaration",
+    "line": 1,
+    "name": "index.html:1:1-1:34",
+    "place": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 1,
+        "column": 34,
+        "offset": 33
+      }
+    },
+    "reason": "Unexpected non-conforming doctype declaration",
+    "ruleId": "non-conforming-doctype",
+    "source": "hast-util-from-html",
+    "note": "Expected `<!doctype html>` or `<!doctype html system \"about:legacy-compat\">`",
+    "file": "index.html"
+  }
+]

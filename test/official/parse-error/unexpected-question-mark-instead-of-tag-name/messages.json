@@ -1,0 +1,27 @@
+[
+  {
+    "column": 2,
+    "fatal": false,
+    "message": "Unexpected question mark instead of tag name",
+    "line": 3,
+    "name": "index.html:3:2-3:2",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 2,
+        "offset": 77
+      },
+      "end": {
+        "line": 3,
+        "column": 2,
+        "offset": 77
+      }
+    },
+    "reason": "Unexpected question mark instead of tag name",
+    "ruleId": "unexpected-question-mark-instead-of-tag-name",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `?`. Expected an ASCII letter instead",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-unexpected-question-mark-instead-of-tag-name",
+    "file": "index.html"
+  }
+]

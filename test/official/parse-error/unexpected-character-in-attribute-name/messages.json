@@ -1,0 +1,77 @@
+[
+  {
+    "column": 9,
+    "fatal": false,
+    "message": "Unexpected character in attribute name",
+    "line": 3,
+    "name": "index.html:3:9-3:9",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 9,
+        "offset": 78
+      },
+      "end": {
+        "line": 3,
+        "column": 9,
+        "offset": 78
+      }
+    },
+    "reason": "Unexpected character in attribute name",
+    "ruleId": "unexpected-character-in-attribute-name",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `<`. Expected whitespace, `/`, `>`, `=`, or probably an ASCII letter",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-unexpected-character-in-attribute-name",
+    "file": "index.html"
+  },
+  {
+    "column": 16,
+    "fatal": false,
+    "message": "Unexpected character in attribute name",
+    "line": 3,
+    "name": "index.html:3:16-3:16",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 16,
+        "offset": 85
+      },
+      "end": {
+        "line": 3,
+        "column": 16,
+        "offset": 85
+      }
+    },
+    "reason": "Unexpected character in attribute name",
+    "ruleId": "unexpected-character-in-attribute-name",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `'`. Expected whitespace, `/`, `>`, `=`, or probably an ASCII letter",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-unexpected-character-in-attribute-name",
+    "file": "index.html"
+  },
+  {
+    "column": 20,
+    "fatal": false,
+    "message": "Unexpected character in attribute name",
+    "line": 3,
+    "name": "index.html:3:20-3:20",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 20,
+        "offset": 89
+      },
+      "end": {
+        "line": 3,
+        "column": 20,
+        "offset": 89
+      }
+    },
+    "reason": "Unexpected character in attribute name",
+    "ruleId": "unexpected-character-in-attribute-name",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `'`. Expected whitespace, `/`, `>`, `=`, or probably an ASCII letter",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-unexpected-character-in-attribute-name",
+    "file": "index.html"
+  }
+]

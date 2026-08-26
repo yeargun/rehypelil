@@ -1,0 +1,50 @@
+[
+  {
+    "column": 3,
+    "fatal": false,
+    "message": "Unexpected nested `<noscript>` in `<head>`",
+    "line": 5,
+    "name": "index.html:5:3-5:13",
+    "place": {
+      "start": {
+        "line": 5,
+        "column": 3,
+        "offset": 110
+      },
+      "end": {
+        "line": 5,
+        "column": 13,
+        "offset": 120
+      }
+    },
+    "reason": "Unexpected nested `<noscript>` in `<head>`",
+    "ruleId": "nested-noscript-in-head",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `<noscript>`. Expected a closing tag or a meta element",
+    "file": "index.html"
+  },
+  {
+    "column": 1,
+    "fatal": false,
+    "message": "Unexpected unopened end tag",
+    "line": 6,
+    "name": "index.html:6:1-6:12",
+    "place": {
+      "start": {
+        "line": 6,
+        "column": 1,
+        "offset": 132
+      },
+      "end": {
+        "line": 6,
+        "column": 12,
+        "offset": 143
+      }
+    },
+    "reason": "Unexpected unopened end tag",
+    "ruleId": "end-tag-without-matching-open-element",
+    "source": "hast-util-from-html",
+    "note": "Unexpected end tag. Expected no end tag or another end tag",
+    "file": "index.html"
+  }
+]

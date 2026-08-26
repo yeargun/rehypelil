@@ -1,0 +1,27 @@
+[
+  {
+    "column": 1,
+    "fatal": false,
+    "message": "Unexpected control character",
+    "line": 4,
+    "name": "index.html:4:1-4:1",
+    "place": {
+      "start": {
+        "line": 4,
+        "column": 1,
+        "offset": 111
+      },
+      "end": {
+        "line": 4,
+        "column": 1,
+        "offset": 111
+      }
+    },
+    "reason": "Unexpected control character",
+    "ruleId": "control-character-in-input-stream",
+    "source": "hast-util-from-html",
+    "note": "Unexpected control character `0x7F`. Expected a non-control code point, 0x00, or ASCII whitespace",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-control-character-in-input-stream",
+    "file": "index.html"
+  }
+]

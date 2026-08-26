@@ -1,0 +1,131 @@
+export extern JsValue Object;
+export extern JsValue String;
+export extern JsValue Error;
+export extern JsValue TypeError;
+export extern JsValue Number;
+export extern JsValue Symbol;
+export extern JsValue JSON;
+export extern JsValue Promise;
+
+export JsValue NULL = JS.invoke(JSON, "parse", "null");
+export JsValue HAS_OWN = JS.get(JS.get(Object, "prototype"), "hasOwnProperty");
+export JsValue TO_STRING = JS.get(JS.get(Object, "prototype"), "toString");
+
+export JsValue undef() {
+  return JS.undefined();
+}
+
+export bool isUndef(JsValue value) {
+  return JS.isUndefined(value);
+}
+
+export bool isNullish(JsValue value) {
+  return JS.isNullish(value);
+}
+
+export bool isFn(JsValue value) {
+  return JS.typeOf(value) == "function";
+}
+
+export bool isStr(JsValue value) {
+  return JS.typeOf(value) == "string";
+}
+
+export bool isObj(JsValue value) {
+  return !JS.isNullish(value) && JS.typeOf(value) == "object";
+}
+
+export int len(JsValue value) {
+  return value.length.toInt();
+}
+
+export JsValue copyArray(JsValue list) {
+  JsValue out = JS.array();
+  int n = list.length.toInt();
+  int i = 0;
+  while (i < n) {
+    JS.push(out, list[i]);
+    i = i + 1;
+  }
+  return out;
+}
+
+export JsValue sliceArgs(JsValue list, int start) {
+  JsValue out = JS.array();
+  int n = list.length.toInt();
+  int i = start;
+  while (i < n) {
+    JS.push(out, list[i]);
+    i = i + 1;
+  }
+  return out;
+}
+
+export bool objectHasOwn(JsValue obj, string key) {
+  return JS.call(HAS_OWN, obj, key).truthy();
+}
+
+export void setIndex(JsValue arr, int index, JsValue value) {
+  int n = arr.length.toInt();
+  if (index >= n) {
+    while (n < index) {
+      JS.push(arr, JS.undefined());
+      n = n + 1;
+    }
+    JS.push(arr, value);
+    return;
+  }
+  JS.splice(arr, index * 1.0, 1.0, value);
+}
+
+export bool isErrorInstance(JsValue value) {
+  if (JS.isNullish(value)) {
+    return false;
+  }
+  string t = JS.typeOf(value);
+  if (t != "object" && t != "function") {
+    return false;
+  }
+  return JS.invoke(JS.get(Error, "prototype"), "isPrototypeOf", value).truthy();
+}
+
+export bool looksLikeAValue(JsValue value) {
+  if (JS.typeOf(value) == "string") {
+    return true;
+  }
+  return isUint8Array(value);
+}
+
+export bool isUint8Array(JsValue value) {
+  if (!value.truthy()) {
+    return false;
+  }
+  if (JS.typeOf(value) != "object") {
+    return false;
+  }
+  return JS.in("byteLength", value) && JS.in("byteOffset", value);
+}
+
+export void throwError(string message) {
+  throw JS.construct(Error, message);
+}
+
+export void throwType(string message) {
+  throw JS.construct(TypeError, message);
+}
+
+export void bail(JsValue error) {
+  if (error.truthy()) {
+    throw error;
+  }
+}
+
+export void assertOk(JsValue value, string message) {
+  if (!value.truthy()) {
+    throw JS.construct(Error, message);
+  }
+}
+
+export JsValue protoOf(JsValue value) {
+  return JS.invoke(Object, "getPrototypeOf", value);
+}

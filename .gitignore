@@ -5,3 +5,4 @@ _site/
 *.tgz
 .tmp/
 dist/*.raw.js
+dist/*.closed.bundled.js

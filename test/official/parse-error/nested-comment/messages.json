@@ -1,0 +1,27 @@
+[
+  {
+    "column": 10,
+    "fatal": false,
+    "message": "Unexpected nested comment",
+    "line": 3,
+    "name": "index.html:3:10-3:10",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 10,
+        "offset": 55
+      },
+      "end": {
+        "line": 3,
+        "column": 10,
+        "offset": 55
+      }
+    },
+    "reason": "Unexpected nested comment",
+    "ruleId": "nested-comment",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `<!--`. Expected `-->`",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-nested-comment",
+    "file": "index.html"
+  }
+]

@@ -1,0 +1,11 @@
+import extern { getErrors } from "./errors-host.js";
+extern JsValue getErrors();
+
+JsValue cached = JS.undefined();
+
+export JsValue parseErrorInfo(string name) {
+  if (JS.isUndefined(cached)) {
+    cached = JS.call(getErrors, JS.undefined());
+  }
+  return JS.get(cached, name);
+}

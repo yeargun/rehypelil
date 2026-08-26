@@ -1,0 +1,27 @@
+[
+  {
+    "column": 7,
+    "fatal": false,
+    "message": "Unexpected control character reference",
+    "line": 3,
+    "name": "index.html:3:7-3:7",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 7,
+        "offset": 65
+      },
+      "end": {
+        "line": 3,
+        "column": 7,
+        "offset": 65
+      }
+    },
+    "reason": "Unexpected control character reference",
+    "ruleId": "control-character-reference",
+    "source": "hast-util-from-html",
+    "note": "Unexpectedly control character in reference. Expected a non-control code point, 0x00, or ASCII whitespace",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-control-character-reference",
+    "file": "index.html"
+  }
+]

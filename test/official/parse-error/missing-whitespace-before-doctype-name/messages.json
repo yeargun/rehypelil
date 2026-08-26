@@ -1,0 +1,27 @@
+[
+  {
+    "column": 10,
+    "fatal": false,
+    "message": "Missing whitespace before doctype name",
+    "line": 1,
+    "name": "index.html:1:10-1:10",
+    "place": {
+      "start": {
+        "line": 1,
+        "column": 10,
+        "offset": 9
+      },
+      "end": {
+        "line": 1,
+        "column": 10,
+        "offset": 9
+      }
+    },
+    "reason": "Missing whitespace before doctype name",
+    "ruleId": "missing-whitespace-before-doctype-name",
+    "source": "hast-util-from-html",
+    "note": "Unexpected `h`. Expected ASCII whitespace instead",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-missing-whitespace-before-doctype-name",
+    "file": "index.html"
+  }
+]

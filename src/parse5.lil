@@ -1,0 +1,11 @@
+import extern { parseDocument, parseFrag } from "./parse5-host.js";
+extern JsValue parseDocument(JsValue html, JsValue options);
+extern JsValue parseFrag(JsValue html, JsValue options);
+
+export JsValue parse5Document(JsValue html, JsValue options) {
+  return JS.call(parseDocument, JS.undefined(), html, options);
+}
+
+export JsValue parse5Fragment(JsValue html, JsValue options) {
+  return JS.call(parseFrag, JS.undefined(), html, options);
+}

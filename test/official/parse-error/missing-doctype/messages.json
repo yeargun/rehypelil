@@ -1,0 +1,26 @@
+[
+  {
+    "column": 1,
+    "fatal": false,
+    "message": "Missing doctype before other content",
+    "line": 1,
+    "name": "index.html:1:1-1:1",
+    "place": {
+      "start": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      },
+      "end": {
+        "line": 1,
+        "column": 1,
+        "offset": 0
+      }
+    },
+    "reason": "Missing doctype before other content",
+    "ruleId": "missing-doctype",
+    "source": "hast-util-from-html",
+    "note": "Expected a `<!doctype html>` before anything else",
+    "file": "index.html"
+  }
+]

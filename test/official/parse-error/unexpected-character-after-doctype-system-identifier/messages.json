@@ -1,0 +1,27 @@
+[
+  {
+    "column": 45,
+    "fatal": false,
+    "message": "Invalid character after system identifier in doctype",
+    "line": 1,
+    "name": "index.html:1:45-1:45",
+    "place": {
+      "start": {
+        "line": 1,
+        "column": 45,
+        "offset": 44
+      },
+      "end": {
+        "line": 1,
+        "column": 45,
+        "offset": 44
+      }
+    },
+    "reason": "Invalid character after system identifier in doctype",
+    "ruleId": "unexpected-character-after-doctype-system-identifier",
+    "source": "hast-util-from-html",
+    "note": "Unexpected character at `b`. Expected `>`",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-unexpected-character-after-doctype-system-identifier",
+    "file": "index.html"
+  }
+]

@@ -1,0 +1,205 @@
+import { htmlSchemaBlob, svgSchemaBlob } from "./schema_data.lil";
+import { hasOwn, validDataName } from "./types.lil";
+
+JsValue htmlProperty = JS.object();
+JsValue htmlNormal = JS.object();
+JsValue svgProperty = JS.object();
+JsValue svgNormal = JS.object();
+bool schemaReady = false;
+
+void addLine(JsValue property, JsValue normal, string line) {
+  int first = -1;
+  int second = -1;
+  int i = 0;
+  int n = line.length;
+  while (i < n) {
+    if (line.charAt(i) == "|") {
+      if (first < 0) {
+        first = i;
+      } else if (second < 0) {
+        second = i;
+      }
+    }
+    i = i + 1;
+  }
+  if (first < 0 || second < 0) {
+    return;
+  }
+  string prop = line.slice(0, first);
+  string attr = line.slice(first + 1, second);
+  string flags = line.slice(second + 1);
+  property[prop] = attr + "|" + flags;
+  normal[prop.toLowerCase()] = prop;
+  normal[attr.toLowerCase()] = prop;
+}
+
+void loadBlob(JsValue property, JsValue normal, string blob) {
+  int start = 0;
+  int n = blob.length;
+  int i = 0;
+  while (i <= n) {
+    if (i == n || blob.charAt(i) == "\n") {
+      if (i > start) {
+        addLine(property, normal, blob.slice(start, i));
+      }
+      start = i + 1;
+    }
+    i = i + 1;
+  }
+}
+
+void ensureSchema() {
+  if (schemaReady) {
+    return;
+  }
+  schemaReady = true;
+  loadBlob(htmlProperty, htmlNormal, htmlSchemaBlob);
+  loadBlob(svgProperty, svgNormal, svgSchemaBlob);
+}
+
+string kebabCap(string ch) {
+  return "-" + ch.toLowerCase();
+}
+
+string restToKebab(string rest) {
+  string out = "";
+  int i = 0;
+  int n = rest.length;
+  while (i < n) {
+    string ch = rest.charAt(i);
+    int c = rest.charCodeAt(i);
+    if (c >= 65 && c <= 90) {
+      out = out + kebabCap(ch);
+    } else {
+      out = out + ch;
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+bool hasDashLower(string rest) {
+  int i = 0;
+  int n = rest.length;
+  while (i < n - 1) {
+    if (rest.charAt(i) == "-") {
+      int c = rest.charCodeAt(i + 1);
+      if (c >= 97 && c <= 122) {
+        return true;
+      }
+    }
+    i = i + 1;
+  }
+  return false;
+}
+
+string dashToCamelChunk(string rest) {
+  string out = "";
+  int i = 0;
+  int n = rest.length;
+  while (i < n) {
+    if (i < n - 1 && rest.charAt(i) == "-") {
+      int c = rest.charCodeAt(i + 1);
+      if (c >= 97 && c <= 122) {
+        out = out + rest.charAt(i + 1).toUpperCase();
+        i = i + 2;
+      } else {
+        out = out + rest.charAt(i);
+        i = i + 1;
+      }
+    } else {
+      out = out + rest.charAt(i);
+      i = i + 1;
+    }
+  }
+  return out;
+}
+
+export JsValue findInfo(string space, string value) {
+  ensureSchema();
+  JsValue property = htmlProperty;
+  JsValue normal = htmlNormal;
+  if (space == "svg") {
+    property = svgProperty;
+    normal = svgNormal;
+  }
+  string lowered = value.toLowerCase();
+  if (hasOwn(normal, lowered)) {
+    JsValue propVal = JS.get(normal, lowered);
+    string prop = "";
+    if (propVal is string) {
+      prop = propVal;
+    }
+    JsValue packedVal = JS.get(property, prop);
+    string packed = "";
+    if (packedVal is string) {
+      packed = packedVal;
+    }
+    return JS.object("property", prop, "packed", packed);
+  }
+  string propertyName = value;
+  string attributeName = value;
+  if (lowered.length > 4 && lowered.slice(0, 4) == "data" && validDataName(value)) {
+    if (value.length > 4 && value.charAt(4) == "-") {
+      string rest = dashToCamelChunk(value.slice(5));
+      if (rest.length > 0) {
+        propertyName = "data" + rest.charAt(0).toUpperCase() + rest.slice(1);
+      } else {
+        propertyName = "data";
+      }
+    } else {
+      string rest = value.slice(4);
+      if (!hasDashLower(rest)) {
+        string dashes = restToKebab(rest);
+        if (dashes.length == 0 || dashes.charAt(0) != "-") {
+          dashes = "-" + dashes;
+        }
+        attributeName = "data" + dashes;
+      }
+    }
+  }
+  return JS.object("property", propertyName, "packed", attributeName + "|");
+}
+
+string packedOf(JsValue info) {
+  JsValue packedVal = JS.get(info, "packed");
+  if (packedVal is string) {
+    return packedVal;
+  }
+  return "";
+}
+
+export string infoAttribute(JsValue info) {
+  string packed = packedOf(info);
+  int i = 0;
+  while (i < packed.length) {
+    if (packed.charAt(i) == "|") {
+      return packed.slice(0, i);
+    }
+    i = i + 1;
+  }
+  return packed;
+}
+
+export string infoFlags(JsValue info) {
+  string packed = packedOf(info);
+  int i = 0;
+  while (i < packed.length) {
+    if (packed.charAt(i) == "|") {
+      return packed.slice(i + 1);
+    }
+    i = i + 1;
+  }
+  return "";
+}
+
+export bool flagHas(string flags, string ch) {
+  int i = 0;
+  while (i < flags.length) {
+    if (flags.charAt(i) == ch) {
+      return true;
+    }
+    i = i + 1;
+  }
+  return false;
+}

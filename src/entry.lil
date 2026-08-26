@@ -1,52 +1,18 @@
-import { Processor, asString } from "./host.lil";
-import { fromHtml } from "./from-html.lil";
-import { toHtml } from "./to-html.lil";
-import { createProcessor } from "./unified.lil";
+import { unified } from "./unified/entry.lil";
+import { rehypeParse as parsePlugin } from "./parse.lil";
+import { rehypeStringify as stringifyPlugin } from "./stringify.lil";
 
-JsValue installParse(JsValue self, JsValue _options) {
-  Processor proc = JS.assume(self);
-  proc.parser = JS.method2((JsValue _s, JsValue doc, JsValue file) => {
-    string src = "";
-    if (doc is string) {
-      src = doc;
-    } else {
-      JsValue v = JS.get(doc, "value");
-      if (v is string) {
-        src = v;
-      } else if (file is string) {
-        src = file;
-      } else {
-        JsValue fv = JS.get(file, "value");
-        if (fv is string) {
-          src = fv;
-        } else {
-          src = asString(doc);
-        }
-      }
-    }
-    return fromHtml(src);
-  });
-  return JS.undefined();
-}
-
-JsValue installStringify(JsValue self, JsValue options) {
-  Processor proc = JS.assume(self);
-  bool allow = false;
-  if (!JS.isUndefined(options) && !JS.isNullish(options)) {
-    allow = JS.get(options, "allowDangerousHtml").truthy();
-  }
-  proc.compiler = JS.method2((JsValue _s, JsValue tree, JsValue _file) => {
-    return toHtml(tree, allow);
-  });
-  return JS.undefined();
-}
-
-JsValue rehypeImpl() {
-  JsValue proc = createProcessor();
-  JS.call(JS.method1(installParse), proc, JS.undefined());
-  JS.call(JS.method1(installStringify), proc, JS.undefined());
+JsValue buildRehype() {
+  JsValue proc = JS.call(unified, JS.undefined());
+  proc = JS.call(JS.get(proc, "use"), proc, parsePlugin);
+  proc = JS.call(JS.get(proc, "use"), proc, stringifyPlugin);
+  proc = JS.call(JS.get(proc, "freeze"), proc);
   return proc;
 }
 
-export JsValue rehype = rehypeImpl;
-export JsValue default = rehypeImpl;
+JsValue rehypeValue = buildRehype();
+
+export JsValue rehype = rehypeValue;
+export JsValue default = rehypeValue;
+export JsValue rehypeParse = parsePlugin;
+export JsValue rehypeStringify = stringifyPlugin;

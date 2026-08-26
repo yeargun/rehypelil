@@ -1,0 +1,52 @@
+[
+  {
+    "column": 11,
+    "fatal": false,
+    "message": "Unexpected too big numeric character reference",
+    "line": 3,
+    "name": "index.html:3:11-3:11",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 11,
+        "offset": 83
+      },
+      "end": {
+        "line": 3,
+        "column": 11,
+        "offset": 83
+      }
+    },
+    "reason": "Unexpected too big numeric character reference",
+    "ruleId": "character-reference-outside-unicode-range",
+    "source": "hast-util-from-html",
+    "note": "Unexpectedly high character reference. Expected character references to be at most hexadecimal 10ffff (or decimal 1114111)",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-character-reference-outside-unicode-range",
+    "file": "index.html"
+  },
+  {
+    "column": 11,
+    "fatal": false,
+    "message": "Unexpected too big numeric character reference",
+    "line": 4,
+    "name": "index.html:4:11-4:11",
+    "place": {
+      "start": {
+        "line": 4,
+        "column": 11,
+        "offset": 94
+      },
+      "end": {
+        "line": 4,
+        "column": 11,
+        "offset": 94
+      }
+    },
+    "reason": "Unexpected too big numeric character reference",
+    "ruleId": "character-reference-outside-unicode-range",
+    "source": "hast-util-from-html",
+    "note": "Unexpectedly high character reference. Expected character references to be at most hexadecimal 10ffff (or decimal 1114111)",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-character-reference-outside-unicode-range",
+    "file": "index.html"
+  }
+]

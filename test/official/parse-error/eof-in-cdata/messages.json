@@ -1,0 +1,27 @@
+[
+  {
+    "column": 1,
+    "fatal": false,
+    "message": "Unexpected end of file in CDATA",
+    "line": 4,
+    "name": "index.html:4:1-4:1",
+    "place": {
+      "start": {
+        "line": 4,
+        "column": 1,
+        "offset": 59
+      },
+      "end": {
+        "line": 4,
+        "column": 1,
+        "offset": 59
+      }
+    },
+    "reason": "Unexpected end of file in CDATA",
+    "ruleId": "eof-in-cdata",
+    "source": "hast-util-from-html",
+    "note": "Unexpected end of file. Expected `]]>` to close the CDATA",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-eof-in-cdata",
+    "file": "index.html"
+  }
+]

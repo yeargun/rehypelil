@@ -1,6 +1,6 @@
 {
   "name": "@itslil/rehype",
-  "version": "13.0.2",
+  "version": "13.0.3",
   "description": "rehype reimplemented in LilScript",
   "keywords": [
     "rehype",
@@ -55,12 +55,17 @@
   "scripts": {
     "build": "node scripts/build.mjs --compile",
     "build:site": "node scripts/build-site.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test test/*.test.mjs test/official/api.js test/official/parse-error.js",
     "check:site": "npm run build:site && node --test test/site.test.mjs",
     "check:pack": "node scripts/check-pack.mjs",
     "prepublishOnly": "npm test && npm run check:pack && npm run check:site"
   },
   "devDependencies": {
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "hast-util-assert": "^4.0.0",
+    "parse5": "^7.2.1",
+    "unified": "^11.0.5",
+    "unist-util-remove-position": "^5.0.0",
+    "vfile": "^6.0.3"
   }
 }

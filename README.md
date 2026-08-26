@@ -1,6 +1,6 @@
 # @itslil/rehype
 
-rehype reimplemented in LilScript. This is **not** the official [`rehype`](https://github.com/rehypejs/rehype) package.
+Official [`rehype@13.0.2`](https://github.com/rehypejs/rehype) algorithms rewritten in LilScript. Official test suite 136/136. Not affiliated with upstream.
 
 **Site:** [yeargun.github.io/rehypelil/](https://yeargun.github.io/rehypelil/)
 

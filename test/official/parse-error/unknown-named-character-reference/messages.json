@@ -1,0 +1,27 @@
+[
+  {
+    "column": 7,
+    "fatal": false,
+    "message": "Unexpected unknown named character reference",
+    "line": 3,
+    "name": "index.html:3:7-3:7",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 7,
+        "offset": 71
+      },
+      "end": {
+        "line": 3,
+        "column": 7,
+        "offset": 71
+      }
+    },
+    "reason": "Unexpected unknown named character reference",
+    "ruleId": "unknown-named-character-reference",
+    "source": "hast-util-from-html",
+    "note": "Unexpected character reference. Expected known named character references",
+    "url": "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-unknown-named-character-reference",
+    "file": "index.html"
+  }
+]

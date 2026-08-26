@@ -1,0 +1,26 @@
+[
+  {
+    "column": 1,
+    "fatal": false,
+    "message": "Unexpected unopened end tag",
+    "line": 3,
+    "name": "index.html:3:1-3:12",
+    "place": {
+      "start": {
+        "line": 3,
+        "column": 1,
+        "offset": 69
+      },
+      "end": {
+        "line": 3,
+        "column": 12,
+        "offset": 80
+      }
+    },
+    "reason": "Unexpected unopened end tag",
+    "ruleId": "end-tag-without-matching-open-element",
+    "source": "hast-util-from-html",
+    "note": "Unexpected end tag. Expected no end tag or another end tag",
+    "file": "index.html"
+  }
+]

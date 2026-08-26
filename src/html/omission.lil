@@ -1,0 +1,357 @@
+import { childrenOf, childCount, isWhitespaceNode, stringField } from "./types.lil";
+
+int siblingOffset(JsValue parent, int index, int increment, bool includeWs) {
+  JsValue kids = childrenOf(parent);
+  int n = childCount(kids);
+  int offset = index + increment;
+  while (offset >= 0 && offset < n) {
+    JsValue next = kids[offset];
+    if (includeWs || !isWhitespaceNode(next)) {
+      return offset;
+    }
+    offset = offset + increment;
+  }
+  return -1;
+}
+
+JsValue siblingAt(JsValue parent, int index, int increment, bool includeWs) {
+  int offset = siblingOffset(parent, index, increment, includeWs);
+  if (offset < 0) {
+    return JS.undefined();
+  }
+  return childrenOf(parent)[offset];
+}
+
+bool isComment(JsValue node) {
+  if (JS.isUndefined(node) || JS.isNullish(node)) {
+    return false;
+  }
+  return stringField(node, "type") == "comment";
+}
+
+bool isElementNamed(JsValue node, string tag) {
+  if (JS.isUndefined(node) || JS.isNullish(node)) {
+    return false;
+  }
+  return stringField(node, "type") == "element" && stringField(node, "tagName") == tag;
+}
+
+bool isElementOneOf2(JsValue node, string a, string b) {
+  if (JS.isUndefined(node) || JS.isNullish(node)) {
+    return false;
+  }
+  if (stringField(node, "type") != "element") {
+    return false;
+  }
+  string tag = stringField(node, "tagName");
+  return tag == a || tag == b;
+}
+
+bool textStartsWs(JsValue node) {
+  if (JS.isUndefined(node) || JS.isNullish(node)) {
+    return false;
+  }
+  if (stringField(node, "type") != "text") {
+    return false;
+  }
+  string value = "";
+  JsValue raw = JS.get(node, "value");
+  if (raw is string) {
+    value = raw;
+  }
+  if (value.length == 0) {
+    return false;
+  }
+  return isWhitespaceNode(value.charAt(0));
+}
+
+bool omitHeadOrColgroupOrCaption(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, true);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  if (isComment(next)) {
+    return false;
+  }
+  if (stringField(next, "type") == "text" && textStartsWs(next)) {
+    return false;
+  }
+  return true;
+}
+
+bool omitHtmlClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  return !isComment(next);
+}
+
+bool omitBodyClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  return !isComment(next);
+}
+
+bool pFollowsOmit(JsValue next) {
+  if (!isElementNamed(next, "address") && !isElementNamed(next, "article") && !isElementNamed(next, "aside") && !isElementNamed(next, "blockquote") && !isElementNamed(next, "details") && !isElementNamed(next, "div") && !isElementNamed(next, "dl") && !isElementNamed(next, "fieldset") && !isElementNamed(next, "figcaption") && !isElementNamed(next, "figure") && !isElementNamed(next, "footer") && !isElementNamed(next, "form")) {
+    if (!isElementNamed(next, "h1") && !isElementNamed(next, "h2") && !isElementNamed(next, "h3") && !isElementNamed(next, "h4") && !isElementNamed(next, "h5") && !isElementNamed(next, "h6") && !isElementNamed(next, "header") && !isElementNamed(next, "hgroup") && !isElementNamed(next, "hr") && !isElementNamed(next, "main") && !isElementNamed(next, "menu") && !isElementNamed(next, "nav") && !isElementNamed(next, "ol") && !isElementNamed(next, "p") && !isElementNamed(next, "pre") && !isElementNamed(next, "section") && !isElementNamed(next, "table") && !isElementNamed(next, "ul")) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool pParentConfusing(JsValue parent) {
+  if (JS.isUndefined(parent) || JS.isNullish(parent)) {
+    return false;
+  }
+  if (stringField(parent, "type") != "element") {
+    return false;
+  }
+  string tag = stringField(parent, "tagName");
+  return tag == "a" || tag == "audio" || tag == "del" || tag == "ins" || tag == "map" || tag == "noscript" || tag == "video";
+}
+
+bool omitPClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (!(JS.isUndefined(next) || JS.isNullish(next))) {
+    return stringField(next, "type") == "element" && pFollowsOmit(next);
+  }
+  if (JS.isUndefined(parent) || JS.isNullish(parent)) {
+    return true;
+  }
+  return !pParentConfusing(parent);
+}
+
+bool omitLiClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementNamed(next, "li");
+}
+
+bool omitDtClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  return isElementOneOf2(next, "dt", "dd");
+}
+
+bool omitDdClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementOneOf2(next, "dt", "dd");
+}
+
+bool omitRubyClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementOneOf2(next, "rp", "rt");
+}
+
+bool omitOptgroupClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementNamed(next, "optgroup");
+}
+
+bool omitOptionClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementOneOf2(next, "option", "optgroup");
+}
+
+bool omitTheadClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  return isElementOneOf2(next, "tbody", "tfoot");
+}
+
+bool omitTbodyClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementOneOf2(next, "tbody", "tfoot");
+}
+
+bool omitTfootClose(JsValue _node, int index, JsValue parent) {
+  return siblingOffset(parent, index, 1, false) < 0;
+}
+
+bool omitTrClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementNamed(next, "tr");
+}
+
+bool omitCellClose(JsValue _node, int index, JsValue parent) {
+  JsValue next = siblingAt(parent, index, 1, false);
+  if (JS.isUndefined(next) || JS.isNullish(next)) {
+    return true;
+  }
+  return isElementOneOf2(next, "td", "th");
+}
+
+export bool canOmitClosing(JsValue node, int index, JsValue parent) {
+  string tag = stringField(node, "tagName");
+  if (tag == "body") {
+    return omitBodyClose(node, index, parent);
+  }
+  if (tag == "caption" || tag == "colgroup" || tag == "head") {
+    return omitHeadOrColgroupOrCaption(node, index, parent);
+  }
+  if (tag == "dd") {
+    return omitDdClose(node, index, parent);
+  }
+  if (tag == "dt") {
+    return omitDtClose(node, index, parent);
+  }
+  if (tag == "html") {
+    return omitHtmlClose(node, index, parent);
+  }
+  if (tag == "li") {
+    return omitLiClose(node, index, parent);
+  }
+  if (tag == "optgroup") {
+    return omitOptgroupClose(node, index, parent);
+  }
+  if (tag == "option") {
+    return omitOptionClose(node, index, parent);
+  }
+  if (tag == "p") {
+    return omitPClose(node, index, parent);
+  }
+  if (tag == "rp" || tag == "rt") {
+    return omitRubyClose(node, index, parent);
+  }
+  if (tag == "tbody") {
+    return omitTbodyClose(node, index, parent);
+  }
+  if (tag == "td" || tag == "th") {
+    return omitCellClose(node, index, parent);
+  }
+  if (tag == "tfoot") {
+    return omitTfootClose(node, index, parent);
+  }
+  if (tag == "thead") {
+    return omitTheadClose(node, index, parent);
+  }
+  if (tag == "tr") {
+    return omitTrClose(node, index, parent);
+  }
+  return false;
+}
+
+bool omitHtmlOpen(JsValue node) {
+  JsValue head = siblingAt(node, -1, 1, false);
+  return !isComment(head);
+}
+
+bool omitHeadOpen(JsValue node) {
+  JsValue kids = childrenOf(node);
+  int n = childCount(kids);
+  bool seenBase = false;
+  bool seenTitle = false;
+  int i = 0;
+  while (i < n) {
+    JsValue child = kids[i];
+    if (stringField(child, "type") == "element") {
+      string tag = stringField(child, "tagName");
+      if (tag == "base") {
+        if (seenBase) {
+          return false;
+        }
+        seenBase = true;
+      }
+      if (tag == "title") {
+        if (seenTitle) {
+          return false;
+        }
+        seenTitle = true;
+      }
+    }
+    i = i + 1;
+  }
+  if (n == 0) {
+    return true;
+  }
+  return stringField(kids[0], "type") == "element";
+}
+
+bool omitBodyOpen(JsValue node) {
+  JsValue head = siblingAt(node, -1, 1, true);
+  if (JS.isUndefined(head) || JS.isNullish(head)) {
+    return true;
+  }
+  if (isComment(head)) {
+    return false;
+  }
+  if (stringField(head, "type") == "text" && textStartsWs(head)) {
+    return false;
+  }
+  if (stringField(head, "type") == "element") {
+    string tag = stringField(head, "tagName");
+    if (tag == "meta" || tag == "link" || tag == "script" || tag == "style" || tag == "template") {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool omitColgroupOpen(JsValue node, int index, JsValue parent) {
+  JsValue previous = siblingAt(parent, index, -1, false);
+  JsValue head = siblingAt(node, -1, 1, true);
+  if (!(JS.isUndefined(parent) || JS.isNullish(parent))) {
+    if (!(JS.isUndefined(previous) || JS.isNullish(previous))) {
+      if (isElementNamed(previous, "colgroup")) {
+        int prevIndex = siblingOffset(parent, index, -1, false);
+        if (canOmitClosing(previous, prevIndex, parent)) {
+          return false;
+        }
+      }
+    }
+  }
+  return isElementNamed(head, "col");
+}
+
+bool omitTbodyOpen(JsValue node, int index, JsValue parent) {
+  JsValue previous = siblingAt(parent, index, -1, false);
+  JsValue head = siblingAt(node, -1, 1, false);
+  if (!(JS.isUndefined(parent) || JS.isNullish(parent))) {
+    if (!(JS.isUndefined(previous) || JS.isNullish(previous))) {
+      if (isElementNamed(previous, "thead") || isElementNamed(previous, "tbody")) {
+        int prevIndex = siblingOffset(parent, index, -1, false);
+        if (canOmitClosing(previous, prevIndex, parent)) {
+          return false;
+        }
+      }
+    }
+  }
+  return isElementNamed(head, "tr");
+}
+
+export bool canOmitOpening(JsValue node, int index, JsValue parent) {
+  string tag = stringField(node, "tagName");
+  if (tag == "body") {
+    return omitBodyOpen(node);
+  }
+  if (tag == "colgroup") {
+    return omitColgroupOpen(node, index, parent);
+  }
+  if (tag == "head") {
+    return omitHeadOpen(node);
+  }
+  if (tag == "html") {
+    return omitHtmlOpen(node);
+  }
+  if (tag == "tbody") {
+    return omitTbodyOpen(node, index, parent);
+  }
+  return false;
+}
