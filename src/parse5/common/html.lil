@@ -1,0 +1,426 @@
+export string NS_HTML = "http://www.w3.org/1999/xhtml";
+export string NS_MATHML = "http://www.w3.org/1998/Math/MathML";
+export string NS_SVG = "http://www.w3.org/2000/svg";
+export string NS_XLINK = "http://www.w3.org/1999/xlink";
+export string NS_XML = "http://www.w3.org/XML/1998/namespace";
+export string NS_XMLNS = "http://www.w3.org/2000/xmlns/";
+
+export string ATTR_TYPE = "type";
+export string ATTR_ACTION = "action";
+export string ATTR_ENCODING = "encoding";
+export string ATTR_PROMPT = "prompt";
+export string ATTR_NAME = "name";
+export string ATTR_COLOR = "color";
+export string ATTR_FACE = "face";
+export string ATTR_SIZE = "size";
+
+export string MODE_NO_QUIRKS = "no-quirks";
+export string MODE_QUIRKS = "quirks";
+export string MODE_LIMITED_QUIRKS = "limited-quirks";
+
+export int TAG_UNKNOWN = 0;
+export int TAG_A = 1;
+export int TAG_ADDRESS = 2;
+export int TAG_ANNOTATION_XML = 3;
+export int TAG_APPLET = 4;
+export int TAG_AREA = 5;
+export int TAG_ARTICLE = 6;
+export int TAG_ASIDE = 7;
+export int TAG_B = 8;
+export int TAG_BASE = 9;
+export int TAG_BASEFONT = 10;
+export int TAG_BGSOUND = 11;
+export int TAG_BIG = 12;
+export int TAG_BLOCKQUOTE = 13;
+export int TAG_BODY = 14;
+export int TAG_BR = 15;
+export int TAG_BUTTON = 16;
+export int TAG_CAPTION = 17;
+export int TAG_CENTER = 18;
+export int TAG_CODE = 19;
+export int TAG_COL = 20;
+export int TAG_COLGROUP = 21;
+export int TAG_DD = 22;
+export int TAG_DESC = 23;
+export int TAG_DETAILS = 24;
+export int TAG_DIALOG = 25;
+export int TAG_DIR = 26;
+export int TAG_DIV = 27;
+export int TAG_DL = 28;
+export int TAG_DT = 29;
+export int TAG_EM = 30;
+export int TAG_EMBED = 31;
+export int TAG_FIELDSET = 32;
+export int TAG_FIGCAPTION = 33;
+export int TAG_FIGURE = 34;
+export int TAG_FONT = 35;
+export int TAG_FOOTER = 36;
+export int TAG_FOREIGN_OBJECT = 37;
+export int TAG_FORM = 38;
+export int TAG_FRAME = 39;
+export int TAG_FRAMESET = 40;
+export int TAG_H1 = 41;
+export int TAG_H2 = 42;
+export int TAG_H3 = 43;
+export int TAG_H4 = 44;
+export int TAG_H5 = 45;
+export int TAG_H6 = 46;
+export int TAG_HEAD = 47;
+export int TAG_HEADER = 48;
+export int TAG_HGROUP = 49;
+export int TAG_HR = 50;
+export int TAG_HTML = 51;
+export int TAG_I = 52;
+export int TAG_IMG = 53;
+export int TAG_IMAGE = 54;
+export int TAG_INPUT = 55;
+export int TAG_IFRAME = 56;
+export int TAG_KEYGEN = 57;
+export int TAG_LABEL = 58;
+export int TAG_LI = 59;
+export int TAG_LINK = 60;
+export int TAG_LISTING = 61;
+export int TAG_MAIN = 62;
+export int TAG_MALIGNMARK = 63;
+export int TAG_MARQUEE = 64;
+export int TAG_MATH = 65;
+export int TAG_MENU = 66;
+export int TAG_META = 67;
+export int TAG_MGLYPH = 68;
+export int TAG_MI = 69;
+export int TAG_MO = 70;
+export int TAG_MN = 71;
+export int TAG_MS = 72;
+export int TAG_MTEXT = 73;
+export int TAG_NAV = 74;
+export int TAG_NOBR = 75;
+export int TAG_NOFRAMES = 76;
+export int TAG_NOEMBED = 77;
+export int TAG_NOSCRIPT = 78;
+export int TAG_OBJECT = 79;
+export int TAG_OL = 80;
+export int TAG_OPTGROUP = 81;
+export int TAG_OPTION = 82;
+export int TAG_P = 83;
+export int TAG_PARAM = 84;
+export int TAG_PLAINTEXT = 85;
+export int TAG_PRE = 86;
+export int TAG_RB = 87;
+export int TAG_RP = 88;
+export int TAG_RT = 89;
+export int TAG_RTC = 90;
+export int TAG_RUBY = 91;
+export int TAG_S = 92;
+export int TAG_SCRIPT = 93;
+export int TAG_SEARCH = 94;
+export int TAG_SECTION = 95;
+export int TAG_SELECT = 96;
+export int TAG_SOURCE = 97;
+export int TAG_SMALL = 98;
+export int TAG_SPAN = 99;
+export int TAG_STRIKE = 100;
+export int TAG_STRONG = 101;
+export int TAG_STYLE = 102;
+export int TAG_SUB = 103;
+export int TAG_SUMMARY = 104;
+export int TAG_SUP = 105;
+export int TAG_TABLE = 106;
+export int TAG_TBODY = 107;
+export int TAG_TEMPLATE = 108;
+export int TAG_TEXTAREA = 109;
+export int TAG_TFOOT = 110;
+export int TAG_TD = 111;
+export int TAG_TH = 112;
+export int TAG_THEAD = 113;
+export int TAG_TITLE = 114;
+export int TAG_TR = 115;
+export int TAG_TRACK = 116;
+export int TAG_TT = 117;
+export int TAG_U = 118;
+export int TAG_UL = 119;
+export int TAG_SVG = 120;
+export int TAG_VAR = 121;
+export int TAG_WBR = 122;
+export int TAG_XMP = 123;
+
+JsValue TAG_NAME_TO_ID = JS.object(
+  "a", 1,
+  "address", 2,
+  "annotation-xml", 3,
+  "applet", 4,
+  "area", 5,
+  "article", 6,
+  "aside", 7,
+  "b", 8,
+  "base", 9,
+  "basefont", 10,
+  "bgsound", 11,
+  "big", 12,
+  "blockquote", 13,
+  "body", 14,
+  "br", 15,
+  "button", 16,
+  "caption", 17,
+  "center", 18,
+  "code", 19,
+  "col", 20,
+  "colgroup", 21,
+  "dd", 22,
+  "desc", 23,
+  "details", 24,
+  "dialog", 25,
+  "dir", 26,
+  "div", 27,
+  "dl", 28,
+  "dt", 29,
+  "em", 30,
+  "embed", 31,
+  "fieldset", 32,
+  "figcaption", 33,
+  "figure", 34,
+  "font", 35,
+  "footer", 36,
+  "foreignObject", 37,
+  "form", 38,
+  "frame", 39,
+  "frameset", 40,
+  "h1", 41,
+  "h2", 42,
+  "h3", 43,
+  "h4", 44,
+  "h5", 45,
+  "h6", 46,
+  "head", 47,
+  "header", 48,
+  "hgroup", 49,
+  "hr", 50,
+  "html", 51,
+  "i", 52,
+  "img", 53,
+  "image", 54,
+  "input", 55,
+  "iframe", 56,
+  "keygen", 57,
+  "label", 58,
+  "li", 59,
+  "link", 60,
+  "listing", 61,
+  "main", 62,
+  "malignmark", 63,
+  "marquee", 64,
+  "math", 65,
+  "menu", 66,
+  "meta", 67,
+  "mglyph", 68,
+  "mi", 69,
+  "mo", 70,
+  "mn", 71,
+  "ms", 72,
+  "mtext", 73,
+  "nav", 74,
+  "nobr", 75,
+  "noframes", 76,
+  "noembed", 77,
+  "noscript", 78,
+  "object", 79,
+  "ol", 80,
+  "optgroup", 81,
+  "option", 82,
+  "p", 83,
+  "param", 84,
+  "plaintext", 85,
+  "pre", 86,
+  "rb", 87,
+  "rp", 88,
+  "rt", 89,
+  "rtc", 90,
+  "ruby", 91,
+  "s", 92,
+  "script", 93,
+  "search", 94,
+  "section", 95,
+  "select", 96,
+  "source", 97,
+  "small", 98,
+  "span", 99,
+  "strike", 100,
+  "strong", 101,
+  "style", 102,
+  "sub", 103,
+  "summary", 104,
+  "sup", 105,
+  "table", 106,
+  "tbody", 107,
+  "template", 108,
+  "textarea", 109,
+  "tfoot", 110,
+  "td", 111,
+  "th", 112,
+  "thead", 113,
+  "title", 114,
+  "tr", 115,
+  "track", 116,
+  "tt", 117,
+  "u", 118,
+  "ul", 119,
+  "svg", 120,
+  "var", 121,
+  "wbr", 122,
+  "xmp", 123
+);
+
+export int getTagID(string tagName) {
+  JsValue id = TAG_NAME_TO_ID[tagName];
+  if (JS.isUndefined(id)) {
+    return 0;
+  }
+  return JS.number(id).toInt();
+}
+
+bool[] htmlSpecial = [];
+bool[] mathSpecial = [];
+bool[] svgSpecial = [];
+bool[] numberedHeaders = [];
+
+void grow(bool[] table, int id) {
+  while (table.length <= id) {
+    table.push(false);
+  }
+}
+
+void mark(bool[] table, int id) {
+  grow(table, id);
+  table[id] = true;
+}
+
+void initSets() {
+  mark(htmlSpecial, TAG_ADDRESS);
+  mark(htmlSpecial, TAG_APPLET);
+  mark(htmlSpecial, TAG_AREA);
+  mark(htmlSpecial, TAG_ARTICLE);
+  mark(htmlSpecial, TAG_ASIDE);
+  mark(htmlSpecial, TAG_BASE);
+  mark(htmlSpecial, TAG_BASEFONT);
+  mark(htmlSpecial, TAG_BGSOUND);
+  mark(htmlSpecial, TAG_BLOCKQUOTE);
+  mark(htmlSpecial, TAG_BODY);
+  mark(htmlSpecial, TAG_BR);
+  mark(htmlSpecial, TAG_BUTTON);
+  mark(htmlSpecial, TAG_CAPTION);
+  mark(htmlSpecial, TAG_CENTER);
+  mark(htmlSpecial, TAG_COL);
+  mark(htmlSpecial, TAG_COLGROUP);
+  mark(htmlSpecial, TAG_DD);
+  mark(htmlSpecial, TAG_DETAILS);
+  mark(htmlSpecial, TAG_DIR);
+  mark(htmlSpecial, TAG_DIV);
+  mark(htmlSpecial, TAG_DL);
+  mark(htmlSpecial, TAG_DT);
+  mark(htmlSpecial, TAG_EMBED);
+  mark(htmlSpecial, TAG_FIELDSET);
+  mark(htmlSpecial, TAG_FIGCAPTION);
+  mark(htmlSpecial, TAG_FIGURE);
+  mark(htmlSpecial, TAG_FOOTER);
+  mark(htmlSpecial, TAG_FORM);
+  mark(htmlSpecial, TAG_FRAME);
+  mark(htmlSpecial, TAG_FRAMESET);
+  mark(htmlSpecial, TAG_H1);
+  mark(htmlSpecial, TAG_H2);
+  mark(htmlSpecial, TAG_H3);
+  mark(htmlSpecial, TAG_H4);
+  mark(htmlSpecial, TAG_H5);
+  mark(htmlSpecial, TAG_H6);
+  mark(htmlSpecial, TAG_HEAD);
+  mark(htmlSpecial, TAG_HEADER);
+  mark(htmlSpecial, TAG_HGROUP);
+  mark(htmlSpecial, TAG_HR);
+  mark(htmlSpecial, TAG_HTML);
+  mark(htmlSpecial, TAG_IFRAME);
+  mark(htmlSpecial, TAG_IMG);
+  mark(htmlSpecial, TAG_INPUT);
+  mark(htmlSpecial, TAG_LI);
+  mark(htmlSpecial, TAG_LINK);
+  mark(htmlSpecial, TAG_LISTING);
+  mark(htmlSpecial, TAG_MAIN);
+  mark(htmlSpecial, TAG_MARQUEE);
+  mark(htmlSpecial, TAG_MENU);
+  mark(htmlSpecial, TAG_META);
+  mark(htmlSpecial, TAG_NAV);
+  mark(htmlSpecial, TAG_NOEMBED);
+  mark(htmlSpecial, TAG_NOFRAMES);
+  mark(htmlSpecial, TAG_NOSCRIPT);
+  mark(htmlSpecial, TAG_OBJECT);
+  mark(htmlSpecial, TAG_OL);
+  mark(htmlSpecial, TAG_P);
+  mark(htmlSpecial, TAG_PARAM);
+  mark(htmlSpecial, TAG_PLAINTEXT);
+  mark(htmlSpecial, TAG_PRE);
+  mark(htmlSpecial, TAG_SCRIPT);
+  mark(htmlSpecial, TAG_SECTION);
+  mark(htmlSpecial, TAG_SELECT);
+  mark(htmlSpecial, TAG_SOURCE);
+  mark(htmlSpecial, TAG_STYLE);
+  mark(htmlSpecial, TAG_SUMMARY);
+  mark(htmlSpecial, TAG_TABLE);
+  mark(htmlSpecial, TAG_TBODY);
+  mark(htmlSpecial, TAG_TD);
+  mark(htmlSpecial, TAG_TEMPLATE);
+  mark(htmlSpecial, TAG_TEXTAREA);
+  mark(htmlSpecial, TAG_TFOOT);
+  mark(htmlSpecial, TAG_TH);
+  mark(htmlSpecial, TAG_THEAD);
+  mark(htmlSpecial, TAG_TITLE);
+  mark(htmlSpecial, TAG_TR);
+  mark(htmlSpecial, TAG_TRACK);
+  mark(htmlSpecial, TAG_UL);
+  mark(htmlSpecial, TAG_WBR);
+  mark(htmlSpecial, TAG_XMP);
+  mark(mathSpecial, TAG_MI);
+  mark(mathSpecial, TAG_MO);
+  mark(mathSpecial, TAG_MN);
+  mark(mathSpecial, TAG_MS);
+  mark(mathSpecial, TAG_MTEXT);
+  mark(mathSpecial, TAG_ANNOTATION_XML);
+  mark(svgSpecial, TAG_TITLE);
+  mark(svgSpecial, TAG_FOREIGN_OBJECT);
+  mark(svgSpecial, TAG_DESC);
+  mark(numberedHeaders, TAG_H1);
+  mark(numberedHeaders, TAG_H2);
+  mark(numberedHeaders, TAG_H3);
+  mark(numberedHeaders, TAG_H4);
+  mark(numberedHeaders, TAG_H5);
+  mark(numberedHeaders, TAG_H6);
+}
+
+initSets();
+
+bool tableHas(bool[] table, int id) {
+  if (id < 0 || id >= table.length) {
+    return false;
+  }
+  return table[id];
+}
+
+export bool isSpecial(string ns, int tagId) {
+  if (ns == NS_HTML) {
+    return tableHas(htmlSpecial, tagId);
+  }
+  if (ns == NS_MATHML) {
+    return tableHas(mathSpecial, tagId);
+  }
+  if (ns == NS_SVG) {
+    return tableHas(svgSpecial, tagId);
+  }
+  return false;
+}
+
+export bool isNumberedHeader(int tagId) {
+  return tableHas(numberedHeaders, tagId);
+}
+
+export bool hasUnescapedText(string tn, bool scriptingEnabled) {
+  if (tn == "style" || tn == "script" || tn == "xmp" || tn == "iframe" || tn == "noembed" || tn == "noframes" || tn == "plaintext") {
+    return true;
+  }
+  return scriptingEnabled && tn == "noscript";
+}

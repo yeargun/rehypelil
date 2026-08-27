@@ -1,4 +1,4 @@
-/*! @itslil/rehype 13.0.2 | LilScript reimplementation of rehype | MIT */
+/*! @itslil/rehype 13.0.3 | LilScript reimplementation of rehype | MIT */
 // parse5-host.js
 var UNDEFINED_CODE_POINTS = /* @__PURE__ */ new Set([
   65534,
@@ -389,11 +389,11 @@ var fromCodePoint = (
   }
 );
 function replaceCodePoint(codePoint) {
-  var _a22;
+  var _a2;
   if (codePoint >= 55296 && codePoint <= 57343 || codePoint > 1114111) {
     return 65533;
   }
-  return (_a22 = decodeMap.get(codePoint)) !== null && _a22 !== void 0 ? _a22 : codePoint;
+  return (_a2 = decodeMap.get(codePoint)) !== null && _a2 !== void 0 ? _a2 : codePoint;
 }
 var CharCodes;
 (function(CharCodes2) {
@@ -588,9 +588,9 @@ var EntityDecoder = class {
    * @returns The number of characters that were consumed.
    */
   emitNumericEntity(lastCp, expectedLength) {
-    var _a22;
+    var _a2;
     if (this.consumed <= expectedLength) {
-      (_a22 = this.errors) === null || _a22 === void 0 ? void 0 : _a22.absenceOfDigitsInNumericCharacterReference(this.consumed);
+      (_a2 = this.errors) === null || _a2 === void 0 ? void 0 : _a2.absenceOfDigitsInNumericCharacterReference(this.consumed);
       return 0;
     }
     if (lastCp === CharCodes.SEMI) {
@@ -650,11 +650,11 @@ var EntityDecoder = class {
    * @returns The number of characters consumed.
    */
   emitNotTerminatedNamedEntity() {
-    var _a22;
+    var _a2;
     const { result, decodeTree } = this;
     const valueLength = (decodeTree[result] & BinTrieFlags.VALUE_LENGTH) >> 14;
     this.emitNamedEntityData(result, valueLength, this.consumed);
-    (_a22 = this.errors) === null || _a22 === void 0 ? void 0 : _a22.missingSemicolonAfterCharacterReference();
+    (_a2 = this.errors) === null || _a2 === void 0 ? void 0 : _a2.missingSemicolonAfterCharacterReference();
     return this.consumed;
   }
   /**
@@ -682,7 +682,7 @@ var EntityDecoder = class {
    * @returns The number of characters consumed.
    */
   end() {
-    var _a22;
+    var _a2;
     switch (this.state) {
       case EntityDecoderState.NamedEntity: {
         return this.result !== 0 && (this.decodeMode !== DecodingMode.Attribute || this.result === this.treeIndex) ? this.emitNotTerminatedNamedEntity() : 0;
@@ -695,7 +695,7 @@ var EntityDecoder = class {
         return this.emitNumericEntity(0, 3);
       }
       case EntityDecoderState.NumericStart: {
-        (_a22 = this.errors) === null || _a22 === void 0 ? void 0 : _a22.absenceOfDigitsInNumericCharacterReference(this.consumed);
+        (_a2 = this.errors) === null || _a2 === void 0 ? void 0 : _a2.absenceOfDigitsInNumericCharacterReference(this.consumed);
         return 0;
       }
       case EntityDecoderState.EntityStart: {
@@ -1134,8 +1134,8 @@ var TAG_NAME_TO_ID = /* @__PURE__ */ new Map([
   [TAG_NAMES.XMP, TAG_ID.XMP]
 ]);
 function getTagID(tagName) {
-  var _a22;
-  return (_a22 = TAG_NAME_TO_ID.get(tagName)) !== null && _a22 !== void 0 ? _a22 : TAG_ID.UNKNOWN;
+  var _a2;
+  return (_a2 = TAG_NAME_TO_ID.get(tagName)) !== null && _a2 !== void 0 ? _a2 : TAG_ID.UNKNOWN;
 }
 var $ = TAG_ID;
 var SPECIAL_ELEMENTS = {
@@ -1397,8 +1397,8 @@ var Tokenizer = class {
   }
   //Errors
   _err(code, cpOffset = 0) {
-    var _a22, _b2;
-    (_b2 = (_a22 = this.handler).onParseError) === null || _b2 === void 0 ? void 0 : _b2.call(_a22, this.preprocessor.getError(code, cpOffset));
+    var _a2, _b;
+    (_b = (_a2 = this.handler).onParseError) === null || _b === void 0 ? void 0 : _b.call(_a2, this.preprocessor.getError(code, cpOffset));
   }
   // NOTE: `offset` may never run across line boundaries.
   getCurrentLocation(offset) {
@@ -1540,13 +1540,13 @@ var Tokenizer = class {
     this.currentLocation = this.getCurrentLocation(0);
   }
   _leaveAttrName() {
-    var _a22;
-    var _b2;
+    var _a2;
+    var _b;
     const token = this.currentToken;
     if (getTokenAttr(token, this.currentAttr.name) === null) {
       token.attrs.push(this.currentAttr);
       if (token.location && this.currentLocation) {
-        const attrLocations = (_a22 = (_b2 = token.location).attrs) !== null && _a22 !== void 0 ? _a22 : _b2.attrs = /* @__PURE__ */ Object.create(null);
+        const attrLocations = (_a2 = (_b = token.location).attrs) !== null && _a2 !== void 0 ? _a2 : _b.attrs = /* @__PURE__ */ Object.create(null);
         attrLocations[this.currentAttr.name] = this.currentLocation;
         this._leaveAttrValue();
       }
@@ -4375,9 +4375,9 @@ var defaultTreeAdapter = {
   },
   adoptAttributes(recipient, attrs) {
     const recipientAttrsMap = new Set(recipient.attrs.map((attr) => attr.name));
-    for (let j = 0; j < attrs.length; j++) {
-      if (!recipientAttrsMap.has(attrs[j].name)) {
-        recipient.attrs.push(attrs[j]);
+    for (let j2 = 0; j2 < attrs.length; j2++) {
+      if (!recipientAttrsMap.has(attrs[j2].name)) {
+        recipient.attrs.push(attrs[j2]);
       }
     }
   },
@@ -4874,10 +4874,10 @@ var Parser = class {
   //Errors
   /** @internal */
   _err(token, code, beforeToken) {
-    var _a22;
+    var _a2;
     if (!this.onParseError)
       return;
-    const loc = (_a22 = token.location) !== null && _a22 !== void 0 ? _a22 : BASE_LOC;
+    const loc = (_a2 = token.location) !== null && _a2 !== void 0 ? _a2 : BASE_LOC;
     const err = {
       code,
       startLine: loc.startLine,
@@ -4892,18 +4892,18 @@ var Parser = class {
   //Stack events
   /** @internal */
   onItemPush(node, tid, isTop) {
-    var _a22, _b2;
-    (_b2 = (_a22 = this.treeAdapter).onItemPush) === null || _b2 === void 0 ? void 0 : _b2.call(_a22, node);
+    var _a2, _b;
+    (_b = (_a2 = this.treeAdapter).onItemPush) === null || _b === void 0 ? void 0 : _b.call(_a2, node);
     if (isTop && this.openElements.stackTop > 0)
       this._setContextModes(node, tid);
   }
   /** @internal */
   onItemPop(node, isTop) {
-    var _a22, _b2;
+    var _a2, _b;
     if (this.options.sourceCodeLocationInfo) {
       this._setEndLocation(node, this.currentToken);
     }
-    (_b2 = (_a22 = this.treeAdapter).onItemPop) === null || _b2 === void 0 ? void 0 : _b2.call(_a22, node, this.openElements.current);
+    (_b = (_a2 = this.treeAdapter).onItemPop) === null || _b === void 0 ? void 0 : _b.call(_a2, node, this.openElements.current);
     if (isTop) {
       let current;
       let currentTagId;
@@ -5868,214 +5868,214 @@ var Parser = class {
     }
   }
 };
-function aaObtainFormattingElementEntry(p, token) {
-  let formattingElementEntry = p.activeFormattingElements.getElementEntryInScopeWithTagName(token.tagName);
+function aaObtainFormattingElementEntry(p2, token) {
+  let formattingElementEntry = p2.activeFormattingElements.getElementEntryInScopeWithTagName(token.tagName);
   if (formattingElementEntry) {
-    if (!p.openElements.contains(formattingElementEntry.element)) {
-      p.activeFormattingElements.removeEntry(formattingElementEntry);
+    if (!p2.openElements.contains(formattingElementEntry.element)) {
+      p2.activeFormattingElements.removeEntry(formattingElementEntry);
       formattingElementEntry = null;
-    } else if (!p.openElements.hasInScope(token.tagID)) {
+    } else if (!p2.openElements.hasInScope(token.tagID)) {
       formattingElementEntry = null;
     }
   } else {
-    genericEndTagInBody(p, token);
+    genericEndTagInBody(p2, token);
   }
   return formattingElementEntry;
 }
-function aaObtainFurthestBlock(p, formattingElementEntry) {
+function aaObtainFurthestBlock(p2, formattingElementEntry) {
   let furthestBlock = null;
-  let idx = p.openElements.stackTop;
+  let idx = p2.openElements.stackTop;
   for (; idx >= 0; idx--) {
-    const element = p.openElements.items[idx];
+    const element = p2.openElements.items[idx];
     if (element === formattingElementEntry.element) {
       break;
     }
-    if (p._isSpecialElement(element, p.openElements.tagIDs[idx])) {
+    if (p2._isSpecialElement(element, p2.openElements.tagIDs[idx])) {
       furthestBlock = element;
     }
   }
   if (!furthestBlock) {
-    p.openElements.shortenToLength(Math.max(idx, 0));
-    p.activeFormattingElements.removeEntry(formattingElementEntry);
+    p2.openElements.shortenToLength(Math.max(idx, 0));
+    p2.activeFormattingElements.removeEntry(formattingElementEntry);
   }
   return furthestBlock;
 }
-function aaInnerLoop(p, furthestBlock, formattingElement) {
+function aaInnerLoop(p2, furthestBlock, formattingElement) {
   let lastElement = furthestBlock;
-  let nextElement = p.openElements.getCommonAncestor(furthestBlock);
+  let nextElement = p2.openElements.getCommonAncestor(furthestBlock);
   for (let i = 0, element = nextElement; element !== formattingElement; i++, element = nextElement) {
-    nextElement = p.openElements.getCommonAncestor(element);
-    const elementEntry = p.activeFormattingElements.getElementEntry(element);
+    nextElement = p2.openElements.getCommonAncestor(element);
+    const elementEntry = p2.activeFormattingElements.getElementEntry(element);
     const counterOverflow = elementEntry && i >= AA_INNER_LOOP_ITER;
     const shouldRemoveFromOpenElements = !elementEntry || counterOverflow;
     if (shouldRemoveFromOpenElements) {
       if (counterOverflow) {
-        p.activeFormattingElements.removeEntry(elementEntry);
+        p2.activeFormattingElements.removeEntry(elementEntry);
       }
-      p.openElements.remove(element);
+      p2.openElements.remove(element);
     } else {
-      element = aaRecreateElementFromEntry(p, elementEntry);
+      element = aaRecreateElementFromEntry(p2, elementEntry);
       if (lastElement === furthestBlock) {
-        p.activeFormattingElements.bookmark = elementEntry;
+        p2.activeFormattingElements.bookmark = elementEntry;
       }
-      p.treeAdapter.detachNode(lastElement);
-      p.treeAdapter.appendChild(element, lastElement);
+      p2.treeAdapter.detachNode(lastElement);
+      p2.treeAdapter.appendChild(element, lastElement);
       lastElement = element;
     }
   }
   return lastElement;
 }
-function aaRecreateElementFromEntry(p, elementEntry) {
-  const ns = p.treeAdapter.getNamespaceURI(elementEntry.element);
-  const newElement = p.treeAdapter.createElement(elementEntry.token.tagName, ns, elementEntry.token.attrs);
-  p.openElements.replace(elementEntry.element, newElement);
+function aaRecreateElementFromEntry(p2, elementEntry) {
+  const ns = p2.treeAdapter.getNamespaceURI(elementEntry.element);
+  const newElement = p2.treeAdapter.createElement(elementEntry.token.tagName, ns, elementEntry.token.attrs);
+  p2.openElements.replace(elementEntry.element, newElement);
   elementEntry.element = newElement;
   return newElement;
 }
-function aaInsertLastNodeInCommonAncestor(p, commonAncestor, lastElement) {
-  const tn = p.treeAdapter.getTagName(commonAncestor);
+function aaInsertLastNodeInCommonAncestor(p2, commonAncestor, lastElement) {
+  const tn = p2.treeAdapter.getTagName(commonAncestor);
   const tid = getTagID(tn);
-  if (p._isElementCausesFosterParenting(tid)) {
-    p._fosterParentElement(lastElement);
+  if (p2._isElementCausesFosterParenting(tid)) {
+    p2._fosterParentElement(lastElement);
   } else {
-    const ns = p.treeAdapter.getNamespaceURI(commonAncestor);
+    const ns = p2.treeAdapter.getNamespaceURI(commonAncestor);
     if (tid === TAG_ID.TEMPLATE && ns === NS.HTML) {
-      commonAncestor = p.treeAdapter.getTemplateContent(commonAncestor);
+      commonAncestor = p2.treeAdapter.getTemplateContent(commonAncestor);
     }
-    p.treeAdapter.appendChild(commonAncestor, lastElement);
+    p2.treeAdapter.appendChild(commonAncestor, lastElement);
   }
 }
-function aaReplaceFormattingElement(p, furthestBlock, formattingElementEntry) {
-  const ns = p.treeAdapter.getNamespaceURI(formattingElementEntry.element);
+function aaReplaceFormattingElement(p2, furthestBlock, formattingElementEntry) {
+  const ns = p2.treeAdapter.getNamespaceURI(formattingElementEntry.element);
   const { token } = formattingElementEntry;
-  const newElement = p.treeAdapter.createElement(token.tagName, ns, token.attrs);
-  p._adoptNodes(furthestBlock, newElement);
-  p.treeAdapter.appendChild(furthestBlock, newElement);
-  p.activeFormattingElements.insertElementAfterBookmark(newElement, token);
-  p.activeFormattingElements.removeEntry(formattingElementEntry);
-  p.openElements.remove(formattingElementEntry.element);
-  p.openElements.insertAfter(furthestBlock, newElement, token.tagID);
+  const newElement = p2.treeAdapter.createElement(token.tagName, ns, token.attrs);
+  p2._adoptNodes(furthestBlock, newElement);
+  p2.treeAdapter.appendChild(furthestBlock, newElement);
+  p2.activeFormattingElements.insertElementAfterBookmark(newElement, token);
+  p2.activeFormattingElements.removeEntry(formattingElementEntry);
+  p2.openElements.remove(formattingElementEntry.element);
+  p2.openElements.insertAfter(furthestBlock, newElement, token.tagID);
 }
-function callAdoptionAgency(p, token) {
+function callAdoptionAgency(p2, token) {
   for (let i = 0; i < AA_OUTER_LOOP_ITER; i++) {
-    const formattingElementEntry = aaObtainFormattingElementEntry(p, token);
+    const formattingElementEntry = aaObtainFormattingElementEntry(p2, token);
     if (!formattingElementEntry) {
       break;
     }
-    const furthestBlock = aaObtainFurthestBlock(p, formattingElementEntry);
+    const furthestBlock = aaObtainFurthestBlock(p2, formattingElementEntry);
     if (!furthestBlock) {
       break;
     }
-    p.activeFormattingElements.bookmark = formattingElementEntry;
-    const lastElement = aaInnerLoop(p, furthestBlock, formattingElementEntry.element);
-    const commonAncestor = p.openElements.getCommonAncestor(formattingElementEntry.element);
-    p.treeAdapter.detachNode(lastElement);
+    p2.activeFormattingElements.bookmark = formattingElementEntry;
+    const lastElement = aaInnerLoop(p2, furthestBlock, formattingElementEntry.element);
+    const commonAncestor = p2.openElements.getCommonAncestor(formattingElementEntry.element);
+    p2.treeAdapter.detachNode(lastElement);
     if (commonAncestor)
-      aaInsertLastNodeInCommonAncestor(p, commonAncestor, lastElement);
-    aaReplaceFormattingElement(p, furthestBlock, formattingElementEntry);
+      aaInsertLastNodeInCommonAncestor(p2, commonAncestor, lastElement);
+    aaReplaceFormattingElement(p2, furthestBlock, formattingElementEntry);
   }
 }
-function appendComment(p, token) {
-  p._appendCommentNode(token, p.openElements.currentTmplContentOrNode);
+function appendComment(p2, token) {
+  p2._appendCommentNode(token, p2.openElements.currentTmplContentOrNode);
 }
-function appendCommentToRootHtmlElement(p, token) {
-  p._appendCommentNode(token, p.openElements.items[0]);
+function appendCommentToRootHtmlElement(p2, token) {
+  p2._appendCommentNode(token, p2.openElements.items[0]);
 }
-function appendCommentToDocument(p, token) {
-  p._appendCommentNode(token, p.document);
+function appendCommentToDocument(p2, token) {
+  p2._appendCommentNode(token, p2.document);
 }
-function stopParsing(p, token) {
-  p.stopped = true;
+function stopParsing(p2, token) {
+  p2.stopped = true;
   if (token.location) {
-    const target = p.fragmentContext ? 0 : 2;
-    for (let i = p.openElements.stackTop; i >= target; i--) {
-      p._setEndLocation(p.openElements.items[i], token);
+    const target = p2.fragmentContext ? 0 : 2;
+    for (let i = p2.openElements.stackTop; i >= target; i--) {
+      p2._setEndLocation(p2.openElements.items[i], token);
     }
-    if (!p.fragmentContext && p.openElements.stackTop >= 0) {
-      const htmlElement = p.openElements.items[0];
-      const htmlLocation = p.treeAdapter.getNodeSourceCodeLocation(htmlElement);
+    if (!p2.fragmentContext && p2.openElements.stackTop >= 0) {
+      const htmlElement = p2.openElements.items[0];
+      const htmlLocation = p2.treeAdapter.getNodeSourceCodeLocation(htmlElement);
       if (htmlLocation && !htmlLocation.endTag) {
-        p._setEndLocation(htmlElement, token);
-        if (p.openElements.stackTop >= 1) {
-          const bodyElement = p.openElements.items[1];
-          const bodyLocation = p.treeAdapter.getNodeSourceCodeLocation(bodyElement);
+        p2._setEndLocation(htmlElement, token);
+        if (p2.openElements.stackTop >= 1) {
+          const bodyElement = p2.openElements.items[1];
+          const bodyLocation = p2.treeAdapter.getNodeSourceCodeLocation(bodyElement);
           if (bodyLocation && !bodyLocation.endTag) {
-            p._setEndLocation(bodyElement, token);
+            p2._setEndLocation(bodyElement, token);
           }
         }
       }
     }
   }
 }
-function doctypeInInitialMode(p, token) {
-  p._setDocumentType(token);
+function doctypeInInitialMode(p2, token) {
+  p2._setDocumentType(token);
   const mode = token.forceQuirks ? DOCUMENT_MODE.QUIRKS : getDocumentMode(token);
   if (!isConforming(token)) {
-    p._err(token, ERR.nonConformingDoctype);
+    p2._err(token, ERR.nonConformingDoctype);
   }
-  p.treeAdapter.setDocumentMode(p.document, mode);
-  p.insertionMode = InsertionMode.BEFORE_HTML;
+  p2.treeAdapter.setDocumentMode(p2.document, mode);
+  p2.insertionMode = InsertionMode.BEFORE_HTML;
 }
-function tokenInInitialMode(p, token) {
-  p._err(token, ERR.missingDoctype, true);
-  p.treeAdapter.setDocumentMode(p.document, DOCUMENT_MODE.QUIRKS);
-  p.insertionMode = InsertionMode.BEFORE_HTML;
-  p._processToken(token);
+function tokenInInitialMode(p2, token) {
+  p2._err(token, ERR.missingDoctype, true);
+  p2.treeAdapter.setDocumentMode(p2.document, DOCUMENT_MODE.QUIRKS);
+  p2.insertionMode = InsertionMode.BEFORE_HTML;
+  p2._processToken(token);
 }
-function startTagBeforeHtml(p, token) {
+function startTagBeforeHtml(p2, token) {
   if (token.tagID === TAG_ID.HTML) {
-    p._insertElement(token, NS.HTML);
-    p.insertionMode = InsertionMode.BEFORE_HEAD;
+    p2._insertElement(token, NS.HTML);
+    p2.insertionMode = InsertionMode.BEFORE_HEAD;
   } else {
-    tokenBeforeHtml(p, token);
+    tokenBeforeHtml(p2, token);
   }
 }
-function endTagBeforeHtml(p, token) {
+function endTagBeforeHtml(p2, token) {
   const tn = token.tagID;
   if (tn === TAG_ID.HTML || tn === TAG_ID.HEAD || tn === TAG_ID.BODY || tn === TAG_ID.BR) {
-    tokenBeforeHtml(p, token);
+    tokenBeforeHtml(p2, token);
   }
 }
-function tokenBeforeHtml(p, token) {
-  p._insertFakeRootElement();
-  p.insertionMode = InsertionMode.BEFORE_HEAD;
-  p._processToken(token);
+function tokenBeforeHtml(p2, token) {
+  p2._insertFakeRootElement();
+  p2.insertionMode = InsertionMode.BEFORE_HEAD;
+  p2._processToken(token);
 }
-function startTagBeforeHead(p, token) {
+function startTagBeforeHead(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.HEAD: {
-      p._insertElement(token, NS.HTML);
-      p.headElement = p.openElements.current;
-      p.insertionMode = InsertionMode.IN_HEAD;
+      p2._insertElement(token, NS.HTML);
+      p2.headElement = p2.openElements.current;
+      p2.insertionMode = InsertionMode.IN_HEAD;
       break;
     }
     default: {
-      tokenBeforeHead(p, token);
+      tokenBeforeHead(p2, token);
     }
   }
 }
-function endTagBeforeHead(p, token) {
+function endTagBeforeHead(p2, token) {
   const tn = token.tagID;
   if (tn === TAG_ID.HEAD || tn === TAG_ID.BODY || tn === TAG_ID.HTML || tn === TAG_ID.BR) {
-    tokenBeforeHead(p, token);
+    tokenBeforeHead(p2, token);
   } else {
-    p._err(token, ERR.endTagWithoutMatchingOpenElement);
+    p2._err(token, ERR.endTagWithoutMatchingOpenElement);
   }
 }
-function tokenBeforeHead(p, token) {
-  p._insertFakeElement(TAG_NAMES.HEAD, TAG_ID.HEAD);
-  p.headElement = p.openElements.current;
-  p.insertionMode = InsertionMode.IN_HEAD;
-  p._processToken(token);
+function tokenBeforeHead(p2, token) {
+  p2._insertFakeElement(TAG_NAMES.HEAD, TAG_ID.HEAD);
+  p2.headElement = p2.openElements.current;
+  p2.insertionMode = InsertionMode.IN_HEAD;
+  p2._processToken(token);
 }
-function startTagInHead(p, token) {
+function startTagInHead(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.BASE:
@@ -6083,94 +6083,94 @@ function startTagInHead(p, token) {
     case TAG_ID.BGSOUND:
     case TAG_ID.LINK:
     case TAG_ID.META: {
-      p._appendElement(token, NS.HTML);
+      p2._appendElement(token, NS.HTML);
       token.ackSelfClosing = true;
       break;
     }
     case TAG_ID.TITLE: {
-      p._switchToTextParsing(token, TokenizerMode.RCDATA);
+      p2._switchToTextParsing(token, TokenizerMode.RCDATA);
       break;
     }
     case TAG_ID.NOSCRIPT: {
-      if (p.options.scriptingEnabled) {
-        p._switchToTextParsing(token, TokenizerMode.RAWTEXT);
+      if (p2.options.scriptingEnabled) {
+        p2._switchToTextParsing(token, TokenizerMode.RAWTEXT);
       } else {
-        p._insertElement(token, NS.HTML);
-        p.insertionMode = InsertionMode.IN_HEAD_NO_SCRIPT;
+        p2._insertElement(token, NS.HTML);
+        p2.insertionMode = InsertionMode.IN_HEAD_NO_SCRIPT;
       }
       break;
     }
     case TAG_ID.NOFRAMES:
     case TAG_ID.STYLE: {
-      p._switchToTextParsing(token, TokenizerMode.RAWTEXT);
+      p2._switchToTextParsing(token, TokenizerMode.RAWTEXT);
       break;
     }
     case TAG_ID.SCRIPT: {
-      p._switchToTextParsing(token, TokenizerMode.SCRIPT_DATA);
+      p2._switchToTextParsing(token, TokenizerMode.SCRIPT_DATA);
       break;
     }
     case TAG_ID.TEMPLATE: {
-      p._insertTemplate(token);
-      p.activeFormattingElements.insertMarker();
-      p.framesetOk = false;
-      p.insertionMode = InsertionMode.IN_TEMPLATE;
-      p.tmplInsertionModeStack.unshift(InsertionMode.IN_TEMPLATE);
+      p2._insertTemplate(token);
+      p2.activeFormattingElements.insertMarker();
+      p2.framesetOk = false;
+      p2.insertionMode = InsertionMode.IN_TEMPLATE;
+      p2.tmplInsertionModeStack.unshift(InsertionMode.IN_TEMPLATE);
       break;
     }
     case TAG_ID.HEAD: {
-      p._err(token, ERR.misplacedStartTagForHeadElement);
+      p2._err(token, ERR.misplacedStartTagForHeadElement);
       break;
     }
     default: {
-      tokenInHead(p, token);
+      tokenInHead(p2, token);
     }
   }
 }
-function endTagInHead(p, token) {
+function endTagInHead(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HEAD: {
-      p.openElements.pop();
-      p.insertionMode = InsertionMode.AFTER_HEAD;
+      p2.openElements.pop();
+      p2.insertionMode = InsertionMode.AFTER_HEAD;
       break;
     }
     case TAG_ID.BODY:
     case TAG_ID.BR:
     case TAG_ID.HTML: {
-      tokenInHead(p, token);
+      tokenInHead(p2, token);
       break;
     }
     case TAG_ID.TEMPLATE: {
-      templateEndTagInHead(p, token);
+      templateEndTagInHead(p2, token);
       break;
     }
     default: {
-      p._err(token, ERR.endTagWithoutMatchingOpenElement);
+      p2._err(token, ERR.endTagWithoutMatchingOpenElement);
     }
   }
 }
-function templateEndTagInHead(p, token) {
-  if (p.openElements.tmplCount > 0) {
-    p.openElements.generateImpliedEndTagsThoroughly();
-    if (p.openElements.currentTagId !== TAG_ID.TEMPLATE) {
-      p._err(token, ERR.closingOfElementWithOpenChildElements);
+function templateEndTagInHead(p2, token) {
+  if (p2.openElements.tmplCount > 0) {
+    p2.openElements.generateImpliedEndTagsThoroughly();
+    if (p2.openElements.currentTagId !== TAG_ID.TEMPLATE) {
+      p2._err(token, ERR.closingOfElementWithOpenChildElements);
     }
-    p.openElements.popUntilTagNamePopped(TAG_ID.TEMPLATE);
-    p.activeFormattingElements.clearToLastMarker();
-    p.tmplInsertionModeStack.shift();
-    p._resetInsertionMode();
+    p2.openElements.popUntilTagNamePopped(TAG_ID.TEMPLATE);
+    p2.activeFormattingElements.clearToLastMarker();
+    p2.tmplInsertionModeStack.shift();
+    p2._resetInsertionMode();
   } else {
-    p._err(token, ERR.endTagWithoutMatchingOpenElement);
+    p2._err(token, ERR.endTagWithoutMatchingOpenElement);
   }
 }
-function tokenInHead(p, token) {
-  p.openElements.pop();
-  p.insertionMode = InsertionMode.AFTER_HEAD;
-  p._processToken(token);
+function tokenInHead(p2, token) {
+  p2.openElements.pop();
+  p2.insertionMode = InsertionMode.AFTER_HEAD;
+  p2._processToken(token);
 }
-function startTagInHeadNoScript(p, token) {
+function startTagInHeadNoScript(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.BASEFONT:
@@ -6180,56 +6180,56 @@ function startTagInHeadNoScript(p, token) {
     case TAG_ID.META:
     case TAG_ID.NOFRAMES:
     case TAG_ID.STYLE: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     case TAG_ID.NOSCRIPT: {
-      p._err(token, ERR.nestedNoscriptInHead);
+      p2._err(token, ERR.nestedNoscriptInHead);
       break;
     }
     default: {
-      tokenInHeadNoScript(p, token);
+      tokenInHeadNoScript(p2, token);
     }
   }
 }
-function endTagInHeadNoScript(p, token) {
+function endTagInHeadNoScript(p2, token) {
   switch (token.tagID) {
     case TAG_ID.NOSCRIPT: {
-      p.openElements.pop();
-      p.insertionMode = InsertionMode.IN_HEAD;
+      p2.openElements.pop();
+      p2.insertionMode = InsertionMode.IN_HEAD;
       break;
     }
     case TAG_ID.BR: {
-      tokenInHeadNoScript(p, token);
+      tokenInHeadNoScript(p2, token);
       break;
     }
     default: {
-      p._err(token, ERR.endTagWithoutMatchingOpenElement);
+      p2._err(token, ERR.endTagWithoutMatchingOpenElement);
     }
   }
 }
-function tokenInHeadNoScript(p, token) {
+function tokenInHeadNoScript(p2, token) {
   const errCode = token.type === TokenType.EOF ? ERR.openElementsLeftAfterEof : ERR.disallowedContentInNoscriptInHead;
-  p._err(token, errCode);
-  p.openElements.pop();
-  p.insertionMode = InsertionMode.IN_HEAD;
-  p._processToken(token);
+  p2._err(token, errCode);
+  p2.openElements.pop();
+  p2.insertionMode = InsertionMode.IN_HEAD;
+  p2._processToken(token);
 }
-function startTagAfterHead(p, token) {
+function startTagAfterHead(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.BODY: {
-      p._insertElement(token, NS.HTML);
-      p.framesetOk = false;
-      p.insertionMode = InsertionMode.IN_BODY;
+      p2._insertElement(token, NS.HTML);
+      p2.framesetOk = false;
+      p2.insertionMode = InsertionMode.IN_BODY;
       break;
     }
     case TAG_ID.FRAMESET: {
-      p._insertElement(token, NS.HTML);
-      p.insertionMode = InsertionMode.IN_FRAMESET;
+      p2._insertElement(token, NS.HTML);
+      p2.insertionMode = InsertionMode.IN_FRAMESET;
       break;
     }
     case TAG_ID.BASE:
@@ -6242,321 +6242,321 @@ function startTagAfterHead(p, token) {
     case TAG_ID.STYLE:
     case TAG_ID.TEMPLATE:
     case TAG_ID.TITLE: {
-      p._err(token, ERR.abandonedHeadElementChild);
-      p.openElements.push(p.headElement, TAG_ID.HEAD);
-      startTagInHead(p, token);
-      p.openElements.remove(p.headElement);
+      p2._err(token, ERR.abandonedHeadElementChild);
+      p2.openElements.push(p2.headElement, TAG_ID.HEAD);
+      startTagInHead(p2, token);
+      p2.openElements.remove(p2.headElement);
       break;
     }
     case TAG_ID.HEAD: {
-      p._err(token, ERR.misplacedStartTagForHeadElement);
+      p2._err(token, ERR.misplacedStartTagForHeadElement);
       break;
     }
     default: {
-      tokenAfterHead(p, token);
+      tokenAfterHead(p2, token);
     }
   }
 }
-function endTagAfterHead(p, token) {
+function endTagAfterHead(p2, token) {
   switch (token.tagID) {
     case TAG_ID.BODY:
     case TAG_ID.HTML:
     case TAG_ID.BR: {
-      tokenAfterHead(p, token);
+      tokenAfterHead(p2, token);
       break;
     }
     case TAG_ID.TEMPLATE: {
-      templateEndTagInHead(p, token);
+      templateEndTagInHead(p2, token);
       break;
     }
     default: {
-      p._err(token, ERR.endTagWithoutMatchingOpenElement);
+      p2._err(token, ERR.endTagWithoutMatchingOpenElement);
     }
   }
 }
-function tokenAfterHead(p, token) {
-  p._insertFakeElement(TAG_NAMES.BODY, TAG_ID.BODY);
-  p.insertionMode = InsertionMode.IN_BODY;
-  modeInBody(p, token);
+function tokenAfterHead(p2, token) {
+  p2._insertFakeElement(TAG_NAMES.BODY, TAG_ID.BODY);
+  p2.insertionMode = InsertionMode.IN_BODY;
+  modeInBody(p2, token);
 }
-function modeInBody(p, token) {
+function modeInBody(p2, token) {
   switch (token.type) {
     case TokenType.CHARACTER: {
-      characterInBody(p, token);
+      characterInBody(p2, token);
       break;
     }
     case TokenType.WHITESPACE_CHARACTER: {
-      whitespaceCharacterInBody(p, token);
+      whitespaceCharacterInBody(p2, token);
       break;
     }
     case TokenType.COMMENT: {
-      appendComment(p, token);
+      appendComment(p2, token);
       break;
     }
     case TokenType.START_TAG: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TokenType.END_TAG: {
-      endTagInBody(p, token);
+      endTagInBody(p2, token);
       break;
     }
     case TokenType.EOF: {
-      eofInBody(p, token);
+      eofInBody(p2, token);
       break;
     }
     default:
   }
 }
-function whitespaceCharacterInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._insertCharacters(token);
+function whitespaceCharacterInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertCharacters(token);
 }
-function characterInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._insertCharacters(token);
-  p.framesetOk = false;
+function characterInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertCharacters(token);
+  p2.framesetOk = false;
 }
-function htmlStartTagInBody(p, token) {
-  if (p.openElements.tmplCount === 0) {
-    p.treeAdapter.adoptAttributes(p.openElements.items[0], token.attrs);
+function htmlStartTagInBody(p2, token) {
+  if (p2.openElements.tmplCount === 0) {
+    p2.treeAdapter.adoptAttributes(p2.openElements.items[0], token.attrs);
   }
 }
-function bodyStartTagInBody(p, token) {
-  const bodyElement = p.openElements.tryPeekProperlyNestedBodyElement();
-  if (bodyElement && p.openElements.tmplCount === 0) {
-    p.framesetOk = false;
-    p.treeAdapter.adoptAttributes(bodyElement, token.attrs);
+function bodyStartTagInBody(p2, token) {
+  const bodyElement = p2.openElements.tryPeekProperlyNestedBodyElement();
+  if (bodyElement && p2.openElements.tmplCount === 0) {
+    p2.framesetOk = false;
+    p2.treeAdapter.adoptAttributes(bodyElement, token.attrs);
   }
 }
-function framesetStartTagInBody(p, token) {
-  const bodyElement = p.openElements.tryPeekProperlyNestedBodyElement();
-  if (p.framesetOk && bodyElement) {
-    p.treeAdapter.detachNode(bodyElement);
-    p.openElements.popAllUpToHtmlElement();
-    p._insertElement(token, NS.HTML);
-    p.insertionMode = InsertionMode.IN_FRAMESET;
+function framesetStartTagInBody(p2, token) {
+  const bodyElement = p2.openElements.tryPeekProperlyNestedBodyElement();
+  if (p2.framesetOk && bodyElement) {
+    p2.treeAdapter.detachNode(bodyElement);
+    p2.openElements.popAllUpToHtmlElement();
+    p2._insertElement(token, NS.HTML);
+    p2.insertionMode = InsertionMode.IN_FRAMESET;
   }
 }
-function addressStartTagInBody(p, token) {
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function addressStartTagInBody(p2, token) {
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._insertElement(token, NS.HTML);
+  p2._insertElement(token, NS.HTML);
 }
-function numberedHeaderStartTagInBody(p, token) {
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function numberedHeaderStartTagInBody(p2, token) {
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  if (p.openElements.currentTagId !== void 0 && NUMBERED_HEADERS.has(p.openElements.currentTagId)) {
-    p.openElements.pop();
+  if (p2.openElements.currentTagId !== void 0 && NUMBERED_HEADERS.has(p2.openElements.currentTagId)) {
+    p2.openElements.pop();
   }
-  p._insertElement(token, NS.HTML);
+  p2._insertElement(token, NS.HTML);
 }
-function preStartTagInBody(p, token) {
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function preStartTagInBody(p2, token) {
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._insertElement(token, NS.HTML);
-  p.skipNextNewLine = true;
-  p.framesetOk = false;
+  p2._insertElement(token, NS.HTML);
+  p2.skipNextNewLine = true;
+  p2.framesetOk = false;
 }
-function formStartTagInBody(p, token) {
-  const inTemplate = p.openElements.tmplCount > 0;
-  if (!p.formElement || inTemplate) {
-    if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-      p._closePElement();
+function formStartTagInBody(p2, token) {
+  const inTemplate = p2.openElements.tmplCount > 0;
+  if (!p2.formElement || inTemplate) {
+    if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+      p2._closePElement();
     }
-    p._insertElement(token, NS.HTML);
+    p2._insertElement(token, NS.HTML);
     if (!inTemplate) {
-      p.formElement = p.openElements.current;
+      p2.formElement = p2.openElements.current;
     }
   }
 }
-function listItemStartTagInBody(p, token) {
-  p.framesetOk = false;
+function listItemStartTagInBody(p2, token) {
+  p2.framesetOk = false;
   const tn = token.tagID;
-  for (let i = p.openElements.stackTop; i >= 0; i--) {
-    const elementId = p.openElements.tagIDs[i];
+  for (let i = p2.openElements.stackTop; i >= 0; i--) {
+    const elementId = p2.openElements.tagIDs[i];
     if (tn === TAG_ID.LI && elementId === TAG_ID.LI || (tn === TAG_ID.DD || tn === TAG_ID.DT) && (elementId === TAG_ID.DD || elementId === TAG_ID.DT)) {
-      p.openElements.generateImpliedEndTagsWithExclusion(elementId);
-      p.openElements.popUntilTagNamePopped(elementId);
+      p2.openElements.generateImpliedEndTagsWithExclusion(elementId);
+      p2.openElements.popUntilTagNamePopped(elementId);
       break;
     }
-    if (elementId !== TAG_ID.ADDRESS && elementId !== TAG_ID.DIV && elementId !== TAG_ID.P && p._isSpecialElement(p.openElements.items[i], elementId)) {
+    if (elementId !== TAG_ID.ADDRESS && elementId !== TAG_ID.DIV && elementId !== TAG_ID.P && p2._isSpecialElement(p2.openElements.items[i], elementId)) {
       break;
     }
   }
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._insertElement(token, NS.HTML);
+  p2._insertElement(token, NS.HTML);
 }
-function plaintextStartTagInBody(p, token) {
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function plaintextStartTagInBody(p2, token) {
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._insertElement(token, NS.HTML);
-  p.tokenizer.state = TokenizerMode.PLAINTEXT;
+  p2._insertElement(token, NS.HTML);
+  p2.tokenizer.state = TokenizerMode.PLAINTEXT;
 }
-function buttonStartTagInBody(p, token) {
-  if (p.openElements.hasInScope(TAG_ID.BUTTON)) {
-    p.openElements.generateImpliedEndTags();
-    p.openElements.popUntilTagNamePopped(TAG_ID.BUTTON);
+function buttonStartTagInBody(p2, token) {
+  if (p2.openElements.hasInScope(TAG_ID.BUTTON)) {
+    p2.openElements.generateImpliedEndTags();
+    p2.openElements.popUntilTagNamePopped(TAG_ID.BUTTON);
   }
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
-  p.framesetOk = false;
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
+  p2.framesetOk = false;
 }
-function aStartTagInBody(p, token) {
-  const activeElementEntry = p.activeFormattingElements.getElementEntryInScopeWithTagName(TAG_NAMES.A);
+function aStartTagInBody(p2, token) {
+  const activeElementEntry = p2.activeFormattingElements.getElementEntryInScopeWithTagName(TAG_NAMES.A);
   if (activeElementEntry) {
-    callAdoptionAgency(p, token);
-    p.openElements.remove(activeElementEntry.element);
-    p.activeFormattingElements.removeEntry(activeElementEntry);
+    callAdoptionAgency(p2, token);
+    p2.openElements.remove(activeElementEntry.element);
+    p2.activeFormattingElements.removeEntry(activeElementEntry);
   }
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
-  p.activeFormattingElements.pushElement(p.openElements.current, token);
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
+  p2.activeFormattingElements.pushElement(p2.openElements.current, token);
 }
-function bStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
-  p.activeFormattingElements.pushElement(p.openElements.current, token);
+function bStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
+  p2.activeFormattingElements.pushElement(p2.openElements.current, token);
 }
-function nobrStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  if (p.openElements.hasInScope(TAG_ID.NOBR)) {
-    callAdoptionAgency(p, token);
-    p._reconstructActiveFormattingElements();
+function nobrStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  if (p2.openElements.hasInScope(TAG_ID.NOBR)) {
+    callAdoptionAgency(p2, token);
+    p2._reconstructActiveFormattingElements();
   }
-  p._insertElement(token, NS.HTML);
-  p.activeFormattingElements.pushElement(p.openElements.current, token);
+  p2._insertElement(token, NS.HTML);
+  p2.activeFormattingElements.pushElement(p2.openElements.current, token);
 }
-function appletStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
-  p.activeFormattingElements.insertMarker();
-  p.framesetOk = false;
+function appletStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
+  p2.activeFormattingElements.insertMarker();
+  p2.framesetOk = false;
 }
-function tableStartTagInBody(p, token) {
-  if (p.treeAdapter.getDocumentMode(p.document) !== DOCUMENT_MODE.QUIRKS && p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function tableStartTagInBody(p2, token) {
+  if (p2.treeAdapter.getDocumentMode(p2.document) !== DOCUMENT_MODE.QUIRKS && p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._insertElement(token, NS.HTML);
-  p.framesetOk = false;
-  p.insertionMode = InsertionMode.IN_TABLE;
+  p2._insertElement(token, NS.HTML);
+  p2.framesetOk = false;
+  p2.insertionMode = InsertionMode.IN_TABLE;
 }
-function areaStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._appendElement(token, NS.HTML);
-  p.framesetOk = false;
+function areaStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._appendElement(token, NS.HTML);
+  p2.framesetOk = false;
   token.ackSelfClosing = true;
 }
 function isHiddenInput(token) {
   const inputType = getTokenAttr(token, ATTRS.TYPE);
   return inputType != null && inputType.toLowerCase() === HIDDEN_INPUT_TYPE;
 }
-function inputStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._appendElement(token, NS.HTML);
+function inputStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._appendElement(token, NS.HTML);
   if (!isHiddenInput(token)) {
-    p.framesetOk = false;
+    p2.framesetOk = false;
   }
   token.ackSelfClosing = true;
 }
-function paramStartTagInBody(p, token) {
-  p._appendElement(token, NS.HTML);
+function paramStartTagInBody(p2, token) {
+  p2._appendElement(token, NS.HTML);
   token.ackSelfClosing = true;
 }
-function hrStartTagInBody(p, token) {
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function hrStartTagInBody(p2, token) {
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._appendElement(token, NS.HTML);
-  p.framesetOk = false;
+  p2._appendElement(token, NS.HTML);
+  p2.framesetOk = false;
   token.ackSelfClosing = true;
 }
-function imageStartTagInBody(p, token) {
+function imageStartTagInBody(p2, token) {
   token.tagName = TAG_NAMES.IMG;
   token.tagID = TAG_ID.IMG;
-  areaStartTagInBody(p, token);
+  areaStartTagInBody(p2, token);
 }
-function textareaStartTagInBody(p, token) {
-  p._insertElement(token, NS.HTML);
-  p.skipNextNewLine = true;
-  p.tokenizer.state = TokenizerMode.RCDATA;
-  p.originalInsertionMode = p.insertionMode;
-  p.framesetOk = false;
-  p.insertionMode = InsertionMode.TEXT;
+function textareaStartTagInBody(p2, token) {
+  p2._insertElement(token, NS.HTML);
+  p2.skipNextNewLine = true;
+  p2.tokenizer.state = TokenizerMode.RCDATA;
+  p2.originalInsertionMode = p2.insertionMode;
+  p2.framesetOk = false;
+  p2.insertionMode = InsertionMode.TEXT;
 }
-function xmpStartTagInBody(p, token) {
-  if (p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._closePElement();
+function xmpStartTagInBody(p2, token) {
+  if (p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._closePElement();
   }
-  p._reconstructActiveFormattingElements();
-  p.framesetOk = false;
-  p._switchToTextParsing(token, TokenizerMode.RAWTEXT);
+  p2._reconstructActiveFormattingElements();
+  p2.framesetOk = false;
+  p2._switchToTextParsing(token, TokenizerMode.RAWTEXT);
 }
-function iframeStartTagInBody(p, token) {
-  p.framesetOk = false;
-  p._switchToTextParsing(token, TokenizerMode.RAWTEXT);
+function iframeStartTagInBody(p2, token) {
+  p2.framesetOk = false;
+  p2._switchToTextParsing(token, TokenizerMode.RAWTEXT);
 }
-function rawTextStartTagInBody(p, token) {
-  p._switchToTextParsing(token, TokenizerMode.RAWTEXT);
+function rawTextStartTagInBody(p2, token) {
+  p2._switchToTextParsing(token, TokenizerMode.RAWTEXT);
 }
-function selectStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
-  p.framesetOk = false;
-  p.insertionMode = p.insertionMode === InsertionMode.IN_TABLE || p.insertionMode === InsertionMode.IN_CAPTION || p.insertionMode === InsertionMode.IN_TABLE_BODY || p.insertionMode === InsertionMode.IN_ROW || p.insertionMode === InsertionMode.IN_CELL ? InsertionMode.IN_SELECT_IN_TABLE : InsertionMode.IN_SELECT;
+function selectStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
+  p2.framesetOk = false;
+  p2.insertionMode = p2.insertionMode === InsertionMode.IN_TABLE || p2.insertionMode === InsertionMode.IN_CAPTION || p2.insertionMode === InsertionMode.IN_TABLE_BODY || p2.insertionMode === InsertionMode.IN_ROW || p2.insertionMode === InsertionMode.IN_CELL ? InsertionMode.IN_SELECT_IN_TABLE : InsertionMode.IN_SELECT;
 }
-function optgroupStartTagInBody(p, token) {
-  if (p.openElements.currentTagId === TAG_ID.OPTION) {
-    p.openElements.pop();
+function optgroupStartTagInBody(p2, token) {
+  if (p2.openElements.currentTagId === TAG_ID.OPTION) {
+    p2.openElements.pop();
   }
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
 }
-function rbStartTagInBody(p, token) {
-  if (p.openElements.hasInScope(TAG_ID.RUBY)) {
-    p.openElements.generateImpliedEndTags();
+function rbStartTagInBody(p2, token) {
+  if (p2.openElements.hasInScope(TAG_ID.RUBY)) {
+    p2.openElements.generateImpliedEndTags();
   }
-  p._insertElement(token, NS.HTML);
+  p2._insertElement(token, NS.HTML);
 }
-function rtStartTagInBody(p, token) {
-  if (p.openElements.hasInScope(TAG_ID.RUBY)) {
-    p.openElements.generateImpliedEndTagsWithExclusion(TAG_ID.RTC);
+function rtStartTagInBody(p2, token) {
+  if (p2.openElements.hasInScope(TAG_ID.RUBY)) {
+    p2.openElements.generateImpliedEndTagsWithExclusion(TAG_ID.RTC);
   }
-  p._insertElement(token, NS.HTML);
+  p2._insertElement(token, NS.HTML);
 }
-function mathStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
+function mathStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
   adjustTokenMathMLAttrs(token);
   adjustTokenXMLAttrs(token);
   if (token.selfClosing) {
-    p._appendElement(token, NS.MATHML);
+    p2._appendElement(token, NS.MATHML);
   } else {
-    p._insertElement(token, NS.MATHML);
+    p2._insertElement(token, NS.MATHML);
   }
   token.ackSelfClosing = true;
 }
-function svgStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
+function svgStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
   adjustTokenSVGAttrs(token);
   adjustTokenXMLAttrs(token);
   if (token.selfClosing) {
-    p._appendElement(token, NS.SVG);
+    p2._appendElement(token, NS.SVG);
   } else {
-    p._insertElement(token, NS.SVG);
+    p2._insertElement(token, NS.SVG);
   }
   token.ackSelfClosing = true;
 }
-function genericStartTagInBody(p, token) {
-  p._reconstructActiveFormattingElements();
-  p._insertElement(token, NS.HTML);
+function genericStartTagInBody(p2, token) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertElement(token, NS.HTML);
 }
-function startTagInBody(p, token) {
+function startTagInBody(p2, token) {
   switch (token.tagID) {
     case TAG_ID.I:
     case TAG_ID.S:
@@ -6570,11 +6570,11 @@ function startTagInBody(p, token) {
     case TAG_ID.SMALL:
     case TAG_ID.STRIKE:
     case TAG_ID.STRONG: {
-      bStartTagInBody(p, token);
+      bStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.A: {
-      aStartTagInBody(p, token);
+      aStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.H1:
@@ -6583,7 +6583,7 @@ function startTagInBody(p, token) {
     case TAG_ID.H4:
     case TAG_ID.H5:
     case TAG_ID.H6: {
-      numberedHeaderStartTagInBody(p, token);
+      numberedHeaderStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.P:
@@ -6611,13 +6611,13 @@ function startTagInBody(p, token) {
     case TAG_ID.FIELDSET:
     case TAG_ID.BLOCKQUOTE:
     case TAG_ID.FIGCAPTION: {
-      addressStartTagInBody(p, token);
+      addressStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.LI:
     case TAG_ID.DD:
     case TAG_ID.DT: {
-      listItemStartTagInBody(p, token);
+      listItemStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.BR:
@@ -6626,38 +6626,38 @@ function startTagInBody(p, token) {
     case TAG_ID.AREA:
     case TAG_ID.EMBED:
     case TAG_ID.KEYGEN: {
-      areaStartTagInBody(p, token);
+      areaStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.HR: {
-      hrStartTagInBody(p, token);
+      hrStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.RB:
     case TAG_ID.RTC: {
-      rbStartTagInBody(p, token);
+      rbStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.RT:
     case TAG_ID.RP: {
-      rtStartTagInBody(p, token);
+      rtStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.PRE:
     case TAG_ID.LISTING: {
-      preStartTagInBody(p, token);
+      preStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.XMP: {
-      xmpStartTagInBody(p, token);
+      xmpStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.SVG: {
-      svgStartTagInBody(p, token);
+      svgStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.HTML: {
-      htmlStartTagInBody(p, token);
+      htmlStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.BASE:
@@ -6669,89 +6669,89 @@ function startTagInBody(p, token) {
     case TAG_ID.BGSOUND:
     case TAG_ID.BASEFONT:
     case TAG_ID.TEMPLATE: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     case TAG_ID.BODY: {
-      bodyStartTagInBody(p, token);
+      bodyStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.FORM: {
-      formStartTagInBody(p, token);
+      formStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.NOBR: {
-      nobrStartTagInBody(p, token);
+      nobrStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.MATH: {
-      mathStartTagInBody(p, token);
+      mathStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.TABLE: {
-      tableStartTagInBody(p, token);
+      tableStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.INPUT: {
-      inputStartTagInBody(p, token);
+      inputStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.PARAM:
     case TAG_ID.TRACK:
     case TAG_ID.SOURCE: {
-      paramStartTagInBody(p, token);
+      paramStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.IMAGE: {
-      imageStartTagInBody(p, token);
+      imageStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.BUTTON: {
-      buttonStartTagInBody(p, token);
+      buttonStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.APPLET:
     case TAG_ID.OBJECT:
     case TAG_ID.MARQUEE: {
-      appletStartTagInBody(p, token);
+      appletStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.IFRAME: {
-      iframeStartTagInBody(p, token);
+      iframeStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.SELECT: {
-      selectStartTagInBody(p, token);
+      selectStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.OPTION:
     case TAG_ID.OPTGROUP: {
-      optgroupStartTagInBody(p, token);
+      optgroupStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.NOEMBED:
     case TAG_ID.NOFRAMES: {
-      rawTextStartTagInBody(p, token);
+      rawTextStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.FRAMESET: {
-      framesetStartTagInBody(p, token);
+      framesetStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.TEXTAREA: {
-      textareaStartTagInBody(p, token);
+      textareaStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.NOSCRIPT: {
-      if (p.options.scriptingEnabled) {
-        rawTextStartTagInBody(p, token);
+      if (p2.options.scriptingEnabled) {
+        rawTextStartTagInBody(p2, token);
       } else {
-        genericStartTagInBody(p, token);
+        genericStartTagInBody(p2, token);
       }
       break;
     }
     case TAG_ID.PLAINTEXT: {
-      plaintextStartTagInBody(p, token);
+      plaintextStartTagInBody(p2, token);
       break;
     }
     case TAG_ID.COL:
@@ -6768,106 +6768,106 @@ function startTagInBody(p, token) {
       break;
     }
     default: {
-      genericStartTagInBody(p, token);
+      genericStartTagInBody(p2, token);
     }
   }
 }
-function bodyEndTagInBody(p, token) {
-  if (p.openElements.hasInScope(TAG_ID.BODY)) {
-    p.insertionMode = InsertionMode.AFTER_BODY;
-    if (p.options.sourceCodeLocationInfo) {
-      const bodyElement = p.openElements.tryPeekProperlyNestedBodyElement();
+function bodyEndTagInBody(p2, token) {
+  if (p2.openElements.hasInScope(TAG_ID.BODY)) {
+    p2.insertionMode = InsertionMode.AFTER_BODY;
+    if (p2.options.sourceCodeLocationInfo) {
+      const bodyElement = p2.openElements.tryPeekProperlyNestedBodyElement();
       if (bodyElement) {
-        p._setEndLocation(bodyElement, token);
+        p2._setEndLocation(bodyElement, token);
       }
     }
   }
 }
-function htmlEndTagInBody(p, token) {
-  if (p.openElements.hasInScope(TAG_ID.BODY)) {
-    p.insertionMode = InsertionMode.AFTER_BODY;
-    endTagAfterBody(p, token);
+function htmlEndTagInBody(p2, token) {
+  if (p2.openElements.hasInScope(TAG_ID.BODY)) {
+    p2.insertionMode = InsertionMode.AFTER_BODY;
+    endTagAfterBody(p2, token);
   }
 }
-function addressEndTagInBody(p, token) {
+function addressEndTagInBody(p2, token) {
   const tn = token.tagID;
-  if (p.openElements.hasInScope(tn)) {
-    p.openElements.generateImpliedEndTags();
-    p.openElements.popUntilTagNamePopped(tn);
+  if (p2.openElements.hasInScope(tn)) {
+    p2.openElements.generateImpliedEndTags();
+    p2.openElements.popUntilTagNamePopped(tn);
   }
 }
-function formEndTagInBody(p) {
-  const inTemplate = p.openElements.tmplCount > 0;
-  const { formElement } = p;
+function formEndTagInBody(p2) {
+  const inTemplate = p2.openElements.tmplCount > 0;
+  const { formElement } = p2;
   if (!inTemplate) {
-    p.formElement = null;
+    p2.formElement = null;
   }
-  if ((formElement || inTemplate) && p.openElements.hasInScope(TAG_ID.FORM)) {
-    p.openElements.generateImpliedEndTags();
+  if ((formElement || inTemplate) && p2.openElements.hasInScope(TAG_ID.FORM)) {
+    p2.openElements.generateImpliedEndTags();
     if (inTemplate) {
-      p.openElements.popUntilTagNamePopped(TAG_ID.FORM);
+      p2.openElements.popUntilTagNamePopped(TAG_ID.FORM);
     } else if (formElement) {
-      p.openElements.remove(formElement);
+      p2.openElements.remove(formElement);
     }
   }
 }
-function pEndTagInBody(p) {
-  if (!p.openElements.hasInButtonScope(TAG_ID.P)) {
-    p._insertFakeElement(TAG_NAMES.P, TAG_ID.P);
+function pEndTagInBody(p2) {
+  if (!p2.openElements.hasInButtonScope(TAG_ID.P)) {
+    p2._insertFakeElement(TAG_NAMES.P, TAG_ID.P);
   }
-  p._closePElement();
+  p2._closePElement();
 }
-function liEndTagInBody(p) {
-  if (p.openElements.hasInListItemScope(TAG_ID.LI)) {
-    p.openElements.generateImpliedEndTagsWithExclusion(TAG_ID.LI);
-    p.openElements.popUntilTagNamePopped(TAG_ID.LI);
+function liEndTagInBody(p2) {
+  if (p2.openElements.hasInListItemScope(TAG_ID.LI)) {
+    p2.openElements.generateImpliedEndTagsWithExclusion(TAG_ID.LI);
+    p2.openElements.popUntilTagNamePopped(TAG_ID.LI);
   }
 }
-function ddEndTagInBody(p, token) {
+function ddEndTagInBody(p2, token) {
   const tn = token.tagID;
-  if (p.openElements.hasInScope(tn)) {
-    p.openElements.generateImpliedEndTagsWithExclusion(tn);
-    p.openElements.popUntilTagNamePopped(tn);
+  if (p2.openElements.hasInScope(tn)) {
+    p2.openElements.generateImpliedEndTagsWithExclusion(tn);
+    p2.openElements.popUntilTagNamePopped(tn);
   }
 }
-function numberedHeaderEndTagInBody(p) {
-  if (p.openElements.hasNumberedHeaderInScope()) {
-    p.openElements.generateImpliedEndTags();
-    p.openElements.popUntilNumberedHeaderPopped();
+function numberedHeaderEndTagInBody(p2) {
+  if (p2.openElements.hasNumberedHeaderInScope()) {
+    p2.openElements.generateImpliedEndTags();
+    p2.openElements.popUntilNumberedHeaderPopped();
   }
 }
-function appletEndTagInBody(p, token) {
+function appletEndTagInBody(p2, token) {
   const tn = token.tagID;
-  if (p.openElements.hasInScope(tn)) {
-    p.openElements.generateImpliedEndTags();
-    p.openElements.popUntilTagNamePopped(tn);
-    p.activeFormattingElements.clearToLastMarker();
+  if (p2.openElements.hasInScope(tn)) {
+    p2.openElements.generateImpliedEndTags();
+    p2.openElements.popUntilTagNamePopped(tn);
+    p2.activeFormattingElements.clearToLastMarker();
   }
 }
-function brEndTagInBody(p) {
-  p._reconstructActiveFormattingElements();
-  p._insertFakeElement(TAG_NAMES.BR, TAG_ID.BR);
-  p.openElements.pop();
-  p.framesetOk = false;
+function brEndTagInBody(p2) {
+  p2._reconstructActiveFormattingElements();
+  p2._insertFakeElement(TAG_NAMES.BR, TAG_ID.BR);
+  p2.openElements.pop();
+  p2.framesetOk = false;
 }
-function genericEndTagInBody(p, token) {
+function genericEndTagInBody(p2, token) {
   const tn = token.tagName;
   const tid = token.tagID;
-  for (let i = p.openElements.stackTop; i > 0; i--) {
-    const element = p.openElements.items[i];
-    const elementId = p.openElements.tagIDs[i];
-    if (tid === elementId && (tid !== TAG_ID.UNKNOWN || p.treeAdapter.getTagName(element) === tn)) {
-      p.openElements.generateImpliedEndTagsWithExclusion(tid);
-      if (p.openElements.stackTop >= i)
-        p.openElements.shortenToLength(i);
+  for (let i = p2.openElements.stackTop; i > 0; i--) {
+    const element = p2.openElements.items[i];
+    const elementId = p2.openElements.tagIDs[i];
+    if (tid === elementId && (tid !== TAG_ID.UNKNOWN || p2.treeAdapter.getTagName(element) === tn)) {
+      p2.openElements.generateImpliedEndTagsWithExclusion(tid);
+      if (p2.openElements.stackTop >= i)
+        p2.openElements.shortenToLength(i);
       break;
     }
-    if (p._isSpecialElement(element, elementId)) {
+    if (p2._isSpecialElement(element, elementId)) {
       break;
     }
   }
 }
-function endTagInBody(p, token) {
+function endTagInBody(p2, token) {
   switch (token.tagID) {
     case TAG_ID.A:
     case TAG_ID.B:
@@ -6883,11 +6883,11 @@ function endTagInBody(p, token) {
     case TAG_ID.SMALL:
     case TAG_ID.STRIKE:
     case TAG_ID.STRONG: {
-      callAdoptionAgency(p, token);
+      callAdoptionAgency(p2, token);
       break;
     }
     case TAG_ID.P: {
-      pEndTagInBody(p);
+      pEndTagInBody(p2);
       break;
     }
     case TAG_ID.DL:
@@ -6917,16 +6917,16 @@ function endTagInBody(p, token) {
     case TAG_ID.FIELDSET:
     case TAG_ID.BLOCKQUOTE:
     case TAG_ID.FIGCAPTION: {
-      addressEndTagInBody(p, token);
+      addressEndTagInBody(p2, token);
       break;
     }
     case TAG_ID.LI: {
-      liEndTagInBody(p);
+      liEndTagInBody(p2);
       break;
     }
     case TAG_ID.DD:
     case TAG_ID.DT: {
-      ddEndTagInBody(p, token);
+      ddEndTagInBody(p2, token);
       break;
     }
     case TAG_ID.H1:
@@ -6935,191 +6935,191 @@ function endTagInBody(p, token) {
     case TAG_ID.H4:
     case TAG_ID.H5:
     case TAG_ID.H6: {
-      numberedHeaderEndTagInBody(p);
+      numberedHeaderEndTagInBody(p2);
       break;
     }
     case TAG_ID.BR: {
-      brEndTagInBody(p);
+      brEndTagInBody(p2);
       break;
     }
     case TAG_ID.BODY: {
-      bodyEndTagInBody(p, token);
+      bodyEndTagInBody(p2, token);
       break;
     }
     case TAG_ID.HTML: {
-      htmlEndTagInBody(p, token);
+      htmlEndTagInBody(p2, token);
       break;
     }
     case TAG_ID.FORM: {
-      formEndTagInBody(p);
+      formEndTagInBody(p2);
       break;
     }
     case TAG_ID.APPLET:
     case TAG_ID.OBJECT:
     case TAG_ID.MARQUEE: {
-      appletEndTagInBody(p, token);
+      appletEndTagInBody(p2, token);
       break;
     }
     case TAG_ID.TEMPLATE: {
-      templateEndTagInHead(p, token);
+      templateEndTagInHead(p2, token);
       break;
     }
     default: {
-      genericEndTagInBody(p, token);
+      genericEndTagInBody(p2, token);
     }
   }
 }
-function eofInBody(p, token) {
-  if (p.tmplInsertionModeStack.length > 0) {
-    eofInTemplate(p, token);
+function eofInBody(p2, token) {
+  if (p2.tmplInsertionModeStack.length > 0) {
+    eofInTemplate(p2, token);
   } else {
-    stopParsing(p, token);
+    stopParsing(p2, token);
   }
 }
-function endTagInText(p, token) {
-  var _a22;
+function endTagInText(p2, token) {
+  var _a2;
   if (token.tagID === TAG_ID.SCRIPT) {
-    (_a22 = p.scriptHandler) === null || _a22 === void 0 ? void 0 : _a22.call(p, p.openElements.current);
+    (_a2 = p2.scriptHandler) === null || _a2 === void 0 ? void 0 : _a2.call(p2, p2.openElements.current);
   }
-  p.openElements.pop();
-  p.insertionMode = p.originalInsertionMode;
+  p2.openElements.pop();
+  p2.insertionMode = p2.originalInsertionMode;
 }
-function eofInText(p, token) {
-  p._err(token, ERR.eofInElementThatCanContainOnlyText);
-  p.openElements.pop();
-  p.insertionMode = p.originalInsertionMode;
-  p.onEof(token);
+function eofInText(p2, token) {
+  p2._err(token, ERR.eofInElementThatCanContainOnlyText);
+  p2.openElements.pop();
+  p2.insertionMode = p2.originalInsertionMode;
+  p2.onEof(token);
 }
-function characterInTable(p, token) {
-  if (p.openElements.currentTagId !== void 0 && TABLE_STRUCTURE_TAGS.has(p.openElements.currentTagId)) {
-    p.pendingCharacterTokens.length = 0;
-    p.hasNonWhitespacePendingCharacterToken = false;
-    p.originalInsertionMode = p.insertionMode;
-    p.insertionMode = InsertionMode.IN_TABLE_TEXT;
+function characterInTable(p2, token) {
+  if (p2.openElements.currentTagId !== void 0 && TABLE_STRUCTURE_TAGS.has(p2.openElements.currentTagId)) {
+    p2.pendingCharacterTokens.length = 0;
+    p2.hasNonWhitespacePendingCharacterToken = false;
+    p2.originalInsertionMode = p2.insertionMode;
+    p2.insertionMode = InsertionMode.IN_TABLE_TEXT;
     switch (token.type) {
       case TokenType.CHARACTER: {
-        characterInTableText(p, token);
+        characterInTableText(p2, token);
         break;
       }
       case TokenType.WHITESPACE_CHARACTER: {
-        whitespaceCharacterInTableText(p, token);
+        whitespaceCharacterInTableText(p2, token);
         break;
       }
     }
   } else {
-    tokenInTable(p, token);
+    tokenInTable(p2, token);
   }
 }
-function captionStartTagInTable(p, token) {
-  p.openElements.clearBackToTableContext();
-  p.activeFormattingElements.insertMarker();
-  p._insertElement(token, NS.HTML);
-  p.insertionMode = InsertionMode.IN_CAPTION;
+function captionStartTagInTable(p2, token) {
+  p2.openElements.clearBackToTableContext();
+  p2.activeFormattingElements.insertMarker();
+  p2._insertElement(token, NS.HTML);
+  p2.insertionMode = InsertionMode.IN_CAPTION;
 }
-function colgroupStartTagInTable(p, token) {
-  p.openElements.clearBackToTableContext();
-  p._insertElement(token, NS.HTML);
-  p.insertionMode = InsertionMode.IN_COLUMN_GROUP;
+function colgroupStartTagInTable(p2, token) {
+  p2.openElements.clearBackToTableContext();
+  p2._insertElement(token, NS.HTML);
+  p2.insertionMode = InsertionMode.IN_COLUMN_GROUP;
 }
-function colStartTagInTable(p, token) {
-  p.openElements.clearBackToTableContext();
-  p._insertFakeElement(TAG_NAMES.COLGROUP, TAG_ID.COLGROUP);
-  p.insertionMode = InsertionMode.IN_COLUMN_GROUP;
-  startTagInColumnGroup(p, token);
+function colStartTagInTable(p2, token) {
+  p2.openElements.clearBackToTableContext();
+  p2._insertFakeElement(TAG_NAMES.COLGROUP, TAG_ID.COLGROUP);
+  p2.insertionMode = InsertionMode.IN_COLUMN_GROUP;
+  startTagInColumnGroup(p2, token);
 }
-function tbodyStartTagInTable(p, token) {
-  p.openElements.clearBackToTableContext();
-  p._insertElement(token, NS.HTML);
-  p.insertionMode = InsertionMode.IN_TABLE_BODY;
+function tbodyStartTagInTable(p2, token) {
+  p2.openElements.clearBackToTableContext();
+  p2._insertElement(token, NS.HTML);
+  p2.insertionMode = InsertionMode.IN_TABLE_BODY;
 }
-function tdStartTagInTable(p, token) {
-  p.openElements.clearBackToTableContext();
-  p._insertFakeElement(TAG_NAMES.TBODY, TAG_ID.TBODY);
-  p.insertionMode = InsertionMode.IN_TABLE_BODY;
-  startTagInTableBody(p, token);
+function tdStartTagInTable(p2, token) {
+  p2.openElements.clearBackToTableContext();
+  p2._insertFakeElement(TAG_NAMES.TBODY, TAG_ID.TBODY);
+  p2.insertionMode = InsertionMode.IN_TABLE_BODY;
+  startTagInTableBody(p2, token);
 }
-function tableStartTagInTable(p, token) {
-  if (p.openElements.hasInTableScope(TAG_ID.TABLE)) {
-    p.openElements.popUntilTagNamePopped(TAG_ID.TABLE);
-    p._resetInsertionMode();
-    p._processStartTag(token);
+function tableStartTagInTable(p2, token) {
+  if (p2.openElements.hasInTableScope(TAG_ID.TABLE)) {
+    p2.openElements.popUntilTagNamePopped(TAG_ID.TABLE);
+    p2._resetInsertionMode();
+    p2._processStartTag(token);
   }
 }
-function inputStartTagInTable(p, token) {
+function inputStartTagInTable(p2, token) {
   if (isHiddenInput(token)) {
-    p._appendElement(token, NS.HTML);
+    p2._appendElement(token, NS.HTML);
   } else {
-    tokenInTable(p, token);
+    tokenInTable(p2, token);
   }
   token.ackSelfClosing = true;
 }
-function formStartTagInTable(p, token) {
-  if (!p.formElement && p.openElements.tmplCount === 0) {
-    p._insertElement(token, NS.HTML);
-    p.formElement = p.openElements.current;
-    p.openElements.pop();
+function formStartTagInTable(p2, token) {
+  if (!p2.formElement && p2.openElements.tmplCount === 0) {
+    p2._insertElement(token, NS.HTML);
+    p2.formElement = p2.openElements.current;
+    p2.openElements.pop();
   }
 }
-function startTagInTable(p, token) {
+function startTagInTable(p2, token) {
   switch (token.tagID) {
     case TAG_ID.TD:
     case TAG_ID.TH:
     case TAG_ID.TR: {
-      tdStartTagInTable(p, token);
+      tdStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.STYLE:
     case TAG_ID.SCRIPT:
     case TAG_ID.TEMPLATE: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     case TAG_ID.COL: {
-      colStartTagInTable(p, token);
+      colStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.FORM: {
-      formStartTagInTable(p, token);
+      formStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.TABLE: {
-      tableStartTagInTable(p, token);
+      tableStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.TBODY:
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD: {
-      tbodyStartTagInTable(p, token);
+      tbodyStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.INPUT: {
-      inputStartTagInTable(p, token);
+      inputStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.CAPTION: {
-      captionStartTagInTable(p, token);
+      captionStartTagInTable(p2, token);
       break;
     }
     case TAG_ID.COLGROUP: {
-      colgroupStartTagInTable(p, token);
+      colgroupStartTagInTable(p2, token);
       break;
     }
     default: {
-      tokenInTable(p, token);
+      tokenInTable(p2, token);
     }
   }
 }
-function endTagInTable(p, token) {
+function endTagInTable(p2, token) {
   switch (token.tagID) {
     case TAG_ID.TABLE: {
-      if (p.openElements.hasInTableScope(TAG_ID.TABLE)) {
-        p.openElements.popUntilTagNamePopped(TAG_ID.TABLE);
-        p._resetInsertionMode();
+      if (p2.openElements.hasInTableScope(TAG_ID.TABLE)) {
+        p2.openElements.popUntilTagNamePopped(TAG_ID.TABLE);
+        p2._resetInsertionMode();
       }
       break;
     }
     case TAG_ID.TEMPLATE: {
-      templateEndTagInHead(p, token);
+      templateEndTagInHead(p2, token);
       break;
     }
     case TAG_ID.BODY:
@@ -7136,64 +7136,64 @@ function endTagInTable(p, token) {
       break;
     }
     default: {
-      tokenInTable(p, token);
+      tokenInTable(p2, token);
     }
   }
 }
-function tokenInTable(p, token) {
-  const savedFosterParentingState = p.fosterParentingEnabled;
-  p.fosterParentingEnabled = true;
-  modeInBody(p, token);
-  p.fosterParentingEnabled = savedFosterParentingState;
+function tokenInTable(p2, token) {
+  const savedFosterParentingState = p2.fosterParentingEnabled;
+  p2.fosterParentingEnabled = true;
+  modeInBody(p2, token);
+  p2.fosterParentingEnabled = savedFosterParentingState;
 }
-function whitespaceCharacterInTableText(p, token) {
-  p.pendingCharacterTokens.push(token);
+function whitespaceCharacterInTableText(p2, token) {
+  p2.pendingCharacterTokens.push(token);
 }
-function characterInTableText(p, token) {
-  p.pendingCharacterTokens.push(token);
-  p.hasNonWhitespacePendingCharacterToken = true;
+function characterInTableText(p2, token) {
+  p2.pendingCharacterTokens.push(token);
+  p2.hasNonWhitespacePendingCharacterToken = true;
 }
-function tokenInTableText(p, token) {
+function tokenInTableText(p2, token) {
   let i = 0;
-  if (p.hasNonWhitespacePendingCharacterToken) {
-    for (; i < p.pendingCharacterTokens.length; i++) {
-      tokenInTable(p, p.pendingCharacterTokens[i]);
+  if (p2.hasNonWhitespacePendingCharacterToken) {
+    for (; i < p2.pendingCharacterTokens.length; i++) {
+      tokenInTable(p2, p2.pendingCharacterTokens[i]);
     }
   } else {
-    for (; i < p.pendingCharacterTokens.length; i++) {
-      p._insertCharacters(p.pendingCharacterTokens[i]);
+    for (; i < p2.pendingCharacterTokens.length; i++) {
+      p2._insertCharacters(p2.pendingCharacterTokens[i]);
     }
   }
-  p.insertionMode = p.originalInsertionMode;
-  p._processToken(token);
+  p2.insertionMode = p2.originalInsertionMode;
+  p2._processToken(token);
 }
 var TABLE_VOID_ELEMENTS = /* @__PURE__ */ new Set([TAG_ID.CAPTION, TAG_ID.COL, TAG_ID.COLGROUP, TAG_ID.TBODY, TAG_ID.TD, TAG_ID.TFOOT, TAG_ID.TH, TAG_ID.THEAD, TAG_ID.TR]);
-function startTagInCaption(p, token) {
+function startTagInCaption(p2, token) {
   const tn = token.tagID;
   if (TABLE_VOID_ELEMENTS.has(tn)) {
-    if (p.openElements.hasInTableScope(TAG_ID.CAPTION)) {
-      p.openElements.generateImpliedEndTags();
-      p.openElements.popUntilTagNamePopped(TAG_ID.CAPTION);
-      p.activeFormattingElements.clearToLastMarker();
-      p.insertionMode = InsertionMode.IN_TABLE;
-      startTagInTable(p, token);
+    if (p2.openElements.hasInTableScope(TAG_ID.CAPTION)) {
+      p2.openElements.generateImpliedEndTags();
+      p2.openElements.popUntilTagNamePopped(TAG_ID.CAPTION);
+      p2.activeFormattingElements.clearToLastMarker();
+      p2.insertionMode = InsertionMode.IN_TABLE;
+      startTagInTable(p2, token);
     }
   } else {
-    startTagInBody(p, token);
+    startTagInBody(p2, token);
   }
 }
-function endTagInCaption(p, token) {
+function endTagInCaption(p2, token) {
   const tn = token.tagID;
   switch (tn) {
     case TAG_ID.CAPTION:
     case TAG_ID.TABLE: {
-      if (p.openElements.hasInTableScope(TAG_ID.CAPTION)) {
-        p.openElements.generateImpliedEndTags();
-        p.openElements.popUntilTagNamePopped(TAG_ID.CAPTION);
-        p.activeFormattingElements.clearToLastMarker();
-        p.insertionMode = InsertionMode.IN_TABLE;
+      if (p2.openElements.hasInTableScope(TAG_ID.CAPTION)) {
+        p2.openElements.generateImpliedEndTags();
+        p2.openElements.popUntilTagNamePopped(TAG_ID.CAPTION);
+        p2.activeFormattingElements.clearToLastMarker();
+        p2.insertionMode = InsertionMode.IN_TABLE;
         if (tn === TAG_ID.TABLE) {
-          endTagInTable(p, token);
+          endTagInTable(p2, token);
         }
       }
       break;
@@ -7211,72 +7211,72 @@ function endTagInCaption(p, token) {
       break;
     }
     default: {
-      endTagInBody(p, token);
+      endTagInBody(p2, token);
     }
   }
 }
-function startTagInColumnGroup(p, token) {
+function startTagInColumnGroup(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.COL: {
-      p._appendElement(token, NS.HTML);
+      p2._appendElement(token, NS.HTML);
       token.ackSelfClosing = true;
       break;
     }
     case TAG_ID.TEMPLATE: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     default: {
-      tokenInColumnGroup(p, token);
+      tokenInColumnGroup(p2, token);
     }
   }
 }
-function endTagInColumnGroup(p, token) {
+function endTagInColumnGroup(p2, token) {
   switch (token.tagID) {
     case TAG_ID.COLGROUP: {
-      if (p.openElements.currentTagId === TAG_ID.COLGROUP) {
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE;
+      if (p2.openElements.currentTagId === TAG_ID.COLGROUP) {
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE;
       }
       break;
     }
     case TAG_ID.TEMPLATE: {
-      templateEndTagInHead(p, token);
+      templateEndTagInHead(p2, token);
       break;
     }
     case TAG_ID.COL: {
       break;
     }
     default: {
-      tokenInColumnGroup(p, token);
+      tokenInColumnGroup(p2, token);
     }
   }
 }
-function tokenInColumnGroup(p, token) {
-  if (p.openElements.currentTagId === TAG_ID.COLGROUP) {
-    p.openElements.pop();
-    p.insertionMode = InsertionMode.IN_TABLE;
-    p._processToken(token);
+function tokenInColumnGroup(p2, token) {
+  if (p2.openElements.currentTagId === TAG_ID.COLGROUP) {
+    p2.openElements.pop();
+    p2.insertionMode = InsertionMode.IN_TABLE;
+    p2._processToken(token);
   }
 }
-function startTagInTableBody(p, token) {
+function startTagInTableBody(p2, token) {
   switch (token.tagID) {
     case TAG_ID.TR: {
-      p.openElements.clearBackToTableBodyContext();
-      p._insertElement(token, NS.HTML);
-      p.insertionMode = InsertionMode.IN_ROW;
+      p2.openElements.clearBackToTableBodyContext();
+      p2._insertElement(token, NS.HTML);
+      p2.insertionMode = InsertionMode.IN_ROW;
       break;
     }
     case TAG_ID.TH:
     case TAG_ID.TD: {
-      p.openElements.clearBackToTableBodyContext();
-      p._insertFakeElement(TAG_NAMES.TR, TAG_ID.TR);
-      p.insertionMode = InsertionMode.IN_ROW;
-      startTagInRow(p, token);
+      p2.openElements.clearBackToTableBodyContext();
+      p2._insertFakeElement(TAG_NAMES.TR, TAG_ID.TR);
+      p2.insertionMode = InsertionMode.IN_ROW;
+      startTagInRow(p2, token);
       break;
     }
     case TAG_ID.CAPTION:
@@ -7285,38 +7285,38 @@ function startTagInTableBody(p, token) {
     case TAG_ID.TBODY:
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD: {
-      if (p.openElements.hasTableBodyContextInTableScope()) {
-        p.openElements.clearBackToTableBodyContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE;
-        startTagInTable(p, token);
+      if (p2.openElements.hasTableBodyContextInTableScope()) {
+        p2.openElements.clearBackToTableBodyContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE;
+        startTagInTable(p2, token);
       }
       break;
     }
     default: {
-      startTagInTable(p, token);
+      startTagInTable(p2, token);
     }
   }
 }
-function endTagInTableBody(p, token) {
+function endTagInTableBody(p2, token) {
   const tn = token.tagID;
   switch (token.tagID) {
     case TAG_ID.TBODY:
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD: {
-      if (p.openElements.hasInTableScope(tn)) {
-        p.openElements.clearBackToTableBodyContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE;
+      if (p2.openElements.hasInTableScope(tn)) {
+        p2.openElements.clearBackToTableBodyContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE;
       }
       break;
     }
     case TAG_ID.TABLE: {
-      if (p.openElements.hasTableBodyContextInTableScope()) {
-        p.openElements.clearBackToTableBodyContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE;
-        endTagInTable(p, token);
+      if (p2.openElements.hasTableBodyContextInTableScope()) {
+        p2.openElements.clearBackToTableBodyContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE;
+        endTagInTable(p2, token);
       }
       break;
     }
@@ -7331,18 +7331,18 @@ function endTagInTableBody(p, token) {
       break;
     }
     default: {
-      endTagInTable(p, token);
+      endTagInTable(p2, token);
     }
   }
 }
-function startTagInRow(p, token) {
+function startTagInRow(p2, token) {
   switch (token.tagID) {
     case TAG_ID.TH:
     case TAG_ID.TD: {
-      p.openElements.clearBackToTableRowContext();
-      p._insertElement(token, NS.HTML);
-      p.insertionMode = InsertionMode.IN_CELL;
-      p.activeFormattingElements.insertMarker();
+      p2.openElements.clearBackToTableRowContext();
+      p2._insertElement(token, NS.HTML);
+      p2.insertionMode = InsertionMode.IN_CELL;
+      p2.activeFormattingElements.insertMarker();
       break;
     }
     case TAG_ID.CAPTION:
@@ -7352,46 +7352,46 @@ function startTagInRow(p, token) {
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD:
     case TAG_ID.TR: {
-      if (p.openElements.hasInTableScope(TAG_ID.TR)) {
-        p.openElements.clearBackToTableRowContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE_BODY;
-        startTagInTableBody(p, token);
+      if (p2.openElements.hasInTableScope(TAG_ID.TR)) {
+        p2.openElements.clearBackToTableRowContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE_BODY;
+        startTagInTableBody(p2, token);
       }
       break;
     }
     default: {
-      startTagInTable(p, token);
+      startTagInTable(p2, token);
     }
   }
 }
-function endTagInRow(p, token) {
+function endTagInRow(p2, token) {
   switch (token.tagID) {
     case TAG_ID.TR: {
-      if (p.openElements.hasInTableScope(TAG_ID.TR)) {
-        p.openElements.clearBackToTableRowContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE_BODY;
+      if (p2.openElements.hasInTableScope(TAG_ID.TR)) {
+        p2.openElements.clearBackToTableRowContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE_BODY;
       }
       break;
     }
     case TAG_ID.TABLE: {
-      if (p.openElements.hasInTableScope(TAG_ID.TR)) {
-        p.openElements.clearBackToTableRowContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE_BODY;
-        endTagInTableBody(p, token);
+      if (p2.openElements.hasInTableScope(TAG_ID.TR)) {
+        p2.openElements.clearBackToTableRowContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE_BODY;
+        endTagInTableBody(p2, token);
       }
       break;
     }
     case TAG_ID.TBODY:
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD: {
-      if (p.openElements.hasInTableScope(token.tagID) || p.openElements.hasInTableScope(TAG_ID.TR)) {
-        p.openElements.clearBackToTableRowContext();
-        p.openElements.pop();
-        p.insertionMode = InsertionMode.IN_TABLE_BODY;
-        endTagInTableBody(p, token);
+      if (p2.openElements.hasInTableScope(token.tagID) || p2.openElements.hasInTableScope(TAG_ID.TR)) {
+        p2.openElements.clearBackToTableRowContext();
+        p2.openElements.pop();
+        p2.insertionMode = InsertionMode.IN_TABLE_BODY;
+        endTagInTableBody(p2, token);
       }
       break;
     }
@@ -7405,31 +7405,31 @@ function endTagInRow(p, token) {
       break;
     }
     default: {
-      endTagInTable(p, token);
+      endTagInTable(p2, token);
     }
   }
 }
-function startTagInCell(p, token) {
+function startTagInCell(p2, token) {
   const tn = token.tagID;
   if (TABLE_VOID_ELEMENTS.has(tn)) {
-    if (p.openElements.hasInTableScope(TAG_ID.TD) || p.openElements.hasInTableScope(TAG_ID.TH)) {
-      p._closeTableCell();
-      startTagInRow(p, token);
+    if (p2.openElements.hasInTableScope(TAG_ID.TD) || p2.openElements.hasInTableScope(TAG_ID.TH)) {
+      p2._closeTableCell();
+      startTagInRow(p2, token);
     }
   } else {
-    startTagInBody(p, token);
+    startTagInBody(p2, token);
   }
 }
-function endTagInCell(p, token) {
+function endTagInCell(p2, token) {
   const tn = token.tagID;
   switch (tn) {
     case TAG_ID.TD:
     case TAG_ID.TH: {
-      if (p.openElements.hasInTableScope(tn)) {
-        p.openElements.generateImpliedEndTags();
-        p.openElements.popUntilTagNamePopped(tn);
-        p.activeFormattingElements.clearToLastMarker();
-        p.insertionMode = InsertionMode.IN_ROW;
+      if (p2.openElements.hasInTableScope(tn)) {
+        p2.openElements.generateImpliedEndTags();
+        p2.openElements.popUntilTagNamePopped(tn);
+        p2.activeFormattingElements.clearToLastMarker();
+        p2.insertionMode = InsertionMode.IN_ROW;
       }
       break;
     }
@@ -7438,9 +7438,9 @@ function endTagInCell(p, token) {
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD:
     case TAG_ID.TR: {
-      if (p.openElements.hasInTableScope(tn)) {
-        p._closeTableCell();
-        endTagInRow(p, token);
+      if (p2.openElements.hasInTableScope(tn)) {
+        p2._closeTableCell();
+        endTagInRow(p2, token);
       }
       break;
     }
@@ -7452,41 +7452,41 @@ function endTagInCell(p, token) {
       break;
     }
     default: {
-      endTagInBody(p, token);
+      endTagInBody(p2, token);
     }
   }
 }
-function startTagInSelect(p, token) {
+function startTagInSelect(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.OPTION: {
-      if (p.openElements.currentTagId === TAG_ID.OPTION) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTION) {
+        p2.openElements.pop();
       }
-      p._insertElement(token, NS.HTML);
+      p2._insertElement(token, NS.HTML);
       break;
     }
     case TAG_ID.OPTGROUP: {
-      if (p.openElements.currentTagId === TAG_ID.OPTION) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTION) {
+        p2.openElements.pop();
       }
-      if (p.openElements.currentTagId === TAG_ID.OPTGROUP) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTGROUP) {
+        p2.openElements.pop();
       }
-      p._insertElement(token, NS.HTML);
+      p2._insertElement(token, NS.HTML);
       break;
     }
     case TAG_ID.HR: {
-      if (p.openElements.currentTagId === TAG_ID.OPTION) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTION) {
+        p2.openElements.pop();
       }
-      if (p.openElements.currentTagId === TAG_ID.OPTGROUP) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTGROUP) {
+        p2.openElements.pop();
       }
-      p._appendElement(token, NS.HTML);
+      p2._appendElement(token, NS.HTML);
       token.ackSelfClosing = true;
       break;
     }
@@ -7494,77 +7494,77 @@ function startTagInSelect(p, token) {
     case TAG_ID.KEYGEN:
     case TAG_ID.TEXTAREA:
     case TAG_ID.SELECT: {
-      if (p.openElements.hasInSelectScope(TAG_ID.SELECT)) {
-        p.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
-        p._resetInsertionMode();
+      if (p2.openElements.hasInSelectScope(TAG_ID.SELECT)) {
+        p2.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
+        p2._resetInsertionMode();
         if (token.tagID !== TAG_ID.SELECT) {
-          p._processStartTag(token);
+          p2._processStartTag(token);
         }
       }
       break;
     }
     case TAG_ID.SCRIPT:
     case TAG_ID.TEMPLATE: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     default:
   }
 }
-function endTagInSelect(p, token) {
+function endTagInSelect(p2, token) {
   switch (token.tagID) {
     case TAG_ID.OPTGROUP: {
-      if (p.openElements.stackTop > 0 && p.openElements.currentTagId === TAG_ID.OPTION && p.openElements.tagIDs[p.openElements.stackTop - 1] === TAG_ID.OPTGROUP) {
-        p.openElements.pop();
+      if (p2.openElements.stackTop > 0 && p2.openElements.currentTagId === TAG_ID.OPTION && p2.openElements.tagIDs[p2.openElements.stackTop - 1] === TAG_ID.OPTGROUP) {
+        p2.openElements.pop();
       }
-      if (p.openElements.currentTagId === TAG_ID.OPTGROUP) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTGROUP) {
+        p2.openElements.pop();
       }
       break;
     }
     case TAG_ID.OPTION: {
-      if (p.openElements.currentTagId === TAG_ID.OPTION) {
-        p.openElements.pop();
+      if (p2.openElements.currentTagId === TAG_ID.OPTION) {
+        p2.openElements.pop();
       }
       break;
     }
     case TAG_ID.SELECT: {
-      if (p.openElements.hasInSelectScope(TAG_ID.SELECT)) {
-        p.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
-        p._resetInsertionMode();
+      if (p2.openElements.hasInSelectScope(TAG_ID.SELECT)) {
+        p2.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
+        p2._resetInsertionMode();
       }
       break;
     }
     case TAG_ID.TEMPLATE: {
-      templateEndTagInHead(p, token);
+      templateEndTagInHead(p2, token);
       break;
     }
     default:
   }
 }
-function startTagInSelectInTable(p, token) {
+function startTagInSelectInTable(p2, token) {
   const tn = token.tagID;
   if (tn === TAG_ID.CAPTION || tn === TAG_ID.TABLE || tn === TAG_ID.TBODY || tn === TAG_ID.TFOOT || tn === TAG_ID.THEAD || tn === TAG_ID.TR || tn === TAG_ID.TD || tn === TAG_ID.TH) {
-    p.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
-    p._resetInsertionMode();
-    p._processStartTag(token);
+    p2.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
+    p2._resetInsertionMode();
+    p2._processStartTag(token);
   } else {
-    startTagInSelect(p, token);
+    startTagInSelect(p2, token);
   }
 }
-function endTagInSelectInTable(p, token) {
+function endTagInSelectInTable(p2, token) {
   const tn = token.tagID;
   if (tn === TAG_ID.CAPTION || tn === TAG_ID.TABLE || tn === TAG_ID.TBODY || tn === TAG_ID.TFOOT || tn === TAG_ID.THEAD || tn === TAG_ID.TR || tn === TAG_ID.TD || tn === TAG_ID.TH) {
-    if (p.openElements.hasInTableScope(tn)) {
-      p.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
-      p._resetInsertionMode();
-      p.onEndTag(token);
+    if (p2.openElements.hasInTableScope(tn)) {
+      p2.openElements.popUntilTagNamePopped(TAG_ID.SELECT);
+      p2._resetInsertionMode();
+      p2.onEndTag(token);
     }
   } else {
-    endTagInSelect(p, token);
+    endTagInSelect(p2, token);
   }
 }
-function startTagInTemplate(p, token) {
+function startTagInTemplate(p2, token) {
   switch (token.tagID) {
     // First, handle tags that can start without a mode change
     case TAG_ID.BASE:
@@ -7577,7 +7577,7 @@ function startTagInTemplate(p, token) {
     case TAG_ID.STYLE:
     case TAG_ID.TEMPLATE:
     case TAG_ID.TITLE: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     // Re-process the token in the appropriate mode
@@ -7586,173 +7586,173 @@ function startTagInTemplate(p, token) {
     case TAG_ID.TBODY:
     case TAG_ID.TFOOT:
     case TAG_ID.THEAD: {
-      p.tmplInsertionModeStack[0] = InsertionMode.IN_TABLE;
-      p.insertionMode = InsertionMode.IN_TABLE;
-      startTagInTable(p, token);
+      p2.tmplInsertionModeStack[0] = InsertionMode.IN_TABLE;
+      p2.insertionMode = InsertionMode.IN_TABLE;
+      startTagInTable(p2, token);
       break;
     }
     case TAG_ID.COL: {
-      p.tmplInsertionModeStack[0] = InsertionMode.IN_COLUMN_GROUP;
-      p.insertionMode = InsertionMode.IN_COLUMN_GROUP;
-      startTagInColumnGroup(p, token);
+      p2.tmplInsertionModeStack[0] = InsertionMode.IN_COLUMN_GROUP;
+      p2.insertionMode = InsertionMode.IN_COLUMN_GROUP;
+      startTagInColumnGroup(p2, token);
       break;
     }
     case TAG_ID.TR: {
-      p.tmplInsertionModeStack[0] = InsertionMode.IN_TABLE_BODY;
-      p.insertionMode = InsertionMode.IN_TABLE_BODY;
-      startTagInTableBody(p, token);
+      p2.tmplInsertionModeStack[0] = InsertionMode.IN_TABLE_BODY;
+      p2.insertionMode = InsertionMode.IN_TABLE_BODY;
+      startTagInTableBody(p2, token);
       break;
     }
     case TAG_ID.TD:
     case TAG_ID.TH: {
-      p.tmplInsertionModeStack[0] = InsertionMode.IN_ROW;
-      p.insertionMode = InsertionMode.IN_ROW;
-      startTagInRow(p, token);
+      p2.tmplInsertionModeStack[0] = InsertionMode.IN_ROW;
+      p2.insertionMode = InsertionMode.IN_ROW;
+      startTagInRow(p2, token);
       break;
     }
     default: {
-      p.tmplInsertionModeStack[0] = InsertionMode.IN_BODY;
-      p.insertionMode = InsertionMode.IN_BODY;
-      startTagInBody(p, token);
+      p2.tmplInsertionModeStack[0] = InsertionMode.IN_BODY;
+      p2.insertionMode = InsertionMode.IN_BODY;
+      startTagInBody(p2, token);
     }
   }
 }
-function endTagInTemplate(p, token) {
+function endTagInTemplate(p2, token) {
   if (token.tagID === TAG_ID.TEMPLATE) {
-    templateEndTagInHead(p, token);
+    templateEndTagInHead(p2, token);
   }
 }
-function eofInTemplate(p, token) {
-  if (p.openElements.tmplCount > 0) {
-    p.openElements.popUntilTagNamePopped(TAG_ID.TEMPLATE);
-    p.activeFormattingElements.clearToLastMarker();
-    p.tmplInsertionModeStack.shift();
-    p._resetInsertionMode();
-    p.onEof(token);
+function eofInTemplate(p2, token) {
+  if (p2.openElements.tmplCount > 0) {
+    p2.openElements.popUntilTagNamePopped(TAG_ID.TEMPLATE);
+    p2.activeFormattingElements.clearToLastMarker();
+    p2.tmplInsertionModeStack.shift();
+    p2._resetInsertionMode();
+    p2.onEof(token);
   } else {
-    stopParsing(p, token);
+    stopParsing(p2, token);
   }
 }
-function startTagAfterBody(p, token) {
+function startTagAfterBody(p2, token) {
   if (token.tagID === TAG_ID.HTML) {
-    startTagInBody(p, token);
+    startTagInBody(p2, token);
   } else {
-    tokenAfterBody(p, token);
+    tokenAfterBody(p2, token);
   }
 }
-function endTagAfterBody(p, token) {
-  var _a22;
+function endTagAfterBody(p2, token) {
+  var _a2;
   if (token.tagID === TAG_ID.HTML) {
-    if (!p.fragmentContext) {
-      p.insertionMode = InsertionMode.AFTER_AFTER_BODY;
+    if (!p2.fragmentContext) {
+      p2.insertionMode = InsertionMode.AFTER_AFTER_BODY;
     }
-    if (p.options.sourceCodeLocationInfo && p.openElements.tagIDs[0] === TAG_ID.HTML) {
-      p._setEndLocation(p.openElements.items[0], token);
-      const bodyElement = p.openElements.items[1];
-      if (bodyElement && !((_a22 = p.treeAdapter.getNodeSourceCodeLocation(bodyElement)) === null || _a22 === void 0 ? void 0 : _a22.endTag)) {
-        p._setEndLocation(bodyElement, token);
+    if (p2.options.sourceCodeLocationInfo && p2.openElements.tagIDs[0] === TAG_ID.HTML) {
+      p2._setEndLocation(p2.openElements.items[0], token);
+      const bodyElement = p2.openElements.items[1];
+      if (bodyElement && !((_a2 = p2.treeAdapter.getNodeSourceCodeLocation(bodyElement)) === null || _a2 === void 0 ? void 0 : _a2.endTag)) {
+        p2._setEndLocation(bodyElement, token);
       }
     }
   } else {
-    tokenAfterBody(p, token);
+    tokenAfterBody(p2, token);
   }
 }
-function tokenAfterBody(p, token) {
-  p.insertionMode = InsertionMode.IN_BODY;
-  modeInBody(p, token);
+function tokenAfterBody(p2, token) {
+  p2.insertionMode = InsertionMode.IN_BODY;
+  modeInBody(p2, token);
 }
-function startTagInFrameset(p, token) {
+function startTagInFrameset(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.FRAMESET: {
-      p._insertElement(token, NS.HTML);
+      p2._insertElement(token, NS.HTML);
       break;
     }
     case TAG_ID.FRAME: {
-      p._appendElement(token, NS.HTML);
+      p2._appendElement(token, NS.HTML);
       token.ackSelfClosing = true;
       break;
     }
     case TAG_ID.NOFRAMES: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     default:
   }
 }
-function endTagInFrameset(p, token) {
-  if (token.tagID === TAG_ID.FRAMESET && !p.openElements.isRootHtmlElementCurrent()) {
-    p.openElements.pop();
-    if (!p.fragmentContext && p.openElements.currentTagId !== TAG_ID.FRAMESET) {
-      p.insertionMode = InsertionMode.AFTER_FRAMESET;
+function endTagInFrameset(p2, token) {
+  if (token.tagID === TAG_ID.FRAMESET && !p2.openElements.isRootHtmlElementCurrent()) {
+    p2.openElements.pop();
+    if (!p2.fragmentContext && p2.openElements.currentTagId !== TAG_ID.FRAMESET) {
+      p2.insertionMode = InsertionMode.AFTER_FRAMESET;
     }
   }
 }
-function startTagAfterFrameset(p, token) {
+function startTagAfterFrameset(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.NOFRAMES: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     default:
   }
 }
-function endTagAfterFrameset(p, token) {
+function endTagAfterFrameset(p2, token) {
   if (token.tagID === TAG_ID.HTML) {
-    p.insertionMode = InsertionMode.AFTER_AFTER_FRAMESET;
+    p2.insertionMode = InsertionMode.AFTER_AFTER_FRAMESET;
   }
 }
-function startTagAfterAfterBody(p, token) {
+function startTagAfterAfterBody(p2, token) {
   if (token.tagID === TAG_ID.HTML) {
-    startTagInBody(p, token);
+    startTagInBody(p2, token);
   } else {
-    tokenAfterAfterBody(p, token);
+    tokenAfterAfterBody(p2, token);
   }
 }
-function tokenAfterAfterBody(p, token) {
-  p.insertionMode = InsertionMode.IN_BODY;
-  modeInBody(p, token);
+function tokenAfterAfterBody(p2, token) {
+  p2.insertionMode = InsertionMode.IN_BODY;
+  modeInBody(p2, token);
 }
-function startTagAfterAfterFrameset(p, token) {
+function startTagAfterAfterFrameset(p2, token) {
   switch (token.tagID) {
     case TAG_ID.HTML: {
-      startTagInBody(p, token);
+      startTagInBody(p2, token);
       break;
     }
     case TAG_ID.NOFRAMES: {
-      startTagInHead(p, token);
+      startTagInHead(p2, token);
       break;
     }
     default:
   }
 }
-function nullCharacterInForeignContent(p, token) {
+function nullCharacterInForeignContent(p2, token) {
   token.chars = REPLACEMENT_CHARACTER;
-  p._insertCharacters(token);
+  p2._insertCharacters(token);
 }
-function characterInForeignContent(p, token) {
-  p._insertCharacters(token);
-  p.framesetOk = false;
+function characterInForeignContent(p2, token) {
+  p2._insertCharacters(token);
+  p2.framesetOk = false;
 }
-function popUntilHtmlOrIntegrationPoint(p) {
-  while (p.treeAdapter.getNamespaceURI(p.openElements.current) !== NS.HTML && p.openElements.currentTagId !== void 0 && !p._isIntegrationPoint(p.openElements.currentTagId, p.openElements.current)) {
-    p.openElements.pop();
+function popUntilHtmlOrIntegrationPoint(p2) {
+  while (p2.treeAdapter.getNamespaceURI(p2.openElements.current) !== NS.HTML && p2.openElements.currentTagId !== void 0 && !p2._isIntegrationPoint(p2.openElements.currentTagId, p2.openElements.current)) {
+    p2.openElements.pop();
   }
 }
-function startTagInForeignContent(p, token) {
+function startTagInForeignContent(p2, token) {
   if (causesExit(token)) {
-    popUntilHtmlOrIntegrationPoint(p);
-    p._startTagOutsideForeignContent(token);
+    popUntilHtmlOrIntegrationPoint(p2);
+    p2._startTagOutsideForeignContent(token);
   } else {
-    const current = p._getAdjustedCurrentElement();
-    const currentNs = p.treeAdapter.getNamespaceURI(current);
+    const current = p2._getAdjustedCurrentElement();
+    const currentNs = p2.treeAdapter.getNamespaceURI(current);
     if (currentNs === NS.MATHML) {
       adjustTokenMathMLAttrs(token);
     } else if (currentNs === NS.SVG) {
@@ -7761,29 +7761,29 @@ function startTagInForeignContent(p, token) {
     }
     adjustTokenXMLAttrs(token);
     if (token.selfClosing) {
-      p._appendElement(token, currentNs);
+      p2._appendElement(token, currentNs);
     } else {
-      p._insertElement(token, currentNs);
+      p2._insertElement(token, currentNs);
     }
     token.ackSelfClosing = true;
   }
 }
-function endTagInForeignContent(p, token) {
+function endTagInForeignContent(p2, token) {
   if (token.tagID === TAG_ID.P || token.tagID === TAG_ID.BR) {
-    popUntilHtmlOrIntegrationPoint(p);
-    p._endTagOutsideForeignContent(token);
+    popUntilHtmlOrIntegrationPoint(p2);
+    p2._endTagOutsideForeignContent(token);
     return;
   }
-  for (let i = p.openElements.stackTop; i > 0; i--) {
-    const element = p.openElements.items[i];
-    if (p.treeAdapter.getNamespaceURI(element) === NS.HTML) {
-      p._endTagOutsideForeignContent(token);
+  for (let i = p2.openElements.stackTop; i > 0; i--) {
+    const element = p2.openElements.items[i];
+    if (p2.treeAdapter.getNamespaceURI(element) === NS.HTML) {
+      p2._endTagOutsideForeignContent(token);
       break;
     }
-    const tagName = p.treeAdapter.getTagName(element);
+    const tagName = p2.treeAdapter.getTagName(element);
     if (tagName.toLowerCase() === token.tagName) {
       token.tagName = tagName;
-      p.openElements.shortenToLength(i);
+      p2.openElements.shortenToLength(i);
       break;
     }
   }
@@ -8148,1748 +8148,1013 @@ function getErrors() {
 }
 
 // rehype.closed.js
-var Qc = "function";
-var Rc = "object";
-var Sc = "settings";
-var Tc = "element";
-var Wc = "data";
-var Zc = "";
-var _c = "html";
-var ad = "start";
-var bd = "svg";
-var hd = "property";
-var md = "message";
-var od = "Expected usable value, not `";
-var vd = "text";
-var yd = "tbody";
-var Ed = "number";
-var Gd = "Expected node, not `";
-var Hd = "__proto__";
-var Id = "className";
-var Md = "-";
-var Nd = "\"&'`";
-var Pd = "parse";
-var Rd = "colgroup";
-var Ud = "optgroup";
-var Vd = "template";
-var Wd = "0123456789ABCDEF";
-var $d = "`";
-var ae = "use";
-var be = "comment";
-var de = "doctype";
-var je = "<>";
-var ke = '"';
-var oe = " ";
-var ue = "string";
-var xe = "isPrototypeOf";
-var De = "run";
-var Ge = "tfoot";
-var Le = "'";
-var Me = "<!--";
-var Oe = "null";
-var Pe = "root";
-var Te = "stringify";
-var Ue = "undefined";
-var Ve = "Cannot `";
-var $b = (a2) => {
-  var i = [];
-  var b = a2.length | 0;
-  var c = 0;
-  while (c < b) {
-    i.push(a2[c]);
-    c = c + 1;
-  }
-  return i;
-};
-var la = (a2) => {
-  var i = [];
-  var b = a2.length | 0;
-  var c = 1;
-  while (c < b) {
-    i.push(a2[c]);
-    c = c + 1;
-  }
-  return i;
-};
-var ac = (c, f, a2) => {
-  var b = c.length | 0;
-  if (f >= b) {
-    while (b < f) {
-      Array.prototype.push.call(c, void 0);
-      b = b + 1 | 0;
-    }
-    Array.prototype.push.call(c, a2);
-    return;
-  }
-  Array.prototype.splice.call(c, f, 1, a2);
-};
-var bc = (a2) => {
-  if (a2 == null) return false;
-  var b = typeof a2;
-  if (b != Rc && b != Qc) return false;
-  return !!Error.prototype.isPrototypeOf(a2);
-};
-var kb = (a2) => typeof a2 == ue ? true : Ma(a2);
-var Ma = (a2) => !a2 ? false : typeof a2 != Rc ? false : "byteLength" in a2 && "byteOffset" in a2;
-var sa = (C) => {
-  throw new Error(C);
-};
-var ca = (C) => {
-  throw new TypeError(C);
-};
-var Na = (s) => {
-  if (s) throw s;
-};
-var Oa = (a2) => {
-  if (!a2) throw new Error("we either bailed on an error or have a tree");
-};
-var ta = (a2) => {
-  if (typeof a2 != Rc || a2 == null) return false;
-  var c = Object.getPrototypeOf(a2);
-  var b = c == null || c === Object.prototype;
-  b = b || Object.getPrototypeOf(c) == null;
-  if (!b) return false;
-  if (Symbol.toStringTag in a2) return false;
-  if (Symbol.iterator in a2) return false;
-  return true;
-};
-var ma = /* @__PURE__ */ (function() {
-  let a2 = (d) => {
-    if (!d) return false;
-    if ("[object Object]" != Object.prototype.toString.call(d) + "") return false;
-    var g = !!Object.prototype.hasOwnProperty.call(d, "constructor");
-    var e = d.constructor;
-    if (e) {
-      var f = e.prototype;
-      f = f && !!Object.prototype.hasOwnProperty.call(f, xe);
-    } else {
-      f = false;
-    }
-    if (e && !g && !f) return false;
-    f = Zc;
-    g = false;
-    for (e in d) {
-      f = e;
-      g = true;
-    }
-    if (!g) return true;
-    return !!Object.prototype.hasOwnProperty.call(d, f);
-  };
-  let b = (Q, n, d) => {
-    if (n == Hd) {
-      Object.defineProperty(Q, Hd, { enumerable: true, configurable: true, writable: true, value: d });
-      return;
-    }
-    Q[n] = d;
-  };
-  let c = (d, n) => {
-    if (n == Hd) {
-      if (!qa.call(d, n)) return;
-      return Object.getOwnPropertyDescriptor(d, n).value;
-    }
-    return d[n];
-  };
-  return function(Q, P) {
-    (Q == null || typeof Q != Rc && typeof Q != Qc) && (Q = {});
-    if (P == null) return Q;
-    for (var f in P) {
-      var d = c(Q, f);
-      var e = c(P, f);
-      if (!(Q === e)) {
-        var g = !!e;
-        g && (a2(e) || Array.isArray(e)) ? (Array.isArray(e) ? d && Array.isArray(d) || (d = []) : d && a2(d) || (d = {}), b(Q, f, ma(d, e))) : typeof e != Ue && b(Q, f, e);
-      }
-    }
-    return Q;
-  };
-})();
-var lb = (a2) => !a2 ? false : typeof a2 != Rc ? false : "message" in a2 && "messages" in a2;
-var na = (a2) => {
-  if (lb(a2)) return a2;
-  return new ha(a2);
-};
-var ua = (n, a2) => {
-  typeof a2 == Qc || ca(Ve + n + "` without `parser`");
-};
-var va = (n, a2) => {
-  typeof a2 == Qc || ca(Ve + n + "` without `compiler`");
-};
-var wa = (n, a2) => {
-  !a2 || sa("Cannot call `" + n + "` on a frozen processor.\nCreate a new processor first, by calling it: use `processor()` instead of `processor`.");
-};
-var Pa = (g) => {
-  (!ta(g) || typeof g.type != ue) && ca("Expected node, got `" + g + $d);
-};
-var Qa = (n, a2, b) => {
-  b || sa($d + n + "` finished async. Use `" + a2 + "` instead");
-};
-var xa = (e) => {
-  var a2 = e.parser;
-  typeof a2 == Qc || (a2 = e.Parser);
-  return a2;
-};
-var ya = (e) => {
-  var a2 = e.compiler;
-  typeof a2 == Qc || (a2 = e.Compiler);
-  return a2;
-};
-var za = (t, a2, c) => {
-  var b = t.length | 0;
-  var f = -1, z, d;
-  for (; ; ) {
-    if (false) {
-      f = -1;
-      break;
-    }
-    f = f + 1 | 0;
-    if (f >= b) {
-      f = -1;
-      break;
-    }
-    if (t[f][0] === a2) break;
-  }
-  if (f == -1) {
-    f = [];
-    f.push(a2);
-    b = c.length | 0;
-    a2 = 0;
-    while (a2 < b) {
-      f.push(c[a2]);
-      a2 = a2 + 1;
-    }
-    Array.prototype.push.call(t, f);
-    return;
-  }
-  if ((c.length | 0) > 0) {
-    b = c[0];
-    z = la(c);
-    c = t[f][1];
-    ta(c) && ta(b) && (b = ma(c, b));
-    c = [];
-    c.push(a2);
-    c.push(b);
-    b = z.length | 0;
-    a2 = 0;
-    while (a2 < b) {
-      c.push(z[a2]);
-      a2 = a2 + 1;
-    }
-    Array.prototype.splice.call(t, f, 1, c);
-  }
-};
-var Ra = (t, D, a2) => {
-  if (a2 == null) return;
-  Array.isArray(a2) || ca("Expected a list of plugins, not `" + a2 + $d);
-  var b = a2.length | 0;
-  var f = -1;
-  while (true) {
-    f = f + 1 | 0;
-    if (f >= b) break;
-    Da.add(t, D, a2[f]);
-  }
-};
-var Sa = (j, D, G) => {
-  !("plugins" in G) && !("settings" in G) && sa("Expected usable value but received an empty preset, which is probably a mistake: presets typically come with `plugins` and sometimes with `settings`, but this has neither");
-  Ra(j, D, G.plugins);
-  j = G.settings;
-  !j || (D.settings = ma(D.settings, j));
-};
-var mb = (t, D, a2) => {
-  if (typeof a2 == Qc) {
-    za(t, a2, []);
-    return;
-  }
-  if (typeof a2 == Rc) {
-    if (Array.isArray(a2)) {
-      za(t, a2[0], la(a2));
-      return;
-    }
-    Sa(t, D, a2);
-    return;
-  }
-  ca(od + a2 + $d);
-};
-var Ta = () => {
-  var c = {};
-  var a2 = (0, function() {
-    var q = c.self;
-    var p = Ea();
-    var t = q.attachers;
-    var b2 = t.length | 0;
-    var f = -1;
-    var e = void 0;
-    while (true) {
-      f = f + 1 | 0;
-      if (f >= b2) break;
-      p.use.apply(p, t[f]);
-    }
-    f = p.data;
-    p.data(ma({}, q.namespace));
-    return p;
-  });
-  c.self = a2;
-  Object.assign(a2, { attachers: [], compiler: void 0, parser: void 0, Compiler: void 0, Parser: void 0, freezeIndex: -1, frozen: void 0, namespace: {} });
-  var b = {};
-  Object.assign(b, { fns: [], run: _a2, use: $a });
-  a2.transformers = b;
-  b = a2;
-  Object.assign(b, { use: ab, parse: bb, run: cb, runSync: db, stringify: eb, process: fb, processSync: gb, data: hb, freeze: ib });
-  return a2;
-};
-var Z = (a2) => {
-  if ("string" == typeof a2) return a2;
-  if (a2 === void 0) return Ue;
-  if (a2 == null) return Oe;
-  return String(a2) + "";
-};
-var hc = (a2) => {
-  if (a2 === void 0 || a2 == null) return false;
-  return !!a2;
-};
-var _ = (a2) => Z(String.fromCharCode.call(String, a2));
-var fa = (a2) => {
-  if (!Array.isArray(a2)) return 0;
-  return +a2.length | 0;
-};
-var ga = (h) => {
-  if (h === void 0 || h == null) return [];
-  h = h.children;
-  if (Array.isArray(h)) return h;
-  return [];
-};
-var nb = (m) => "area" == m || "base" == m || "basefont" == m || "bgsound" == m || "br" == m || "col" == m || "command" == m || "embed" == m || "frame" == m || "hr" == m || "image" == m || "img" == m || "input" == m || "keygen" == m || "link" == m || "meta" == m || "param" == m || "source" == m || "track" == m || "wbr" == m;
-var qc = (a2, m) => {
-  if (a2 === void 0 || a2 == null || !Array.isArray(a2)) return nb(m);
-  var b = fa(a2);
-  var c = 0;
-  while (c < b) {
-    if (Z(a2[c]) == m) return true;
-    c = c + 1;
-  }
-  return false;
-};
-var gc = (a2) => {
-  var b = a2.length;
-  var c = 0, r, d;
-  while (c < b) {
-    r = a2.charCodeAt(c);
-    if (9 != r && 10 != r && 12 != r && 13 != r && 32 != r) return false;
-    c = c + 1;
-  }
-  return true;
-};
-var xc = (g) => {
-  if ("string" == typeof g) return gc(g);
-  if (g === void 0 || g == null || typeof g != Rc) return false;
-  if (X(g) == vd) return gc(Z(g.value));
-  return false;
-};
-var jc = (a2, w) => {
-  var d = a2.length;
-  var b = 0, c = 0;
-  while (c < d) {
-    a2.charAt(c) == w && (b = b + 1 | 0);
-    c = c + 1;
-  }
-  return b;
-};
-var ob = (w, a2) => {
-  var b = a2.length;
-  var c = 0;
-  while (c < b) {
-    if (a2.charAt(c) == w) return true;
-    c = c + 1;
-  }
-  return false;
-};
-var kc = (C) => {
-  throw new Error(C);
-};
-var Aa = /* @__PURE__ */ (function() {
-  let a2 = (h) => {
-    if (h.length < 5) return false;
-    if (h.toLowerCase().slice(0, 4) != Wc) return false;
-    var j = h.length;
-    var i = 4, r, k;
-    while (i < j) {
-      r = h.charCodeAt(i);
-      r = r >= 48 && r <= 57 || r >= 65 && r <= 90 || r >= 97 && r <= 122 || 45 == r || 95 == r || 46 == r || 58 == r;
-      if (!r) return false;
-      i = i + 1;
-    }
-    return true;
-  };
-  let b = (h, i, j) => {
-    var m = j.length;
-    var l = -1, k = -1, u = 0;
-    while (u < m) {
-      "|" == j.charAt(u) && (l < 0 ? l = u : k < 0 && (k = u));
-      u = u + 1;
-    }
-    if (l < 0 || k < 0) return;
-    u = j.slice(0, l);
-    l = j.slice(l + 1 | 0, k);
-    h[u] = l + "|" + j.slice(k + 1 | 0);
-    i[u.toLowerCase()] = u;
-    i[l.toLowerCase()] = u;
-  };
-  let c = (h, i, j) => {
-    var l = j.length;
-    var A = 0, k = 0, m;
-    while (k <= l) {
-      (k == l || "\n" == j.charAt(k)) && (k > A && b(h, i, j.slice(A, k)), A = k + 1 | 0);
-      k = k + 1 | 0;
-    }
-  };
-  let d = () => {
-    if (Ja) return;
-    Ja = true;
-    c(Fa, Ga, "ariaActiveDescendant|aria-activedescendant|\nariaAtomic|aria-atomic|\nariaAutoComplete|aria-autocomplete|\nariaBusy|aria-busy|\nariaChecked|aria-checked|\nariaColCount|aria-colcount|\nariaColIndex|aria-colindex|\nariaColSpan|aria-colspan|\nariaControls|aria-controls|s\nariaCurrent|aria-current|\nariaDescribedBy|aria-describedby|s\nariaDetails|aria-details|\nariaDisabled|aria-disabled|\nariaDropEffect|aria-dropeffect|s\nariaErrorMessage|aria-errormessage|\nariaExpanded|aria-expanded|\nariaFlowTo|aria-flowto|s\nariaGrabbed|aria-grabbed|\nariaHasPopup|aria-haspopup|\nariaHidden|aria-hidden|\nariaInvalid|aria-invalid|\nariaKeyShortcuts|aria-keyshortcuts|\nariaLabel|aria-label|\nariaLabelledBy|aria-labelledby|s\nariaLevel|aria-level|\nariaLive|aria-live|\nariaModal|aria-modal|\nariaMultiLine|aria-multiline|\nariaMultiSelectable|aria-multiselectable|\nariaOrientation|aria-orientation|\nariaOwns|aria-owns|s\nariaPlaceholder|aria-placeholder|\nariaPosInSet|aria-posinset|\nariaPressed|aria-pressed|\nariaReadOnly|aria-readonly|\nariaRelevant|aria-relevant|\nariaRequired|aria-required|\nariaRoleDescription|aria-roledescription|s\nariaRowCount|aria-rowcount|\nariaRowIndex|aria-rowindex|\nariaRowSpan|aria-rowspan|\nariaSelected|aria-selected|\nariaSetSize|aria-setsize|\nariaSort|aria-sort|\nariaValueMax|aria-valuemax|\nariaValueMin|aria-valuemin|\nariaValueNow|aria-valuenow|\nariaValueText|aria-valuetext|\nrole|role|\nabbr|abbr|\naccept|accept|c\nacceptCharset|accept-charset|s\naccessKey|accesskey|s\naction|action|\nallow|allow|\nallowFullScreen|allowfullscreen|b\nallowPaymentRequest|allowpaymentrequest|b\nallowUserMedia|allowusermedia|b\nalpha|alpha|b\nalt|alt|\nas|as|\nasync|async|b\nautoCapitalize|autocapitalize|\nautoComplete|autocomplete|s\nautoFocus|autofocus|b\nautoPlay|autoplay|b\nblocking|blocking|s\ncapture|capture|\ncharSet|charset|\nchecked|checked|b\ncite|cite|\nclassName|class|s\nclosedBy|closedby|\ncolorSpace|colorspace|\ncols|cols|\ncolSpan|colspan|\ncommand|command|\ncommandFor|commandfor|\ncontent|content|\ncontentEditable|contenteditable|\ncontrols|controls|b\ncontrolsList|controlslist|s\ncoords|coords|c\ncrossOrigin|crossorigin|\ndata|data|\ndateTime|datetime|\ndecoding|decoding|\ndefault|default|b\ndefer|defer|b\ndir|dir|\ndirName|dirname|\ndisabled|disabled|b\ndownload|download|o\ndraggable|draggable|\nencType|enctype|\nenterKeyHint|enterkeyhint|\nfetchPriority|fetchpriority|\nform|form|\nformAction|formaction|\nformEncType|formenctype|\nformMethod|formmethod|\nformNoValidate|formnovalidate|b\nformTarget|formtarget|\nheaders|headers|s\nheight|height|\nhidden|hidden|o\nhigh|high|\nhref|href|\nhrefLang|hreflang|\nhtmlFor|for|s\nhttpEquiv|http-equiv|s\nid|id|\nimageSizes|imagesizes|\nimageSrcSet|imagesrcset|\ninert|inert|b\ninputMode|inputmode|\nintegrity|integrity|\nis|is|\nisMap|ismap|b\nitemId|itemid|\nitemProp|itemprop|s\nitemRef|itemref|s\nitemScope|itemscope|b\nitemType|itemtype|s\nkind|kind|\nlabel|label|\nlang|lang|\nlanguage|language|\nlist|list|\nloading|loading|\nloop|loop|b\nlow|low|\nmanifest|manifest|\nmax|max|\nmaxLength|maxlength|\nmedia|media|\nmethod|method|\nmin|min|\nminLength|minlength|\nmultiple|multiple|b\nmuted|muted|b\nname|name|\nnonce|nonce|\nnoModule|nomodule|b\nnoValidate|novalidate|b\nonAbort|onabort|\nonAfterPrint|onafterprint|\nonAuxClick|onauxclick|\nonBeforeMatch|onbeforematch|\nonBeforePrint|onbeforeprint|\nonBeforeToggle|onbeforetoggle|\nonBeforeUnload|onbeforeunload|\nonBlur|onblur|\nonCancel|oncancel|\nonCanPlay|oncanplay|\nonCanPlayThrough|oncanplaythrough|\nonChange|onchange|\nonClick|onclick|\nonClose|onclose|\nonContextLost|oncontextlost|\nonContextMenu|oncontextmenu|\nonContextRestored|oncontextrestored|\nonCopy|oncopy|\nonCueChange|oncuechange|\nonCut|oncut|\nonDblClick|ondblclick|\nonDrag|ondrag|\nonDragEnd|ondragend|\nonDragEnter|ondragenter|\nonDragExit|ondragexit|\nonDragLeave|ondragleave|\nonDragOver|ondragover|\nonDragStart|ondragstart|\nonDrop|ondrop|\nonDurationChange|ondurationchange|\nonEmptied|onemptied|\nonEnded|onended|\nonError|onerror|\nonFocus|onfocus|\nonFormData|onformdata|\nonHashChange|onhashchange|\nonInput|oninput|\nonInvalid|oninvalid|\nonKeyDown|onkeydown|\nonKeyPress|onkeypress|\nonKeyUp|onkeyup|\nonLanguageChange|onlanguagechange|\nonLoad|onload|\nonLoadedData|onloadeddata|\nonLoadedMetadata|onloadedmetadata|\nonLoadEnd|onloadend|\nonLoadStart|onloadstart|\nonMessage|onmessage|\nonMessageError|onmessageerror|\nonMouseDown|onmousedown|\nonMouseEnter|onmouseenter|\nonMouseLeave|onmouseleave|\nonMouseMove|onmousemove|\nonMouseOut|onmouseout|\nonMouseOver|onmouseover|\nonMouseUp|onmouseup|\nonOffline|onoffline|\nonOnline|ononline|\nonPageHide|onpagehide|\nonPageShow|onpageshow|\nonPaste|onpaste|\nonPause|onpause|\nonPlay|onplay|\nonPlaying|onplaying|\nonPopState|onpopstate|\nonProgress|onprogress|\nonRateChange|onratechange|\nonRejectionHandled|onrejectionhandled|\nonReset|onreset|\nonResize|onresize|\nonScroll|onscroll|\nonScrollEnd|onscrollend|\nonSecurityPolicyViolation|onsecuritypolicyviolation|\nonSeeked|onseeked|\nonSeeking|onseeking|\nonSelect|onselect|\nonSlotChange|onslotchange|\nonStalled|onstalled|\nonStorage|onstorage|\nonSubmit|onsubmit|\nonSuspend|onsuspend|\nonTimeUpdate|ontimeupdate|\nonToggle|ontoggle|\nonUnhandledRejection|onunhandledrejection|\nonUnload|onunload|\nonVolumeChange|onvolumechange|\nonWaiting|onwaiting|\nonWheel|onwheel|\nopen|open|b\noptimum|optimum|\npattern|pattern|\nping|ping|s\nplaceholder|placeholder|\nplaysInline|playsinline|b\npopover|popover|\npopoverTarget|popovertarget|\npopoverTargetAction|popovertargetaction|\nposter|poster|\npreload|preload|\nreadOnly|readonly|b\nreferrerPolicy|referrerpolicy|\nrel|rel|s\nrequired|required|b\nreversed|reversed|b\nrows|rows|\nrowSpan|rowspan|\nsandbox|sandbox|s\nscope|scope|\nscoped|scoped|b\nseamless|seamless|b\nselected|selected|b\nshadowRootClonable|shadowrootclonable|b\nshadowRootCustomElementRegistry|shadowrootcustomelementregistry|b\nshadowRootDelegatesFocus|shadowrootdelegatesfocus|b\nshadowRootMode|shadowrootmode|\nshadowRootSerializable|shadowrootserializable|b\nshape|shape|\nsize|size|\nsizes|sizes|\nslot|slot|\nspan|span|\nspellCheck|spellcheck|\nsrc|src|\nsrcDoc|srcdoc|\nsrcLang|srclang|\nsrcSet|srcset|\nstart|start|\nstep|step|\nstyle|style|\ntabIndex|tabindex|\ntarget|target|\ntitle|title|\ntranslate|translate|\ntype|type|\ntypeMustMatch|typemustmatch|b\nuseMap|usemap|\nvalue|value|\nwidth|width|\nwrap|wrap|\nwritingSuggestions|writingsuggestions|\nalign|align|\naLink|alink|\narchive|archive|s\naxis|axis|\nbackground|background|\nbgColor|bgcolor|\nborder|border|\nborderColor|bordercolor|\nbottomMargin|bottommargin|\ncellPadding|cellpadding|\ncellSpacing|cellspacing|\nchar|char|\ncharOff|charoff|\nclassId|classid|\nclear|clear|\ncode|code|\ncodeBase|codebase|\ncodeType|codetype|\ncolor|color|\ncompact|compact|b\ndeclare|declare|b\nevent|event|\nface|face|\nframe|frame|\nframeBorder|frameborder|\nhSpace|hspace|\nleftMargin|leftmargin|\nlink|link|\nlongDesc|longdesc|\nlowSrc|lowsrc|\nmarginHeight|marginheight|\nmarginWidth|marginwidth|\nnoResize|noresize|b\nnoHref|nohref|b\nnoShade|noshade|b\nnoWrap|nowrap|b\nobject|object|\nprofile|profile|\nprompt|prompt|\nrev|rev|\nrightMargin|rightmargin|\nrules|rules|\nscheme|scheme|\nscrolling|scrolling|\nstandby|standby|\nsummary|summary|\ntext|text|\ntopMargin|topmargin|\nvalueType|valuetype|\nversion|version|\nvAlign|valign|\nvLink|vlink|\nvSpace|vspace|\nallowTransparency|allowtransparency|\nautoCorrect|autocorrect|\nautoSave|autosave|\ncredentialless|credentialless|b\ndisablePictureInPicture|disablepictureinpicture|b\ndisableRemotePlayback|disableremoteplayback|b\nexportParts|exportparts|c\npart|part|s\nprefix|prefix|\nproperty|property|\nresults|results|\nsecurity|security|\nunselectable|unselectable|\nxLinkActuate|xlink:actuate|\nxLinkArcRole|xlink:arcrole|\nxLinkHref|xlink:href|\nxLinkRole|xlink:role|\nxLinkShow|xlink:show|\nxLinkTitle|xlink:title|\nxLinkType|xlink:type|\nxmlnsXLink|xmlns:xlink|\nxmlns|xmlns|\nxmlBase|xml:base|\nxmlLang|xml:lang|\nxmlSpace|xml:space|");
-    c(Ha, Ia, "ariaActiveDescendant|aria-activedescendant|\nariaAtomic|aria-atomic|\nariaAutoComplete|aria-autocomplete|\nariaBusy|aria-busy|\nariaChecked|aria-checked|\nariaColCount|aria-colcount|\nariaColIndex|aria-colindex|\nariaColSpan|aria-colspan|\nariaControls|aria-controls|s\nariaCurrent|aria-current|\nariaDescribedBy|aria-describedby|s\nariaDetails|aria-details|\nariaDisabled|aria-disabled|\nariaDropEffect|aria-dropeffect|s\nariaErrorMessage|aria-errormessage|\nariaExpanded|aria-expanded|\nariaFlowTo|aria-flowto|s\nariaGrabbed|aria-grabbed|\nariaHasPopup|aria-haspopup|\nariaHidden|aria-hidden|\nariaInvalid|aria-invalid|\nariaKeyShortcuts|aria-keyshortcuts|\nariaLabel|aria-label|\nariaLabelledBy|aria-labelledby|s\nariaLevel|aria-level|\nariaLive|aria-live|\nariaModal|aria-modal|\nariaMultiLine|aria-multiline|\nariaMultiSelectable|aria-multiselectable|\nariaOrientation|aria-orientation|\nariaOwns|aria-owns|s\nariaPlaceholder|aria-placeholder|\nariaPosInSet|aria-posinset|\nariaPressed|aria-pressed|\nariaReadOnly|aria-readonly|\nariaRelevant|aria-relevant|\nariaRequired|aria-required|\nariaRoleDescription|aria-roledescription|s\nariaRowCount|aria-rowcount|\nariaRowIndex|aria-rowindex|\nariaRowSpan|aria-rowspan|\nariaSelected|aria-selected|\nariaSetSize|aria-setsize|\nariaSort|aria-sort|\nariaValueMax|aria-valuemax|\nariaValueMin|aria-valuemin|\nariaValueNow|aria-valuenow|\nariaValueText|aria-valuetext|\nrole|role|\nabout|about|\naccentHeight|accent-height|\naccumulate|accumulate|\nadditive|additive|\nalignmentBaseline|alignment-baseline|\nalphabetic|alphabetic|\namplitude|amplitude|\narabicForm|arabic-form|\nascent|ascent|\nattributeName|attributeName|\nattributeType|attributeType|\nazimuth|azimuth|\nbandwidth|bandwidth|\nbaselineShift|baseline-shift|\nbaseFrequency|baseFrequency|\nbaseProfile|baseProfile|\nbbox|bbox|\nbegin|begin|\nbias|bias|\nby|by|\ncalcMode|calcMode|\ncapHeight|cap-height|\nclassName|class|s\nclip|clip|\nclipPath|clip-path|\nclipPathUnits|clipPathUnits|\nclipRule|clip-rule|\ncolor|color|\ncolorInterpolation|color-interpolation|\ncolorInterpolationFilters|color-interpolation-filters|\ncolorProfile|color-profile|\ncolorRendering|color-rendering|\ncontent|content|\ncontentScriptType|contentScriptType|\ncontentStyleType|contentStyleType|\ncrossOrigin|crossorigin|\ncursor|cursor|\ncx|cx|\ncy|cy|\nd|d|\ndataType|datatype|\ndefaultAction|defaultAction|\ndescent|descent|\ndiffuseConstant|diffuseConstant|\ndirection|direction|\ndisplay|display|\ndur|dur|\ndivisor|divisor|\ndominantBaseline|dominant-baseline|\ndownload|download|b\ndx|dx|\ndy|dy|\nedgeMode|edgeMode|\neditable|editable|\nelevation|elevation|\nenableBackground|enable-background|\nend|end|\nevent|event|\nexponent|exponent|\nexternalResourcesRequired|externalResourcesRequired|\nfill|fill|\nfillOpacity|fill-opacity|\nfillRule|fill-rule|\nfilter|filter|\nfilterRes|filterRes|\nfilterUnits|filterUnits|\nfloodColor|flood-color|\nfloodOpacity|flood-opacity|\nfocusable|focusable|\nfocusHighlight|focusHighlight|\nfontFamily|font-family|\nfontSize|font-size|\nfontSizeAdjust|font-size-adjust|\nfontStretch|font-stretch|\nfontStyle|font-style|\nfontVariant|font-variant|\nfontWeight|font-weight|\nformat|format|\nfr|fr|\nfrom|from|\nfx|fx|\nfy|fy|\ng1|g1|c\ng2|g2|c\nglyphName|glyph-name|c\nglyphOrientationHorizontal|glyph-orientation-horizontal|\nglyphOrientationVertical|glyph-orientation-vertical|\nglyphRef|glyphRef|\ngradientTransform|gradientTransform|\ngradientUnits|gradientUnits|\nhandler|handler|\nhanging|hanging|\nhatchContentUnits|hatchContentUnits|\nhatchUnits|hatchUnits|\nheight|height|\nhref|href|\nhrefLang|hreflang|\nhorizAdvX|horiz-adv-x|\nhorizOriginX|horiz-origin-x|\nhorizOriginY|horiz-origin-y|\nid|id|\nideographic|ideographic|\nimageRendering|image-rendering|\ninitialVisibility|initialVisibility|\nin|in|\nin2|in2|\nintercept|intercept|\nk|k|\nk1|k1|\nk2|k2|\nk3|k3|\nk4|k4|\nkernelMatrix|kernelMatrix|\nkernelUnitLength|kernelUnitLength|\nkeyPoints|keyPoints|\nkeySplines|keySplines|\nkeyTimes|keyTimes|\nkerning|kerning|\nlang|lang|\nlengthAdjust|lengthAdjust|\nletterSpacing|letter-spacing|\nlightingColor|lighting-color|\nlimitingConeAngle|limitingConeAngle|\nlocal|local|\nmarkerEnd|marker-end|\nmarkerMid|marker-mid|\nmarkerStart|marker-start|\nmarkerHeight|markerHeight|\nmarkerUnits|markerUnits|\nmarkerWidth|markerWidth|\nmask|mask|\nmaskContentUnits|maskContentUnits|\nmaskType|mask-type|\nmaskUnits|maskUnits|\nmathematical|mathematical|\nmax|max|\nmedia|media|\nmediaCharacterEncoding|mediaCharacterEncoding|\nmediaContentEncodings|mediaContentEncodings|\nmediaSize|mediaSize|\nmediaTime|mediaTime|\nmethod|method|\nmin|min|\nmode|mode|\nname|name|\nnavDown|nav-down|\nnavDownLeft|nav-down-left|\nnavDownRight|nav-down-right|\nnavLeft|nav-left|\nnavNext|nav-next|\nnavPrev|nav-prev|\nnavRight|nav-right|\nnavUp|nav-up|\nnavUpLeft|nav-up-left|\nnavUpRight|nav-up-right|\nnumOctaves|numOctaves|\nobserver|observer|\noffset|offset|\nonAbort|onabort|\nonActivate|onactivate|\nonAfterPrint|onafterprint|\nonBeforePrint|onbeforeprint|\nonBegin|onbegin|\nonCancel|oncancel|\nonCanPlay|oncanplay|\nonCanPlayThrough|oncanplaythrough|\nonChange|onchange|\nonClick|onclick|\nonClose|onclose|\nonCopy|oncopy|\nonCueChange|oncuechange|\nonCut|oncut|\nonDblClick|ondblclick|\nonDrag|ondrag|\nonDragEnd|ondragend|\nonDragEnter|ondragenter|\nonDragExit|ondragexit|\nonDragLeave|ondragleave|\nonDragOver|ondragover|\nonDragStart|ondragstart|\nonDrop|ondrop|\nonDurationChange|ondurationchange|\nonEmptied|onemptied|\nonEnd|onend|\nonEnded|onended|\nonError|onerror|\nonFocus|onfocus|\nonFocusIn|onfocusin|\nonFocusOut|onfocusout|\nonHashChange|onhashchange|\nonInput|oninput|\nonInvalid|oninvalid|\nonKeyDown|onkeydown|\nonKeyPress|onkeypress|\nonKeyUp|onkeyup|\nonLoad|onload|\nonLoadedData|onloadeddata|\nonLoadedMetadata|onloadedmetadata|\nonLoadStart|onloadstart|\nonMessage|onmessage|\nonMouseDown|onmousedown|\nonMouseEnter|onmouseenter|\nonMouseLeave|onmouseleave|\nonMouseMove|onmousemove|\nonMouseOut|onmouseout|\nonMouseOver|onmouseover|\nonMouseUp|onmouseup|\nonMouseWheel|onmousewheel|\nonOffline|onoffline|\nonOnline|ononline|\nonPageHide|onpagehide|\nonPageShow|onpageshow|\nonPaste|onpaste|\nonPause|onpause|\nonPlay|onplay|\nonPlaying|onplaying|\nonPopState|onpopstate|\nonProgress|onprogress|\nonRateChange|onratechange|\nonRepeat|onrepeat|\nonReset|onreset|\nonResize|onresize|\nonScroll|onscroll|\nonSeeked|onseeked|\nonSeeking|onseeking|\nonSelect|onselect|\nonShow|onshow|\nonStalled|onstalled|\nonStorage|onstorage|\nonSubmit|onsubmit|\nonSuspend|onsuspend|\nonTimeUpdate|ontimeupdate|\nonToggle|ontoggle|\nonUnload|onunload|\nonVolumeChange|onvolumechange|\nonWaiting|onwaiting|\nonZoom|onzoom|\nopacity|opacity|\noperator|operator|\norder|order|\norient|orient|\norientation|orientation|\norigin|origin|\noverflow|overflow|\noverlay|overlay|\noverlinePosition|overline-position|\noverlineThickness|overline-thickness|\npaintOrder|paint-order|\npanose1|panose-1|\npath|path|\npathLength|pathLength|\npatternContentUnits|patternContentUnits|\npatternTransform|patternTransform|\npatternUnits|patternUnits|\nphase|phase|\nping|ping|s\npitch|pitch|\nplaybackOrder|playbackorder|\npointerEvents|pointer-events|\npoints|points|\npointsAtX|pointsAtX|\npointsAtY|pointsAtY|\npointsAtZ|pointsAtZ|\npreserveAlpha|preserveAlpha|\npreserveAspectRatio|preserveAspectRatio|\nprimitiveUnits|primitiveUnits|\npropagate|propagate|\nproperty|property|\nr|r|\nradius|radius|\nreferrerPolicy|referrerpolicy|\nrefX|refX|\nrefY|refY|\nrel|rel|\nrev|rev|\nrenderingIntent|rendering-intent|\nrepeatCount|repeatCount|\nrepeatDur|repeatDur|\nrequiredExtensions|requiredExtensions|\nrequiredFeatures|requiredFeatures|\nrequiredFonts|requiredFonts|\nrequiredFormats|requiredFormats|\nresource|resource|\nrestart|restart|\nresult|result|\nrotate|rotate|\nrx|rx|\nry|ry|\nscale|scale|\nseed|seed|\nshapeRendering|shape-rendering|\nside|side|\nslope|slope|\nsnapshotTime|snapshotTime|\nspecularConstant|specularConstant|\nspecularExponent|specularExponent|\nspreadMethod|spreadMethod|\nspacing|spacing|\nstartOffset|startOffset|\nstdDeviation|stdDeviation|\nstemh|stemh|\nstemv|stemv|\nstitchTiles|stitchTiles|\nstopColor|stop-color|\nstopOpacity|stop-opacity|\nstrikethroughPosition|strikethrough-position|\nstrikethroughThickness|strikethrough-thickness|\nstring|string|\nstroke|stroke|\nstrokeDashArray|stroke-dasharray|\nstrokeDashOffset|stroke-dashoffset|\nstrokeLineCap|stroke-linecap|\nstrokeLineJoin|stroke-linejoin|\nstrokeMiterLimit|stroke-miterlimit|\nstrokeOpacity|stroke-opacity|\nstrokeWidth|stroke-width|\nstyle|style|\nsurfaceScale|surfaceScale|\nsyncBehavior|syncBehavior|\nsyncBehaviorDefault|syncBehaviorDefault|\nsyncMaster|syncMaster|\nsyncTolerance|syncTolerance|\nsyncToleranceDefault|syncToleranceDefault|\nsystemLanguage|systemLanguage|\ntabIndex|tabindex|\ntableValues|tableValues|\ntarget|target|\ntargetX|targetX|\ntargetY|targetY|\ntextAnchor|text-anchor|\ntextDecoration|text-decoration|\ntextRendering|text-rendering|\ntextLength|textLength|\ntimelineBegin|timelinebegin|\ntitle|title|\ntransformBehavior|transformBehavior|\ntype|type|\ntypeOf|typeof|\nto|to|\ntransform|transform|\ntransformOrigin|transform-origin|\nu1|u1|\nu2|u2|\nunderlinePosition|underline-position|\nunderlineThickness|underline-thickness|\nunicode|unicode|\nunicodeBidi|unicode-bidi|\nunicodeRange|unicode-range|\nunitsPerEm|units-per-em|\nvalues|values|\nvAlphabetic|v-alphabetic|\nvMathematical|v-mathematical|\nvectorEffect|vector-effect|\nvHanging|v-hanging|\nvIdeographic|v-ideographic|\nversion|version|\nvertAdvY|vert-adv-y|\nvertOriginX|vert-origin-x|\nvertOriginY|vert-origin-y|\nviewBox|viewBox|\nviewTarget|viewTarget|\nvisibility|visibility|\nwidth|width|\nwidths|widths|\nwordSpacing|word-spacing|\nwritingMode|writing-mode|\nx|x|\nx1|x1|\nx2|x2|\nxChannelSelector|xChannelSelector|\nxHeight|x-height|\ny|y|\ny1|y1|\ny2|y2|\nyChannelSelector|yChannelSelector|\nz|z|\nzoomAndPan|zoomAndPan|\nxLinkActuate|xlink:actuate|\nxLinkArcRole|xlink:arcrole|\nxLinkHref|xlink:href|\nxLinkRole|xlink:role|\nxLinkShow|xlink:show|\nxLinkTitle|xlink:title|\nxLinkType|xlink:type|\nxmlnsXLink|xmlns:xlink|\nxmlns|xmlns|\nxmlBase|xml:base|\nxmlLang|xml:lang|\nxmlSpace|xml:space|");
-  };
-  let e = (z) => {
-    var j = z.length;
-    var i = Zc, h = 0, w, r;
-    while (h < j) {
-      w = z.charAt(h);
-      r = z.charCodeAt(h);
-      i = r >= 65 && r <= 90 ? i + (Md + w.toLowerCase()) : i + w;
-      h = h + 1;
-    }
-    return i;
-  };
-  let f = (z) => {
-    var i = z.length;
-    var h = 0, r;
-    while (h < i - 1) {
-      if (z.charAt(h) == Md) {
-        r = z.charCodeAt(h + 1);
-        if (r >= 97 && r <= 122) return true;
-      }
-      h = h + 1;
-    }
-    return false;
-  };
-  let g = (z) => {
-    var j = z.length;
-    var i = Zc, h = 0, r;
-    while (h < j) h < j - 1 && z.charAt(h) == Md ? (r = z.charCodeAt(h + 1), r >= 97 && r <= 122 ? (i = i + z.charAt(h + 1).toUpperCase(), h = h + 2 | 0) : (i = i + z.charAt(h), h = h + 1)) : (i = i + z.charAt(h), h = h + 1);
-    return i;
-  };
-  return function(z, I) {
-    d();
-    var i = Fa;
-    var h = Ga;
-    z == bd && (i = Ha, h = Ia);
-    z = I.toLowerCase();
-    if (Object.prototype.hasOwnProperty.call(h, z)) {
-      z = h[z];
-      "string" == typeof z || (z = Zc);
-      I = i[z];
-      "string" == typeof I || (I = Zc);
-      return { property: z, packed: I };
-    }
-    z.length > 4 && z.slice(0, 4) == Wc && a2(I) ? I.length > 4 && I.charAt(4) == Md ? (z = g(I.slice(5)), z = z.length > 0 ? Wc + z.charAt(0).toUpperCase() + z.slice(1) : Wc, h = I, I = z, z = h) : (z = I.slice(4), !f(z) ? (z = e(z), (0 == z.length || z.charAt(0) != Md) && (z = Md + z), z = Wc + z) : z = I) : z = I;
-    return { property: I, packed: z + "|" };
-  };
-})();
-var Ua = (x) => {
-  x = x.packed;
-  if ("string" == typeof x) return x;
-  return Zc;
-};
-var pb = (I) => {
-  I = Ua(I);
-  var c = 0;
-  while (c < I.length) {
-    if ("|" == I.charAt(c)) return I.slice(0, c);
-    c = c + 1;
-  }
-  return I;
-};
-var Va = (c) => {
-  var I = Ua(c);
-  c = 0;
-  while (c < I.length) {
-    if ("|" == I.charAt(c)) return I.slice(c + 1);
-    c = c + 1;
-  }
-  return Zc;
-};
-var Oc = (K, w) => {
-  var c = 0;
-  while (c < K.length) {
-    if (K.charAt(c) == w) return true;
-    c = c + 1;
-  }
-  return false;
-};
-var Jc = (p, u) => p != _c ? false : "border" == u || "bottomMargin" == u || "cols" == u || "height" == u || "high" == u || "hSpace" == u || "leftMargin" == u || "low" == u || "marginHeight" == u || "marginWidth" == u || "maxLength" == u || "minLength" == u || "optimum" == u || "results" == u || "rightMargin" == u || "rows" == u || "rowSpan" == u || "size" == u || "span" == u || u == ad || "tabIndex" == u || "topMargin" == u || "vSpace" == u || "width" == u;
-var vc = (p, u) => p != bd ? false : "about" == u || "kernelMatrix" == u || u == hd || "rel" == u || "requiredExtensions" == u || "requiredFeatures" == u || "requiredFonts" == u || "requiredFormats" == u || "rev" == u || "strokeDashArray" == u || "systemLanguage" == u || "typeOf" == u;
-var Cc = (a2) => {
-  var b = a2.length | 0;
-  var i = Zc, c = 0, d;
-  while (c < b) {
-    c > 0 && (i = i + oe);
-    d = a2[c];
-    i = "string" == typeof d ? i + d : i + d + "";
-    c = c + 1;
-  }
-  return i;
-};
-var Dc = (a2) => {
-  var i = [];
-  var b = a2.length;
-  var d = Zc, c = 0, e, r;
-  while (c <= b) {
-    r = c < b ? a2.charCodeAt(c) : 0;
-    c == b || 9 == r || 10 == r || 12 == r || 13 == r || 32 == r ? d.length > 0 && (i.push(d), d = Zc) : d = d + a2.charAt(c);
-    c = c + 1 | 0;
-  }
-  return i;
-};
-var Bc = (a2) => {
-  var i = [];
-  var b = a2.length;
-  var e = Zc, c = 0, d, r, f, A;
-  while (c <= b) {
-    if (c == b || "," == a2.charAt(c)) {
-      d = e.length;
-      A = 0;
-      while (A < d) {
-        r = e.charCodeAt(A);
-        if (9 == r || 10 == r || 12 == r || 13 == r || 32 == r) {
-          A = A + 1;
-        } else {
-          break;
-        }
-      }
-      while (d > A) {
-        r = e.charCodeAt(d - 1);
-        if (9 == r || 10 == r || 12 == r || 13 == r || 32 == r) {
-          d = d - 1;
-        } else {
-          break;
-        }
-      }
-      i.push(e.slice(A, d));
-      e = Zc;
-    } else {
-      e = e + a2.charAt(c);
-    }
-    c = c + 1 | 0;
-  }
-  return i;
-};
-var Ec = (p, u, K, a2) => {
-  if (!("string" == typeof a2)) return a2;
-  if ((Jc(p, u) || Oc(K, "n")) && a2.length > 0 && !Number.isNaN(p = Number(a2))) return p;
-  return (Oc(K, "b") || Oc(K, "o")) && (0 == a2.length || a2.toLowerCase() == u.toLowerCase()) ? true : a2;
-};
-var qb = (p, J, u, G) => {
-  if (G === void 0 || G == null) return;
-  var x = Aa(p, u);
-  u = x.property;
-  "string" == typeof u || (u = Zc);
-  var K = Va(x);
-  "string" == typeof G && (G = vc(p, u) ? Dc(Cc(Bc(G))) : Oc(K, "s") ? Dc(G) : Oc(K, "c") ? Bc(G) : Ec(p, u, K, G));
-  if (Array.isArray(G)) {
-    x = [];
-    var b = G.length | 0;
-    var c = 0;
-    while (c < b) {
-      x.push(Ec(p, u, K, G[c]));
-      c = c + 1;
-    }
-  } else {
-    x = G;
-  }
-  if (u == Id && Array.isArray(J.className)) {
-    p = J.className;
-    if (Array.isArray(x)) {
-      K = x.length | 0;
-      G = 0;
-      while (G < K) {
-        Array.prototype.push.call(p, x[G]);
-        G = G + 1;
-      }
-    } else {
-      Array.prototype.push.call(p, x);
-    }
-  } else {
-    p = x;
-  }
-  J[u] = p;
-};
-var ic = (p, a2, b, B) => {
-  var J = {};
-  var c = b === void 0 || b == null;
-  if (!c) for (c in b) qb(p, J, c, b[c]);
-  (B === void 0 || B == null || !Array.isArray(B)) && (B = []);
-  return { type: Tc, tagName: a2, properties: J, children: B };
-};
-var $2 = (a2) => {
-  if ("string" == typeof a2) return a2;
-  if (a2 === void 0 || a2 == null) return Zc;
-  return a2 + "";
-};
-var Fc = (a2) => {
-  if (a2 === void 0 || a2 == null) return 0;
-  return +a2 | 0;
-};
-var Lc = (p) => {
-  p = p.space;
-  if ("string" == typeof p) return p;
-  return _c;
-};
-var Ic = (a2, b, R) => {
-  a2 = Fc(a2);
-  var c = Fc(b);
-  if (0 == a2 || 0 == c) return;
-  return { line: a2, column: c, offset: Fc(R) };
-};
-var Gc = (a2) => {
-  if (a2 === void 0 || a2 == null) return;
-  var A = a2.startLine;
-  var c = a2.startCol;
-  A = Ic(A, c, a2.startOffset);
-  var b = a2.endLine;
-  var d = a2.endCol;
-  b = Ic(b, d, a2.endOffset);
-  if (A === void 0 && b === void 0) return;
-  return { start: A, end: b };
-};
-var oa = (d, a2, b) => {
-  if (!("sourceCodeLocation" in a2)) return;
-  a2 = a2.sourceCodeLocation;
-  var c;
-  if (a2 === void 0 || a2 == null) return;
-  if (!d.file) return;
-  a2 = rb(d, b, a2);
-  c = a2 === void 0 || a2 == null;
-  c || (d.location = true, b.position = a2);
-};
-var rb = (d, g, a2) => {
-  var G = Gc(a2);
-  if ($2(g.type) != Tc) return G;
-  var B = g.children;
-  if (!(G === void 0 || G == null) && !a2.endTag) {
-    var J;
-    Array.isArray(B) && (B.length | 0) > 0 && (B = B[(B.length | 0) - 1], B = B.position, J = B === void 0 || B == null, J || (B = B.end, J = B === void 0 || B == null, J || (G.end = Object.assign({}, B))));
-  }
-  if (d.verbose) {
-    J = {};
-    B = a2.attrs;
-    var p = B === void 0 || B == null, u;
-    if (!p && typeof B == Rc) {
-      p = Lc(d);
-      for (d in B) {
-        u = $2(Aa(p, d).property);
-        J[u] = Gc(B[d]);
-      }
-    }
-    d = { opening: Gc(a2.startTag), properties: J };
-    a2 = a2.endTag;
-    !a2 || (d.closing = Gc(a2));
-    g.data = { position: d };
-  }
-  return G;
-};
-var Wa = (d, a2) => {
-  var e = [];
-  if (!Array.isArray(a2)) return e;
-  var b = a2.length | 0;
-  var c = 0;
-  while (c < b) {
-    e.push(ia.one(d, a2[c]));
-    c = c + 1;
-  }
-  return e;
-};
-var Xa = /* @__PURE__ */ (function() {
-  let a2 = (d, e) => {
-    var h = d.length;
-    e < 0 && (e = 0);
-    e > h && (e = h);
-    var g = 0, f = 1, c = 0, r, i;
-    while (c < e) {
-      r = d.charCodeAt(c);
-      13 == r ? (r = c + 1, r < h && 10 == d.charCodeAt(r) && (r = c + 2 | 0), r <= e && (g = r, f = f + 1 | 0), c = r) : 10 == r ? (c = c + 1, c <= e && (g = c, f = f + 1 | 0)) : c = c + 1;
-    }
-    return { line: f, column: (e - g | 0) + 1 | 0, offset: e };
-  };
-  let b = (o) => {
-    if ("string" == typeof o) return o;
-    if (o === void 0 || o == null) return Zc;
-    var c = o.toString;
-    if (typeof c == Qc) {
-      o = o.toString();
-      if ("string" == typeof o) return o;
-      return o + "";
-    }
-    return o + "";
-  };
-  return function(d, g) {
-    var G = $2(g.nodeName);
-    if ("#comment" == G) {
-      G = { type: be, value: $2(g.data) };
-      oa(d, g, G);
-      return G;
-    }
-    if ("#document" == G || "#document-fragment" == G) {
-      "mode" in g ? (G = $2(g.mode), G = "quirks" == G || "limited-quirks" == G) : G = false;
-      G = { type: Pe, children: Wa(d, g.childNodes), data: { quirksMode: G } };
-      d.file && !!d.location && (d = b(d.file), g = a2(d, 0), G.position = { start: g, end: a2(d, d.length) });
-      return G;
-    }
-    if ("#documentType" == G) {
-      G = { type: de };
-      oa(d, g, G);
-      return G;
-    }
-    if ("#text" == G) {
-      G = { type: vd, value: $2(g.value) };
-      oa(d, g, G);
-      return G;
-    }
-    return ia.element(d, g);
-  };
-})();
-var sb = (d, g) => {
-  var h = Lc(d);
-  "http://www.w3.org/2000/svg" == $2(g.namespaceURI) ? d.space = bd : d.space = _c;
-  var J = {};
-  var a2 = g.attrs;
-  if (Array.isArray(a2)) {
-    var i = Object.prototype;
-    var b = a2.length | 0;
-    var c = 0, e, f, n;
-    while (c < b) {
-      e = a2[c];
-      f = $2(e.prefix);
-      n = $2(e.name);
-      f.length > 0 && (n = f + ":" + n);
-      qa.call(i, n) || (J[n] = e.value);
-      c = c + 1;
-    }
-  }
-  n = Lc(d);
-  a2 = $2(g.tagName);
-  n = ic(n, a2, J, Wa(d, g.childNodes));
-  oa(d, g, n);
-  $2(n.tagName) == Vd && (c = ia.one(d, g.content), g = g.sourceCodeLocation, a2 = g === void 0 || g == null, !a2 && d.file && (a2 = Gc(g.startTag), e = Gc(g.endTag), g = a2 === void 0 || a2 == null, !g && !(e === void 0 || e == null) && (g = a2.end, c.position = { start: g, end: e.start })), n.content = c);
-  d.space = h;
+var hn = "";
+var gn = "Expected usable value, not `";
+var ce = (e) => {
+  var n = [], r = e.length, a = 0;
+  while (a < r) n.push(e[a]), a++;
   return n;
 };
-var Mb = (n) => {
-  ra === void 0 && (ra = getErrors());
-  return ra[n];
+var O = (e) => {
+  var n = [], r = e.length, a = 1;
+  while (a < r) n.push(e[a]), a++;
+  return n;
 };
-var Nb = (a2) => {
-  if (a2 === void 0 || a2 == null) return "1";
-  if (typeof a2 != Ed) return "1";
-  if (!a2) return "1";
-  return a2 + "";
+var le = (e) => {
+  if (!e) return false;
+  if ("object" != typeof e) return false;
+  e = "byteLength" in e && "byteOffset" in e;
+  return e;
 };
-var Ob = (a2) => {
-  if (a2 === void 0 || a2 == null || typeof a2 != Rc) return "1:1";
-  var b = Nb(a2.line) + ":";
-  return b + Nb(a2.column);
+var U = (e) => {
+  throw new Error(e);
 };
-var Pb = (a2) => {
-  if (a2 === void 0 || a2 == null || typeof a2 != Rc) return Zc;
-  if ("position" in a2 || "type" in a2) return Pb(a2.position);
-  if ("start" in a2 || "end" in a2) {
-    var b = Ob(a2.start) + Md;
-    return b + Ob(a2.end);
+var m = (e) => {
+  throw new TypeError(e);
+};
+var se = (e) => {
+  if (e) throw e;
+};
+var de = (e) => {
+  if (!e) throw new Error("we either bailed on an error or have a tree");
+};
+var q = (e) => {
+  var a, n;
+  if ("object" != typeof e || e == null) return false;
+  n = Object.getPrototypeOf(e), a = n == null || n === Object.prototype, a = a || Object.getPrototypeOf(n) == null;
+  return !a ? false : Symbol.toStringTag in e ? false : Symbol.iterator in e ? false : true;
+};
+var be = (e) => {
+  if (!e) return false;
+  if ("[object Object]" != Object.prototype.toString.call(e) + "") return false;
+  var r = !!Object.prototype.hasOwnProperty.call(e, "constructor"), a = e.constructor;
+  u = a ? u && Object.prototype.hasOwnProperty.call(u, "isPrototypeOf") : false;
+  if (a && !r && !u) return false;
+  u = hn, r = false;
+  for (a in e) u = a, r = true;
+  return !r ? true : !!Object.prototype.hasOwnProperty.call(e, u);
+};
+var ue = (e, a, n) => {
+  if ("__proto__" == a) {
+    Object.defineProperty(e, "__proto__", { enumerable: true, configurable: true, writable: true, value: n });
+    return;
   }
-  if ("line" in a2 || "column" in a2) return Ob(a2);
-  return Zc;
+  e[a] = n;
 };
-var Qb = (a2, b, c) => {
-  var d = Error;
-  var O = new d(a2);
-  var A = !(b === void 0 || b == null) && "start" in b ? b.start : b;
-  var n = Pb(b);
-  0 == n.length && (n = "1:1");
-  var j = Object;
-  j.defineProperty(O, "stack", { enumerable: false, configurable: true, writable: true, value: Zc });
-  var l = Object;
-  l.defineProperty(O, md, { enumerable: true, configurable: true, writable: true, value: a2 });
-  O.name = n;
-  O.reason = a2;
-  O.ruleId = c;
-  O.source = "hast-util-from-html";
-  O.place = b;
-  O.file = Zc;
-  a2 = A === void 0 || A == null;
-  a2 || Object.assign(O, { line: A.line, column: A.column });
-  return O;
+var fe = (e, a) => "__proto__" == a ? !M.call(e, a) ? void 0 : Object.getOwnPropertyDescriptor(e, a).value : e[a];
+var D = (e, a) => {
+  var n, t, r, o;
+  (e == null || "object" != typeof e && "function" != typeof e) && (e = {});
+  if (a == null) return e;
+  for (t in a) n = fe(e, t), r = fe(a, t), e === r || (o = !!r, o && (be(r) || Array.isArray(r)) ? (Array.isArray(r) ? n && Array.isArray(n) || (n = []) : n && be(n) || (n = {}), ue(e, t, D(n, r))) : "undefined" != typeof r && ue(e, t, r));
+  return e;
 };
-var Rb = (a2) => {
-  if ("string" == typeof a2) return a2;
-  if (a2 === void 0 || a2 == null) return Zc;
-  var b = a2.toString;
-  if (typeof b == Qc) {
-    a2 = a2.toString();
-    if ("string" == typeof a2) return a2;
-    return a2 + "";
-  }
-  if (typeof a2 == Rc && "string" == typeof (b = a2.value)) return b;
-  return a2 + "";
+var E = (e) => ((e2) => {
+  if (!e2) return false;
+  if ("object" != typeof e2) return false;
+  e2 = "message" in e2 && "messages" in e2;
+  return e2;
+})(e) ? e : new C(e);
+var W = (e, a) => {
+  "function" == typeof a || m("Cannot `" + e + "` without `parser`");
 };
-var Sb = (a2) => {
-  var b = a2.length;
-  var i = Zc, c = 0, d;
-  while (c < b) c + 1 < b && a2.charAt(c) == Md ? (i = i + a2.charAt(c + 1).toUpperCase(), c = c + 2 | 0) : (i = i + a2.charAt(c), c = c + 1);
-  return i;
+var I = (e, a) => {
+  "function" == typeof a || m("Cannot `" + e + "` without `compiler`");
 };
-var Tb = (a2) => a2 == $d ? "` ` `" : a2;
-var Ub = (b) => {
-  if (b <= 0) return "0";
-  var i = Zc;
-  while (b > 0) {
-    i = Wd.charAt(b % 16) + i;
-    b = b / 16 | 0;
-  }
-  return i;
+var B = (e, a) => {
+  !a || U("Cannot call `" + e + "` on a frozen processor.\nCreate a new processor first, by calling it: use `processor()` instead of `processor`.");
 };
-var Vb = (a2, v, c) => {
-  var b = a2.length;
-  c = c.startOffset;
-  var i = c === void 0 || c == null, d, w, e, f, r, g, h;
-  d = !i ? +c | 0 : 0;
-  i = Zc;
-  c = 0;
-  while (c < b) {
-    if (c + 1 < b && "%" == a2.charAt(c) && "x" == a2.charAt(c + 1)) {
-      w = d >= 0 && d < v.length ? v.charCodeAt(d) : 0;
-      i = i + ("0x" + Ub(w));
-      c = c + 2 | 0;
-    } else {
-      if (c + 1 < b && "%" == a2.charAt(c) && "c" == a2.charAt(c + 1)) {
-        w = c + 2 | 0;
-        if (w < b && ("+" == a2.charAt(w) || a2.charAt(w) == Md)) {
-          f = a2.charAt(w);
-          e = c + 3 | 0;
-          w = 0;
-          h = false;
-          while (e < b) {
-            r = a2.charCodeAt(e);
-            if (r >= 48 && r <= 57) {
-              w = (w * 10 | 0) + (r - 48) | 0;
-              e = e + 1 | 0;
-            } else {
-              break;
-            }
-            h = true;
-          }
-          h ? (f == Md && (w = 0 - w | 0), c = e) : (c = c + 2 | 0, w = 0);
-        } else {
-          c = c + 2 | 0;
-          w = 0;
-        }
-        w = d + w | 0;
-        w = w >= 0 && w < v.length ? v.charAt(w) : Zc;
-        i = i + Tb(w);
-      } else {
-        i = i + a2.charAt(c);
-        c = c + 1;
-      }
+var pe = (e) => {
+  (!q(e) || "string" != typeof e.type) && m("Expected node, got `" + e + "`");
+};
+var he = (e, a, n) => {
+  n || U("`" + e + "` finished async. Use `" + a + "` instead");
+};
+var N = (e) => {
+  var a = e.parser;
+  "function" == typeof a || (a = e.Parser);
+  return a;
+};
+var F = (e) => {
+  var a = e.compiler;
+  "function" == typeof a || (a = e.Compiler);
+  return a;
+};
+var X = (e, a, n) => {
+  for (var o, i, t = e.length, r = -1; ; ) {
+    if (false) {
+      r = -1;
+      break;
     }
+    r++;
+    if (r >= t) {
+      r = -1;
+      break;
+    }
+    if (e[r][0] === a) break;
+  }
+  if (r == -1) {
+    r = [a], t = n.length, a = 0;
+    while (a < t) r.push(n[a]), a++;
+    Array.prototype.push.call(e, r);
+    return;
+  }
+  if (n.length > 0) {
+    t = n[0], o = O(n), i = e[r][1], q(i) && q(t) && (t = D(i, t)), n = [a, t], t = o.length, a = 0;
+    while (a < t) n.push(o[a]), a++;
+    Array.prototype.splice.call(e, r, 1, n);
+  }
+};
+var ge = (e, a, n) => {
+  if (n != null) {
+    Array.isArray(n) || m("Expected a list of plugins, not `" + n + "`");
+    for (var t = n.length, r = -1; ++r < t; ) G.add(e, a, n[r]);
+  }
+};
+var ve = (e, a, n) => {
+  !("plugins" in n) && !("settings" in n) && U("Expected usable value but received an empty preset, which is probably a mistake: presets typically come with `plugins` and sometimes with `settings`, but this has neither"), ge(e, a, n.plugins), e = n.settings, e && (a.settings = D(a.settings, e));
+};
+var me = () => {
+  var n = {}, e = (0, function() {
+    for (var v2 = n.self, g2 = Q(), r = v2.attachers, t = r.length, a2 = -1; ++a2 < t; ) g2.use.apply(g2, r[a2]);
+    a2 = g2.data, g2.data(D({}, v2.namespace));
+    return g2;
+  });
+  n.self = e, e.attachers = [], e.compiler = void 0, e.parser = void 0, e.Compiler = void 0, e.Parser = void 0, e.freezeIndex = -1, e.frozen = void 0, e.namespace = {};
+  var a = { fns: [], run: We, use: Ie };
+  e.transformers = a, e.use = Be, e.parse = Ne, e.run = Fe, e.runSync = Xe, e.stringify = Ye, e.process = He, e.processSync = _e, e.data = Ve, e.freeze = Ze;
+  return e;
+};
+var u = (e) => "string" == typeof e ? e : e === void 0 ? "undefined" : e == null ? "null" : String(e) + "";
+var s = (e) => e == null ? false : !!e;
+var f = (e) => u(String.fromCharCode.call(String, e));
+var k = (e) => !Array.isArray(e) ? 0 : e.length;
+var x = (e) => {
+  var a;
+  if (e == null) return [];
+  a = e.children;
+  return Array.isArray(a) ? a : [];
+};
+var ye = (e) => {
+  var a, r = e.length, n = 0;
+  while (n < r) {
+    a = e.charCodeAt(n);
+    if (9 != a && 10 != a && 12 != a && 13 != a && 32 != a) return false;
+    n++;
+  }
+  return true;
+};
+var we = (e) => "string" == typeof e ? ye(e) : e == null || "object" != typeof e ? false : "text" == d(e) ? ye(u(e.value)) : false;
+var ke = (e, a) => {
+  var t = e.length, n = 0, r = 0;
+  while (r < t) e.charAt(r) == a && (n = n + 1 | 0), r++;
+  return n;
+};
+var j = (e) => {
+  throw new Error(e);
+};
+var xe = (e, a, n) => {
+  var o = n.length, t = 0, r = 0;
+  while (r <= o) (r == o || "\n" == n.charAt(r)) && (r > t && ((e2, a2, n2) => {
+    var i = n2.length, t2 = -1, r2 = -1, o2 = 0;
+    while (o2 < i) {
+      "|" == n2.charAt(o2) && (t2 < 0 ? t2 = o2 : r2 < 0 && (r2 = o2));
+      o2++;
+    }
+    if (!(t2 < 0 || r2 < 0)) o2 = n2.slice(0, t2), t2 = n2.slice(t2 + 1 | 0, r2), e2[o2] = t2 + "|" + n2.slice(r2 + 1 | 0), a2[o2.toLowerCase()] = o2, a2[t2.toLowerCase()] = o2;
+  })(e, a, n.slice(t, r)), t = r + 1 | 0), r++;
+};
+var Y = (e, a) => {
+  (() => {
+    if (!te) te = true, xe(ee, ae, "ariaActiveDescendant|aria-activedescendant|\nariaAtomic|aria-atomic|\nariaAutoComplete|aria-autocomplete|\nariaBusy|aria-busy|\nariaChecked|aria-checked|\nariaColCount|aria-colcount|\nariaColIndex|aria-colindex|\nariaColSpan|aria-colspan|\nariaControls|aria-controls|s\nariaCurrent|aria-current|\nariaDescribedBy|aria-describedby|s\nariaDetails|aria-details|\nariaDisabled|aria-disabled|\nariaDropEffect|aria-dropeffect|s\nariaErrorMessage|aria-errormessage|\nariaExpanded|aria-expanded|\nariaFlowTo|aria-flowto|s\nariaGrabbed|aria-grabbed|\nariaHasPopup|aria-haspopup|\nariaHidden|aria-hidden|\nariaInvalid|aria-invalid|\nariaKeyShortcuts|aria-keyshortcuts|\nariaLabel|aria-label|\nariaLabelledBy|aria-labelledby|s\nariaLevel|aria-level|\nariaLive|aria-live|\nariaModal|aria-modal|\nariaMultiLine|aria-multiline|\nariaMultiSelectable|aria-multiselectable|\nariaOrientation|aria-orientation|\nariaOwns|aria-owns|s\nariaPlaceholder|aria-placeholder|\nariaPosInSet|aria-posinset|\nariaPressed|aria-pressed|\nariaReadOnly|aria-readonly|\nariaRelevant|aria-relevant|\nariaRequired|aria-required|\nariaRoleDescription|aria-roledescription|s\nariaRowCount|aria-rowcount|\nariaRowIndex|aria-rowindex|\nariaRowSpan|aria-rowspan|\nariaSelected|aria-selected|\nariaSetSize|aria-setsize|\nariaSort|aria-sort|\nariaValueMax|aria-valuemax|\nariaValueMin|aria-valuemin|\nariaValueNow|aria-valuenow|\nariaValueText|aria-valuetext|\nrole|role|\nabbr|abbr|\naccept|accept|c\nacceptCharset|accept-charset|s\naccessKey|accesskey|s\naction|action|\nallow|allow|\nallowFullScreen|allowfullscreen|b\nallowPaymentRequest|allowpaymentrequest|b\nallowUserMedia|allowusermedia|b\nalpha|alpha|b\nalt|alt|\nas|as|\nasync|async|b\nautoCapitalize|autocapitalize|\nautoComplete|autocomplete|s\nautoFocus|autofocus|b\nautoPlay|autoplay|b\nblocking|blocking|s\ncapture|capture|\ncharSet|charset|\nchecked|checked|b\ncite|cite|\nclassName|class|s\nclosedBy|closedby|\ncolorSpace|colorspace|\ncols|cols|\ncolSpan|colspan|\ncommand|command|\ncommandFor|commandfor|\ncontent|content|\ncontentEditable|contenteditable|\ncontrols|controls|b\ncontrolsList|controlslist|s\ncoords|coords|c\ncrossOrigin|crossorigin|\ndata|data|\ndateTime|datetime|\ndecoding|decoding|\ndefault|default|b\ndefer|defer|b\ndir|dir|\ndirName|dirname|\ndisabled|disabled|b\ndownload|download|o\ndraggable|draggable|\nencType|enctype|\nenterKeyHint|enterkeyhint|\nfetchPriority|fetchpriority|\nform|form|\nformAction|formaction|\nformEncType|formenctype|\nformMethod|formmethod|\nformNoValidate|formnovalidate|b\nformTarget|formtarget|\nheaders|headers|s\nheight|height|\nhidden|hidden|o\nhigh|high|\nhref|href|\nhrefLang|hreflang|\nhtmlFor|for|s\nhttpEquiv|http-equiv|s\nid|id|\nimageSizes|imagesizes|\nimageSrcSet|imagesrcset|\ninert|inert|b\ninputMode|inputmode|\nintegrity|integrity|\nis|is|\nisMap|ismap|b\nitemId|itemid|\nitemProp|itemprop|s\nitemRef|itemref|s\nitemScope|itemscope|b\nitemType|itemtype|s\nkind|kind|\nlabel|label|\nlang|lang|\nlanguage|language|\nlist|list|\nloading|loading|\nloop|loop|b\nlow|low|\nmanifest|manifest|\nmax|max|\nmaxLength|maxlength|\nmedia|media|\nmethod|method|\nmin|min|\nminLength|minlength|\nmultiple|multiple|b\nmuted|muted|b\nname|name|\nnonce|nonce|\nnoModule|nomodule|b\nnoValidate|novalidate|b\nonAbort|onabort|\nonAfterPrint|onafterprint|\nonAuxClick|onauxclick|\nonBeforeMatch|onbeforematch|\nonBeforePrint|onbeforeprint|\nonBeforeToggle|onbeforetoggle|\nonBeforeUnload|onbeforeunload|\nonBlur|onblur|\nonCancel|oncancel|\nonCanPlay|oncanplay|\nonCanPlayThrough|oncanplaythrough|\nonChange|onchange|\nonClick|onclick|\nonClose|onclose|\nonContextLost|oncontextlost|\nonContextMenu|oncontextmenu|\nonContextRestored|oncontextrestored|\nonCopy|oncopy|\nonCueChange|oncuechange|\nonCut|oncut|\nonDblClick|ondblclick|\nonDrag|ondrag|\nonDragEnd|ondragend|\nonDragEnter|ondragenter|\nonDragExit|ondragexit|\nonDragLeave|ondragleave|\nonDragOver|ondragover|\nonDragStart|ondragstart|\nonDrop|ondrop|\nonDurationChange|ondurationchange|\nonEmptied|onemptied|\nonEnded|onended|\nonError|onerror|\nonFocus|onfocus|\nonFormData|onformdata|\nonHashChange|onhashchange|\nonInput|oninput|\nonInvalid|oninvalid|\nonKeyDown|onkeydown|\nonKeyPress|onkeypress|\nonKeyUp|onkeyup|\nonLanguageChange|onlanguagechange|\nonLoad|onload|\nonLoadedData|onloadeddata|\nonLoadedMetadata|onloadedmetadata|\nonLoadEnd|onloadend|\nonLoadStart|onloadstart|\nonMessage|onmessage|\nonMessageError|onmessageerror|\nonMouseDown|onmousedown|\nonMouseEnter|onmouseenter|\nonMouseLeave|onmouseleave|\nonMouseMove|onmousemove|\nonMouseOut|onmouseout|\nonMouseOver|onmouseover|\nonMouseUp|onmouseup|\nonOffline|onoffline|\nonOnline|ononline|\nonPageHide|onpagehide|\nonPageShow|onpageshow|\nonPaste|onpaste|\nonPause|onpause|\nonPlay|onplay|\nonPlaying|onplaying|\nonPopState|onpopstate|\nonProgress|onprogress|\nonRateChange|onratechange|\nonRejectionHandled|onrejectionhandled|\nonReset|onreset|\nonResize|onresize|\nonScroll|onscroll|\nonScrollEnd|onscrollend|\nonSecurityPolicyViolation|onsecuritypolicyviolation|\nonSeeked|onseeked|\nonSeeking|onseeking|\nonSelect|onselect|\nonSlotChange|onslotchange|\nonStalled|onstalled|\nonStorage|onstorage|\nonSubmit|onsubmit|\nonSuspend|onsuspend|\nonTimeUpdate|ontimeupdate|\nonToggle|ontoggle|\nonUnhandledRejection|onunhandledrejection|\nonUnload|onunload|\nonVolumeChange|onvolumechange|\nonWaiting|onwaiting|\nonWheel|onwheel|\nopen|open|b\noptimum|optimum|\npattern|pattern|\nping|ping|s\nplaceholder|placeholder|\nplaysInline|playsinline|b\npopover|popover|\npopoverTarget|popovertarget|\npopoverTargetAction|popovertargetaction|\nposter|poster|\npreload|preload|\nreadOnly|readonly|b\nreferrerPolicy|referrerpolicy|\nrel|rel|s\nrequired|required|b\nreversed|reversed|b\nrows|rows|\nrowSpan|rowspan|\nsandbox|sandbox|s\nscope|scope|\nscoped|scoped|b\nseamless|seamless|b\nselected|selected|b\nshadowRootClonable|shadowrootclonable|b\nshadowRootCustomElementRegistry|shadowrootcustomelementregistry|b\nshadowRootDelegatesFocus|shadowrootdelegatesfocus|b\nshadowRootMode|shadowrootmode|\nshadowRootSerializable|shadowrootserializable|b\nshape|shape|\nsize|size|\nsizes|sizes|\nslot|slot|\nspan|span|\nspellCheck|spellcheck|\nsrc|src|\nsrcDoc|srcdoc|\nsrcLang|srclang|\nsrcSet|srcset|\nstart|start|\nstep|step|\nstyle|style|\ntabIndex|tabindex|\ntarget|target|\ntitle|title|\ntranslate|translate|\ntype|type|\ntypeMustMatch|typemustmatch|b\nuseMap|usemap|\nvalue|value|\nwidth|width|\nwrap|wrap|\nwritingSuggestions|writingsuggestions|\nalign|align|\naLink|alink|\narchive|archive|s\naxis|axis|\nbackground|background|\nbgColor|bgcolor|\nborder|border|\nborderColor|bordercolor|\nbottomMargin|bottommargin|\ncellPadding|cellpadding|\ncellSpacing|cellspacing|\nchar|char|\ncharOff|charoff|\nclassId|classid|\nclear|clear|\ncode|code|\ncodeBase|codebase|\ncodeType|codetype|\ncolor|color|\ncompact|compact|b\ndeclare|declare|b\nevent|event|\nface|face|\nframe|frame|\nframeBorder|frameborder|\nhSpace|hspace|\nleftMargin|leftmargin|\nlink|link|\nlongDesc|longdesc|\nlowSrc|lowsrc|\nmarginHeight|marginheight|\nmarginWidth|marginwidth|\nnoResize|noresize|b\nnoHref|nohref|b\nnoShade|noshade|b\nnoWrap|nowrap|b\nobject|object|\nprofile|profile|\nprompt|prompt|\nrev|rev|\nrightMargin|rightmargin|\nrules|rules|\nscheme|scheme|\nscrolling|scrolling|\nstandby|standby|\nsummary|summary|\ntext|text|\ntopMargin|topmargin|\nvalueType|valuetype|\nversion|version|\nvAlign|valign|\nvLink|vlink|\nvSpace|vspace|\nallowTransparency|allowtransparency|\nautoCorrect|autocorrect|\nautoSave|autosave|\ncredentialless|credentialless|b\ndisablePictureInPicture|disablepictureinpicture|b\ndisableRemotePlayback|disableremoteplayback|b\nexportParts|exportparts|c\npart|part|s\nprefix|prefix|\nproperty|property|\nresults|results|\nsecurity|security|\nunselectable|unselectable|\nxLinkActuate|xlink:actuate|\nxLinkArcRole|xlink:arcrole|\nxLinkHref|xlink:href|\nxLinkRole|xlink:role|\nxLinkShow|xlink:show|\nxLinkTitle|xlink:title|\nxLinkType|xlink:type|\nxmlnsXLink|xmlns:xlink|\nxmlns|xmlns|\nxmlBase|xml:base|\nxmlLang|xml:lang|\nxmlSpace|xml:space|"), xe(ne, re, "ariaActiveDescendant|aria-activedescendant|\nariaAtomic|aria-atomic|\nariaAutoComplete|aria-autocomplete|\nariaBusy|aria-busy|\nariaChecked|aria-checked|\nariaColCount|aria-colcount|\nariaColIndex|aria-colindex|\nariaColSpan|aria-colspan|\nariaControls|aria-controls|s\nariaCurrent|aria-current|\nariaDescribedBy|aria-describedby|s\nariaDetails|aria-details|\nariaDisabled|aria-disabled|\nariaDropEffect|aria-dropeffect|s\nariaErrorMessage|aria-errormessage|\nariaExpanded|aria-expanded|\nariaFlowTo|aria-flowto|s\nariaGrabbed|aria-grabbed|\nariaHasPopup|aria-haspopup|\nariaHidden|aria-hidden|\nariaInvalid|aria-invalid|\nariaKeyShortcuts|aria-keyshortcuts|\nariaLabel|aria-label|\nariaLabelledBy|aria-labelledby|s\nariaLevel|aria-level|\nariaLive|aria-live|\nariaModal|aria-modal|\nariaMultiLine|aria-multiline|\nariaMultiSelectable|aria-multiselectable|\nariaOrientation|aria-orientation|\nariaOwns|aria-owns|s\nariaPlaceholder|aria-placeholder|\nariaPosInSet|aria-posinset|\nariaPressed|aria-pressed|\nariaReadOnly|aria-readonly|\nariaRelevant|aria-relevant|\nariaRequired|aria-required|\nariaRoleDescription|aria-roledescription|s\nariaRowCount|aria-rowcount|\nariaRowIndex|aria-rowindex|\nariaRowSpan|aria-rowspan|\nariaSelected|aria-selected|\nariaSetSize|aria-setsize|\nariaSort|aria-sort|\nariaValueMax|aria-valuemax|\nariaValueMin|aria-valuemin|\nariaValueNow|aria-valuenow|\nariaValueText|aria-valuetext|\nrole|role|\nabout|about|\naccentHeight|accent-height|\naccumulate|accumulate|\nadditive|additive|\nalignmentBaseline|alignment-baseline|\nalphabetic|alphabetic|\namplitude|amplitude|\narabicForm|arabic-form|\nascent|ascent|\nattributeName|attributeName|\nattributeType|attributeType|\nazimuth|azimuth|\nbandwidth|bandwidth|\nbaselineShift|baseline-shift|\nbaseFrequency|baseFrequency|\nbaseProfile|baseProfile|\nbbox|bbox|\nbegin|begin|\nbias|bias|\nby|by|\ncalcMode|calcMode|\ncapHeight|cap-height|\nclassName|class|s\nclip|clip|\nclipPath|clip-path|\nclipPathUnits|clipPathUnits|\nclipRule|clip-rule|\ncolor|color|\ncolorInterpolation|color-interpolation|\ncolorInterpolationFilters|color-interpolation-filters|\ncolorProfile|color-profile|\ncolorRendering|color-rendering|\ncontent|content|\ncontentScriptType|contentScriptType|\ncontentStyleType|contentStyleType|\ncrossOrigin|crossorigin|\ncursor|cursor|\ncx|cx|\ncy|cy|\nd|d|\ndataType|datatype|\ndefaultAction|defaultAction|\ndescent|descent|\ndiffuseConstant|diffuseConstant|\ndirection|direction|\ndisplay|display|\ndur|dur|\ndivisor|divisor|\ndominantBaseline|dominant-baseline|\ndownload|download|b\ndx|dx|\ndy|dy|\nedgeMode|edgeMode|\neditable|editable|\nelevation|elevation|\nenableBackground|enable-background|\nend|end|\nevent|event|\nexponent|exponent|\nexternalResourcesRequired|externalResourcesRequired|\nfill|fill|\nfillOpacity|fill-opacity|\nfillRule|fill-rule|\nfilter|filter|\nfilterRes|filterRes|\nfilterUnits|filterUnits|\nfloodColor|flood-color|\nfloodOpacity|flood-opacity|\nfocusable|focusable|\nfocusHighlight|focusHighlight|\nfontFamily|font-family|\nfontSize|font-size|\nfontSizeAdjust|font-size-adjust|\nfontStretch|font-stretch|\nfontStyle|font-style|\nfontVariant|font-variant|\nfontWeight|font-weight|\nformat|format|\nfr|fr|\nfrom|from|\nfx|fx|\nfy|fy|\ng1|g1|c\ng2|g2|c\nglyphName|glyph-name|c\nglyphOrientationHorizontal|glyph-orientation-horizontal|\nglyphOrientationVertical|glyph-orientation-vertical|\nglyphRef|glyphRef|\ngradientTransform|gradientTransform|\ngradientUnits|gradientUnits|\nhandler|handler|\nhanging|hanging|\nhatchContentUnits|hatchContentUnits|\nhatchUnits|hatchUnits|\nheight|height|\nhref|href|\nhrefLang|hreflang|\nhorizAdvX|horiz-adv-x|\nhorizOriginX|horiz-origin-x|\nhorizOriginY|horiz-origin-y|\nid|id|\nideographic|ideographic|\nimageRendering|image-rendering|\ninitialVisibility|initialVisibility|\nin|in|\nin2|in2|\nintercept|intercept|\nk|k|\nk1|k1|\nk2|k2|\nk3|k3|\nk4|k4|\nkernelMatrix|kernelMatrix|\nkernelUnitLength|kernelUnitLength|\nkeyPoints|keyPoints|\nkeySplines|keySplines|\nkeyTimes|keyTimes|\nkerning|kerning|\nlang|lang|\nlengthAdjust|lengthAdjust|\nletterSpacing|letter-spacing|\nlightingColor|lighting-color|\nlimitingConeAngle|limitingConeAngle|\nlocal|local|\nmarkerEnd|marker-end|\nmarkerMid|marker-mid|\nmarkerStart|marker-start|\nmarkerHeight|markerHeight|\nmarkerUnits|markerUnits|\nmarkerWidth|markerWidth|\nmask|mask|\nmaskContentUnits|maskContentUnits|\nmaskType|mask-type|\nmaskUnits|maskUnits|\nmathematical|mathematical|\nmax|max|\nmedia|media|\nmediaCharacterEncoding|mediaCharacterEncoding|\nmediaContentEncodings|mediaContentEncodings|\nmediaSize|mediaSize|\nmediaTime|mediaTime|\nmethod|method|\nmin|min|\nmode|mode|\nname|name|\nnavDown|nav-down|\nnavDownLeft|nav-down-left|\nnavDownRight|nav-down-right|\nnavLeft|nav-left|\nnavNext|nav-next|\nnavPrev|nav-prev|\nnavRight|nav-right|\nnavUp|nav-up|\nnavUpLeft|nav-up-left|\nnavUpRight|nav-up-right|\nnumOctaves|numOctaves|\nobserver|observer|\noffset|offset|\nonAbort|onabort|\nonActivate|onactivate|\nonAfterPrint|onafterprint|\nonBeforePrint|onbeforeprint|\nonBegin|onbegin|\nonCancel|oncancel|\nonCanPlay|oncanplay|\nonCanPlayThrough|oncanplaythrough|\nonChange|onchange|\nonClick|onclick|\nonClose|onclose|\nonCopy|oncopy|\nonCueChange|oncuechange|\nonCut|oncut|\nonDblClick|ondblclick|\nonDrag|ondrag|\nonDragEnd|ondragend|\nonDragEnter|ondragenter|\nonDragExit|ondragexit|\nonDragLeave|ondragleave|\nonDragOver|ondragover|\nonDragStart|ondragstart|\nonDrop|ondrop|\nonDurationChange|ondurationchange|\nonEmptied|onemptied|\nonEnd|onend|\nonEnded|onended|\nonError|onerror|\nonFocus|onfocus|\nonFocusIn|onfocusin|\nonFocusOut|onfocusout|\nonHashChange|onhashchange|\nonInput|oninput|\nonInvalid|oninvalid|\nonKeyDown|onkeydown|\nonKeyPress|onkeypress|\nonKeyUp|onkeyup|\nonLoad|onload|\nonLoadedData|onloadeddata|\nonLoadedMetadata|onloadedmetadata|\nonLoadStart|onloadstart|\nonMessage|onmessage|\nonMouseDown|onmousedown|\nonMouseEnter|onmouseenter|\nonMouseLeave|onmouseleave|\nonMouseMove|onmousemove|\nonMouseOut|onmouseout|\nonMouseOver|onmouseover|\nonMouseUp|onmouseup|\nonMouseWheel|onmousewheel|\nonOffline|onoffline|\nonOnline|ononline|\nonPageHide|onpagehide|\nonPageShow|onpageshow|\nonPaste|onpaste|\nonPause|onpause|\nonPlay|onplay|\nonPlaying|onplaying|\nonPopState|onpopstate|\nonProgress|onprogress|\nonRateChange|onratechange|\nonRepeat|onrepeat|\nonReset|onreset|\nonResize|onresize|\nonScroll|onscroll|\nonSeeked|onseeked|\nonSeeking|onseeking|\nonSelect|onselect|\nonShow|onshow|\nonStalled|onstalled|\nonStorage|onstorage|\nonSubmit|onsubmit|\nonSuspend|onsuspend|\nonTimeUpdate|ontimeupdate|\nonToggle|ontoggle|\nonUnload|onunload|\nonVolumeChange|onvolumechange|\nonWaiting|onwaiting|\nonZoom|onzoom|\nopacity|opacity|\noperator|operator|\norder|order|\norient|orient|\norientation|orientation|\norigin|origin|\noverflow|overflow|\noverlay|overlay|\noverlinePosition|overline-position|\noverlineThickness|overline-thickness|\npaintOrder|paint-order|\npanose1|panose-1|\npath|path|\npathLength|pathLength|\npatternContentUnits|patternContentUnits|\npatternTransform|patternTransform|\npatternUnits|patternUnits|\nphase|phase|\nping|ping|s\npitch|pitch|\nplaybackOrder|playbackorder|\npointerEvents|pointer-events|\npoints|points|\npointsAtX|pointsAtX|\npointsAtY|pointsAtY|\npointsAtZ|pointsAtZ|\npreserveAlpha|preserveAlpha|\npreserveAspectRatio|preserveAspectRatio|\nprimitiveUnits|primitiveUnits|\npropagate|propagate|\nproperty|property|\nr|r|\nradius|radius|\nreferrerPolicy|referrerpolicy|\nrefX|refX|\nrefY|refY|\nrel|rel|\nrev|rev|\nrenderingIntent|rendering-intent|\nrepeatCount|repeatCount|\nrepeatDur|repeatDur|\nrequiredExtensions|requiredExtensions|\nrequiredFeatures|requiredFeatures|\nrequiredFonts|requiredFonts|\nrequiredFormats|requiredFormats|\nresource|resource|\nrestart|restart|\nresult|result|\nrotate|rotate|\nrx|rx|\nry|ry|\nscale|scale|\nseed|seed|\nshapeRendering|shape-rendering|\nside|side|\nslope|slope|\nsnapshotTime|snapshotTime|\nspecularConstant|specularConstant|\nspecularExponent|specularExponent|\nspreadMethod|spreadMethod|\nspacing|spacing|\nstartOffset|startOffset|\nstdDeviation|stdDeviation|\nstemh|stemh|\nstemv|stemv|\nstitchTiles|stitchTiles|\nstopColor|stop-color|\nstopOpacity|stop-opacity|\nstrikethroughPosition|strikethrough-position|\nstrikethroughThickness|strikethrough-thickness|\nstring|string|\nstroke|stroke|\nstrokeDashArray|stroke-dasharray|\nstrokeDashOffset|stroke-dashoffset|\nstrokeLineCap|stroke-linecap|\nstrokeLineJoin|stroke-linejoin|\nstrokeMiterLimit|stroke-miterlimit|\nstrokeOpacity|stroke-opacity|\nstrokeWidth|stroke-width|\nstyle|style|\nsurfaceScale|surfaceScale|\nsyncBehavior|syncBehavior|\nsyncBehaviorDefault|syncBehaviorDefault|\nsyncMaster|syncMaster|\nsyncTolerance|syncTolerance|\nsyncToleranceDefault|syncToleranceDefault|\nsystemLanguage|systemLanguage|\ntabIndex|tabindex|\ntableValues|tableValues|\ntarget|target|\ntargetX|targetX|\ntargetY|targetY|\ntextAnchor|text-anchor|\ntextDecoration|text-decoration|\ntextRendering|text-rendering|\ntextLength|textLength|\ntimelineBegin|timelinebegin|\ntitle|title|\ntransformBehavior|transformBehavior|\ntype|type|\ntypeOf|typeof|\nto|to|\ntransform|transform|\ntransformOrigin|transform-origin|\nu1|u1|\nu2|u2|\nunderlinePosition|underline-position|\nunderlineThickness|underline-thickness|\nunicode|unicode|\nunicodeBidi|unicode-bidi|\nunicodeRange|unicode-range|\nunitsPerEm|units-per-em|\nvalues|values|\nvAlphabetic|v-alphabetic|\nvMathematical|v-mathematical|\nvectorEffect|vector-effect|\nvHanging|v-hanging|\nvIdeographic|v-ideographic|\nversion|version|\nvertAdvY|vert-adv-y|\nvertOriginX|vert-origin-x|\nvertOriginY|vert-origin-y|\nviewBox|viewBox|\nviewTarget|viewTarget|\nvisibility|visibility|\nwidth|width|\nwidths|widths|\nwordSpacing|word-spacing|\nwritingMode|writing-mode|\nx|x|\nx1|x1|\nx2|x2|\nxChannelSelector|xChannelSelector|\nxHeight|x-height|\ny|y|\ny1|y1|\ny2|y2|\nyChannelSelector|yChannelSelector|\nz|z|\nzoomAndPan|zoomAndPan|\nxLinkActuate|xlink:actuate|\nxLinkArcRole|xlink:arcrole|\nxLinkHref|xlink:href|\nxLinkRole|xlink:role|\nxLinkShow|xlink:show|\nxLinkTitle|xlink:title|\nxLinkType|xlink:type|\nxmlnsXLink|xmlns:xlink|\nxmlns|xmlns|\nxmlBase|xml:base|\nxmlLang|xml:lang|\nxmlSpace|xml:space|");
+  })();
+  var r = ee, n = ae;
+  "svg" == e && (r = ne, n = re);
+  e = a.toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(n, e)) {
+    var R2 = Object;
+    e = n[e], "string" == typeof e || (e = hn), a = r[e], "string" == typeof a || (a = hn);
+    return { property: e, packed: a };
+  }
+  e.length > 4 && "data" == e.slice(0, 4) && ((e2) => {
+    if (e2.length < 5) return false;
+    if ("data" != e2.toLowerCase().slice(0, 4)) return false;
+    var a2, r2 = e2.length, n2 = 4;
+    while (n2 < r2) {
+      a2 = e2.charCodeAt(n2), a2 = a2 >= 48 && a2 <= 57 || a2 >= 65 && a2 <= 90 || a2 >= 97 && a2 <= 122 || 45 == a2 || 95 == a2 || 46 == a2 || 58 == a2;
+      if (!a2) return false;
+      n2++;
+    }
+    return true;
+  })(a) ? a.length > 4 && "-" == a.charAt(4) ? (e = ((e2) => {
+    var t, r2 = e2.length, n2 = hn, a2 = 0;
+    while (a2 < r2) a2 < r2 - 1 && "-" == e2.charAt(a2) ? (t = e2.charCodeAt(a2 + 1), t >= 97 && t <= 122 ? (n2 = n2 + e2.charAt(a2 + 1).toUpperCase(), a2 = a2 + 2 | 0) : (n2 = n2 + e2.charAt(a2), a2++)) : (n2 = n2 + e2.charAt(a2), a2++);
+    return n2;
+  })(a.slice(5)), e = e.length > 0 ? "data" + e.charAt(0).toUpperCase() + e.slice(1) : "data", R2 = a, a = e, e = R2) : (e = a.slice(4), !((e2) => {
+    var n2, r2 = e2.length, a2 = 0;
+    while (a2 < r2 - 1) {
+      if ("-" == e2.charAt(a2) && (n2 = e2.charCodeAt(a2 + 1), n2 >= 97 && n2 <= 122)) return true;
+      a2++;
+    }
+    return false;
+  })(e) ? (e = ((e2) => {
+    var r2, t, o = e2.length, a2 = hn, n2 = 0;
+    while (n2 < o) r2 = e2.charAt(n2), t = e2.charCodeAt(n2), a2 = t >= 65 && t <= 90 ? a2 + ("-" + r2.toLowerCase()) : a2 + r2, n2++;
+    return a2;
+  })(e), (0 == e.length || "-" != e.charAt(0)) && (e = "-" + e), e = "data" + e) : e = a) : e = a;
+  return { property: a, packed: e + "|" };
+};
+var Ae = (e) => {
+  var a = e.packed;
+  return "string" == typeof a ? a : hn;
+};
+var Ce = (e) => {
+  var a = Ae(e);
+  e = 0;
+  while (e < a.length) {
+    if ("|" == a.charAt(e)) return a.slice(e + 1);
+    e++;
+  }
+  return hn;
+};
+var v = (e, a) => {
+  var n = 0;
+  while (n < e.length) {
+    if (e.charAt(n) == a) return true;
+    n++;
+  }
+  return false;
+};
+var Se = (e) => {
+  var r, o = [], t = e.length, a = hn, n = 0;
+  while (n <= t) r = n < t ? e.charCodeAt(n) : 0, n == t || 9 == r || 10 == r || 12 == r || 13 == r || 32 == r ? a.length > 0 && (o.push(a), a = hn) : a += e.charAt(n), n++;
+  return o;
+};
+var Le = (e) => {
+  var a, t, n, i = [], c = e.length, r = hn, o = 0;
+  while (o <= c) {
+    if (o == c || "," == e.charAt(o)) {
+      a = r.length, n = 0;
+      while (n < a) {
+        t = r.charCodeAt(n);
+        if (9 == t || 10 == t || 12 == t || 13 == t || 32 == t) n++;
+        else break;
+      }
+      while (a > n) {
+        t = r.charCodeAt(a - 1);
+        if (9 == t || 10 == t || 12 == t || 13 == t || 32 == t) a--;
+        else break;
+      }
+      i.push(r.slice(n, a));
+      r = hn;
+    } else {
+      r += e.charAt(o);
+    }
+    o++;
   }
   return i;
 };
-var Wb = (j, n) => {
-  j = j[n];
-  if (j === void 0 || j == null) return 1;
-  if (typeof j == Ed) return +j | 0;
-  if (j) return 1;
-  return 0;
+var Pe = (e, a, n, r) => "string" != typeof r ? r : (("html" != e ? false : "border" == a || "bottomMargin" == a || "cols" == a || "height" == a || "high" == a || "hSpace" == a || "leftMargin" == a || "low" == a || "marginHeight" == a || "marginWidth" == a || "maxLength" == a || "minLength" == a || "optimum" == a || "results" == a || "rightMargin" == a || "rows" == a || "rowSpan" == a || "size" == a || "span" == a || "start" == a || "tabIndex" == a || "topMargin" == a || "vSpace" == a || "width" == a) || v(n, "n")) && r.length > 0 && !Number.isNaN(e = Number(r)) ? e : (v(n, "b") || v(n, "o")) && (0 == r.length || r.toLowerCase() == a.toLowerCase()) ? true : r;
+var Oe = (e, a) => {
+  var i = e.length;
+  a < 0 && (a = 0), a > i && (a = i);
+  var o, t = 0, r = 1, n = 0;
+  while (n < a) o = e.charCodeAt(n), 13 == o ? (o = n + 1, o < i && 10 == e.charCodeAt(o) && (o = n + 2 | 0), o <= a && (t = o, r++), n = o) : 10 == o ? (n = n + 1, n <= a && (t = n, r++)) : n += 1;
+  return { line: r, column: (a - t | 0) + 1 | 0, offset: a };
 };
-var Xb = (a2) => 2 == a2 ? true : 1 == a2 ? false : void 0;
-var Yb = (s, v, x, a2) => {
-  var b = s.code;
-  "string" == typeof b || (b = Zc);
-  var C = Sb(b);
-  var c = Wb(x, C);
-  if (0 == c) return;
-  x = Mb(C);
-  if (x === void 0 || x == null) return;
-  C = Vb(Zc, v, s);
-  var d = x.reason;
-  "string" == typeof d && (C = Vb(d, v, s));
-  d = s.startLine;
-  var e = s.startCol;
-  d = { line: d, column: e, offset: s.startOffset };
-  e = s.endLine;
-  var f = s.endCol;
-  C = Qb(C, { start: d, end: { line: e, column: f, offset: s.endOffset } }, b);
-  C.fatal = Xb(c);
-  c = x.description;
-  "string" == typeof c && (C.note = Vb(c, v, s));
-  false === x.url ? C.url = void 0 : C.url = "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-" + b;
-  a2(C);
+var p = (e) => "string" == typeof e ? e : e == null ? hn : e + "";
+var H = (e) => e == null ? 0 : e | 0;
+var _ = (e) => {
+  var a = e.space;
+  return "string" == typeof a ? a : "html";
 };
-var Zb = (d, k) => {
-  if ((a2 = k, k === void 0) || k == null) {
-    var a2 = {};
+var De = (e, a, n) => {
+  e = H(e);
+  var r = H(a);
+  return 0 == e || 0 == r ? void 0 : { line: e, column: r, offset: H(n) };
+};
+var A = (e) => {
+  var a, r, n, t;
+  if (e != null) return a = e.startLine, r = e.startCol, a = De(a, r, e.startOffset), n = e.endLine, t = e.endCol, n = De(n, t, e.endOffset), a === void 0 && n === void 0 ? void 0 : { start: a, end: n };
+};
+var z = (e, a, n) => {
+  if ("sourceCodeLocation" in a) {
+    var r = a.sourceCodeLocation;
+    if (r != null && !!e.file) a = ((e2, a2, n2) => {
+      var t = A(n2);
+      if ("element" != p(a2.type)) return t;
+      var i, c, r2 = a2.children, o = t == null;
+      !o && !n2.endTag && Array.isArray(r2) && r2.length > 0 && (o = r2[r2.length - 1].position, r2 = o == null, r2 || (r2 = o.end, o = r2 == null, o || (t.end = Object.assign({}, r2))));
+      if (e2.verbose) {
+        o = {}, r2 = n2.attrs, i = r2 == null;
+        if (!i && "object" == typeof r2) {
+          i = _(e2);
+          for (e2 in r2) c = p(Y(i, e2).property), o[c] = A(r2[e2]);
+        }
+        e2 = { opening: A(n2.startTag), properties: o };
+        r2 = n2.endTag, r2 && (e2.closing = A(r2)), a2.data = { position: e2 };
+      }
+      return t;
+    })(e, n, r), r = a == null, r || (e.location = true, n.position = a);
   }
-  var v = Rb(d);
-  var c = a2.onerror;
-  var b = {};
-  Object.assign(b, { sourceCodeLocationInfo: true, scriptingEnabled: false });
-  c && typeof c == Qc ? b.onParseError = function(s) {
-    Yb(s, v, a2, c);
-  } : b.onParseError = JSON.parse(Oe);
-  b = a2.fragment ? parseFragment(v, b) : parse(v, b);
-  ("string" == typeof d || d === void 0 || d == null || typeof d != Rc) && (d = {}, Object.assign(d, { value: v, toString: function() {
-    return v;
-  } }));
-  k = {};
-  Object.assign(k, { file: d, space: a2.space, verbose: a2.verbose });
-  (k === void 0 || k == null) && (k = {});
-  var p = $2(k.space) == bd ? bd : _c;
-  d = {};
-  Object.assign(d, { file: k.file, location: false, space: p, verbose: !!k.verbose });
-  d = Xa(d, b);
-  return d;
 };
-var _b = (Q, P) => {
-  if (P === void 0 || P == null || typeof P != Rc) return;
-  for (var a2 in P) Q[a2] = P[a2];
+var Ee = (e, a) => {
+  var n = [];
+  if (!Array.isArray(a)) return n;
+  var t = a.length, r = 0;
+  while (r < t) n.push(S.one(e, a[r])), r++;
+  return n;
 };
-var tb = (b) => {
-  if (b <= 0) return "0";
-  var i = Zc;
-  while (b > 0) {
-    i = Wd.charAt(b % 16) + i;
-    b = b / 16 | 0;
+var je = (e, a) => {
+  var n = p(a.nodeName);
+  if ("#comment" == n) return n = { type: "comment", value: p(a.data) }, z(e, a, n), n;
+  var r;
+  return "#document" == n || "#document-fragment" == n ? ("mode" in a ? (n = p(a.mode), n = "quirks" == n || "limited-quirks" == n) : n = false, n = { type: "root", children: Ee(e, a.childNodes), data: { quirksMode: n } }, e.file && e.location && (a = ((e2) => {
+    if ("string" == typeof e2) return e2;
+    var a2;
+    if (e2 == null) return hn;
+    a2 = e2.toString;
+    if ("function" == typeof a2) {
+      e2 = e2.toString();
+      return "string" == typeof e2 ? e2 : e2 + "";
+    }
+    return e2 + "";
+  })(e.file), r = Oe(a, 0), n.position = { start: r, end: Oe(a, a.length) }), n) : "#documentType" == n ? (n = { type: "doctype" }, z(e, a, n), n) : "#text" == n ? (n = { type: "text", value: p(a.value) }, z(e, a, n), n) : S.element(e, a);
+};
+var ze = (e) => e == null ? "1" : "number" != typeof e ? "1" : !e ? "1" : e + "";
+var V = (e) => {
+  var a;
+  if (e == null || "object" != typeof e) return "1:1";
+  a = ze(e.line) + ":";
+  return a + ze(e.column);
+};
+var Te = (e) => {
+  var a;
+  return e == null || "object" != typeof e ? hn : "position" in e || "type" in e ? Te(e.position) : "start" in e || "end" in e ? (a = V(e.start) + "-", a + V(e.end)) : "line" in e || "column" in e ? V(e) : hn;
+};
+var Z = (e, a, n) => {
+  var o = e.length, r = n.startOffset;
+  n = r == null;
+  var t, i, s2, l2, b2, c = !n ? r | 0 : 0;
+  r = hn, n = 0;
+  while (n < o) if (n + 1 < o && "%" == e.charAt(n) && "x" == e.charAt(n + 1)) t = c >= 0 && c < a.length ? a.charCodeAt(c) : 0, r += "0x" + ((e2) => {
+    if (e2 <= 0) return "0";
+    var a2 = hn;
+    while (e2 > 0) a2 = "0123456789ABCDEF".charAt(e2 % 16) + a2, e2 = e2 / 16 | 0;
+    return a2;
+  })(t), n = n + 2 | 0;
+  else if (n + 1 < o && "%" == e.charAt(n) && "c" == e.charAt(n + 1)) {
+    t = n + 2 | 0;
+    if (t < o && ("+" == e.charAt(t) || "-" == e.charAt(t))) {
+      s2 = e.charAt(t), i = n + 3 | 0, t = 0, b2 = false;
+      while (i < o) {
+        l2 = e.charCodeAt(i);
+        if (l2 >= 48 && l2 <= 57) t = (t * 10 | 0) + (l2 - 48) | 0, i++;
+        else {
+          break;
+        }
+        b2 = true;
+      }
+      b2 ? ("-" == s2 && (t = 0 - t | 0), n = i) : (n = n + 2 | 0, t = 0);
+    } else {
+      n = n + 2 | 0, t = 0;
+    }
+    t = c + t | 0;
+    t = t >= 0 && t < a.length ? a.charAt(t) : hn, r += "`" == t ? "` ` `" : t;
+  } else {
+    r += e.charAt(n), n++;
   }
-  return i;
+  return r;
 };
-var aa = (a2, d) => {
-  var b = a2.length;
-  var i = Zc, c = 0, w;
-  while (c < b) {
-    w = a2.charAt(c);
-    ob(w, d) ? (i = i + "&#x", i = i + tb(w.charCodeAt(0)) + ";") : i = i + w;
-    c = c + 1;
-  }
-  return i;
+var $2 = (e, a) => {
+  var n;
+  if (!(a == null || "object" != typeof a)) for (n in a) e[n] = a[n];
 };
-var ub = (L, M) => {
-  var T = _(0);
-  var a2 = _(9);
-  a2 = a2 + _(10);
-  a2 = a2 + _(12);
-  a2 = a2 + _(13) + oe;
-  if (L) {
-    if (M) return a2 + "&/=>";
-    return a2 + "\"&'/=>`";
-  }
-  if (M) return T + a2 + `"&'/<=>`;
-  return T + a2 + "\"&'/<=>`";
+var h = (e, a) => {
+  var r, o = e.length, n = hn, t = 0;
+  while (t < o) r = e.charAt(t), ((e2, a2) => {
+    var r2 = a2.length, n2 = 0;
+    while (n2 < r2) {
+      if (a2.charAt(n2) == e2) return true;
+      n2++;
+    }
+    return false;
+  })(r, a) ? (n = n + "&#x", n = n + ((e2) => {
+    if (e2 <= 0) return "0";
+    var a2 = hn;
+    while (e2 > 0) a2 = "0123456789ABCDEF".charAt(e2 % 16) + a2, e2 = e2 / 16 | 0;
+    return a2;
+  })(r.charCodeAt(0)) + ";") : n += r, t++;
+  return n;
 };
-var vb = (L, M) => {
-  var T = _(0);
-  var a2 = _(9);
-  var b = _(10);
-  a2 = a2 + b;
-  var c = _(12);
-  a2 = a2 + c;
-  var d = _(13);
-  a2 = a2 + d + oe;
-  if (L && M) return a2 + "&>";
-  return T + a2 + "\"&'<=>`";
+var Ea = (e, a) => {
+  var r = f(0), n = f(9);
+  n += f(10), n += f(12), n = n + f(13) + " ";
+  return e ? a ? n + "&/=>" : n + "\"&'/=>`" : a ? r + n + `"&'/<=>` : r + n + "\"&'/<=>`";
 };
-var wb = (L, M) => {
-  var T = _(0);
-  if (L) {
-    if (M) return "&'";
-    return Nd;
-  }
-  if (M) return T + "&'";
-  return T + Nd;
+var ja = (e, a) => {
+  var r = f(0), n = f(9);
+  n += f(10), n += f(12), n = n + f(13) + " ";
+  return e && a ? n + "&>" : r + n + "\"&'<=>`";
 };
-var xb = (L, M) => {
-  var T = _(0);
-  if (L) {
-    if (M) return '"&';
-    return Nd;
-  }
-  if (M) return T + '"&';
-  return T + Nd;
+var za = (e, a) => {
+  var n = f(0);
+  return e ? a ? "&'" : "\"&'`" : a ? n + "&'" : n + "\"&'`";
 };
-var yb = (a2) => {
-  var b = a2.length;
-  var i = Zc, c = 0, z, d;
-  while (c < b) {
-    z = a2.slice(c);
-    0 == c && z.length > 0 && ">" == z.charAt(0) ? (i = i + aa(">", je), c = c + 1) : 0 == c && z.length >= 2 && "->" == z.slice(0, 2) ? (i = i + aa("->", je), c = c + 2 | 0) : z.length >= 4 && z.slice(0, 4) == Me ? (i = i + aa(Me, je), c = c + 4 | 0) : z.length >= 4 && "--!>" == z.slice(0, 4) ? (i = i + aa("--!>", je), c = c + 4 | 0) : z.length >= 3 && "-->" == z.slice(0, 3) ? (i = i + aa("-->", je), c = c + 3 | 0) : "<!-" == z ? (i = i + aa("<!-", je), c = b) : (i = i + z.charAt(0), c = c + 1);
-  }
-  return i;
+var Ta = (e, a) => {
+  var n = f(0);
+  return e ? a ? '"&' : "\"&'`" : a ? n + '"&' : n + "\"&'`";
 };
-var ja = (R, f, a2, c) => {
-  var B = ga(R);
-  var b = fa(B);
-  R = f + a2 | 0;
-  while (R >= 0 && R < b) {
-    var k = B[R];
-    if (c || !xc(k)) return R;
-    R = R + a2 | 0;
+var L = (e, a, n, r) => {
+  var t = x(e), o = k(t);
+  for (e = a + n | 0; ; ) {
+    a = e >= 0 && e < o;
+    if (!a) break;
+    var i = t[e];
+    if (r || !we(i)) return e;
+    e = e + n | 0;
   }
   return -1;
 };
-var da = (h, R, a2, b) => {
-  R = ja(h, R, a2, b);
-  if (R < 0) return;
-  return ga(h)[R];
+var y = (e, a, n, r) => {
+  a = L(e, a, n, r);
+  return a < 0 ? void 0 : x(e)[a];
 };
-var ka = (g) => g === void 0 || g == null ? false : X(g) == be;
-var W = (g, m) => g === void 0 || g == null ? false : X(g) == Tc && ba(g) == m;
-var ea = (g, a2, b) => {
-  if (g === void 0 || g == null) return false;
-  if (X(g) != Tc) return false;
-  g = ba(g);
-  g = g == a2 || g == b;
-  return g;
+var P = (e) => e == null ? false : "comment" == d(e);
+var l = (e, a) => {
+  if (e == null) return false;
+  e = "element" == d(e) && g(e) == a;
+  return e;
 };
-var Ya = (g) => {
-  if (g === void 0 || g == null) return false;
-  if (X(g) != vd) return false;
-  g = g.value;
-  "string" == typeof g || (g = Zc);
-  if (0 == g.length) return false;
-  return xc(g.charAt(0));
+var w = (e, a, n) => {
+  if (e == null) return false;
+  if ("element" != d(e)) return false;
+  e = g(e), e = e == a || e == n;
+  return e;
 };
-var zb = (k, h) => {
-  k = da(h, k, 1, true);
-  if (k === void 0 || k == null) return true;
-  if (ka(k)) return false;
-  if (X(k) == vd && Ya(k)) return false;
-  return true;
+var Me = (e) => {
+  var a;
+  if (e == null) return false;
+  if ("text" != d(e)) return false;
+  a = e.value, "string" == typeof a || (a = hn);
+  return 0 == a.length ? false : we(a.charAt(0));
 };
-var oc = (k) => !W(k, "address") && !W(k, "article") && !W(k, "aside") && !W(k, "blockquote") && !W(k, "details") && !W(k, "div") && !W(k, "dl") && !W(k, "fieldset") && !W(k, "figcaption") && !W(k, "figure") && !W(k, "footer") && !W(k, "form") ? !W(k, "h1") && !W(k, "h2") && !W(k, "h3") && !W(k, "h4") && !W(k, "h5") && !W(k, "h6") && !W(k, "header") && !W(k, "hgroup") && !W(k, "hr") && !W(k, "main") && !W(k, "menu") && !W(k, "nav") && !W(k, "ol") && !W(k, "p") && !W(k, "pre") && !W(k, "section") && !W(k, "table") && !W(k, "ul") ? false : true : true;
-var Ab = (h) => {
-  if (h === void 0 || h == null) return false;
-  if (X(h) != Tc) return false;
-  var m = ba(h);
-  return "a" == m || "audio" == m || "del" == m || "ins" == m || "map" == m || "noscript" == m || "video" == m;
+var K = (e, a, n) => {
+  e = g(e);
+  return "body" == e ? !P(b(n, a)) : "caption" == e || "colgroup" == e || "head" == e ? ((e2, a2) => {
+    e2 = y(a2, e2, 1, true);
+    return e2 == null ? true : P(e2) ? false : "text" == d(e2) && Me(e2) ? false : true;
+  })(a, n) : "dd" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : w(e2, "dt", "dd");
+  })(a, n) : "dt" == e ? w(b(n, a), "dt", "dd") : "html" == e ? !P(b(n, a)) : "li" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : l(e2, "li");
+  })(a, n) : "optgroup" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : l(e2, "optgroup");
+  })(a, n) : "option" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : w(e2, "option", "optgroup");
+  })(a, n) : "p" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 != null ? (e2 = "element" == d(e2) && (!l(e2, "address") && !l(e2, "article") && !l(e2, "aside") && !l(e2, "blockquote") && !l(e2, "details") && !l(e2, "div") && !l(e2, "dl") && !l(e2, "fieldset") && !l(e2, "figcaption") && !l(e2, "figure") && !l(e2, "footer") && !l(e2, "form") && !l(e2, "h1") && !l(e2, "h2") && !l(e2, "h3") && !l(e2, "h4") && !l(e2, "h5") && !l(e2, "h6") && !l(e2, "header") && !l(e2, "hgroup") && !l(e2, "hr") && !l(e2, "main") && !l(e2, "menu") && !l(e2, "nav") && !l(e2, "ol") && !l(e2, "p") && !l(e2, "pre") && !l(e2, "section") && !l(e2, "table") && !l(e2, "ul") ? false : true), e2) : a2 == null ? true : !((e3) => {
+      var a3;
+      if (e3 == null) return false;
+      if ("element" != d(e3)) return false;
+      e3 = g(e3), a3 = "a" == e3 || "audio" == e3 || "del" == e3 || "ins" == e3 || "map" == e3 || "noscript" == e3 || "video" == e3;
+      return a3;
+    })(a2);
+  })(a, n) : "rp" == e || "rt" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : w(e2, "rp", "rt");
+  })(a, n) : "tbody" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : w(e2, "tbody", "tfoot");
+  })(a, n) : "td" == e || "th" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : w(e2, "td", "th");
+  })(a, n) : "tfoot" == e ? L(n, a, 1, false) < 0 : "thead" == e ? w(b(n, a), "tbody", "tfoot") : "tr" == e ? ((e2, a2) => {
+    e2 = b(a2, e2);
+    return e2 == null ? true : l(e2, "tr");
+  })(a, n) : false;
 };
-var yc = (k, h) => {
-  k = Y(h, k);
-  var a2 = k === void 0 || k == null;
-  if (!a2) return X(k) == Tc && oc(k);
-  if (h === void 0 || h == null) return true;
-  return !Ab(h);
-};
-var nc = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return W(k, "li");
-};
-var zc = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return ea(k, "dt", "dd");
-};
-var mc = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return ea(k, "rp", "rt");
-};
-var Ac = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return W(k, Ud);
-};
-var sc = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return ea(k, "option", Ud);
-};
-var tc = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return ea(k, yd, Ge);
-};
-var Pc = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return W(k, "tr");
-};
-var ec = (k, h) => {
-  k = Y(h, k);
-  if (k === void 0 || k == null) return true;
-  return ea(k, "td", "th");
-};
-var Ba = (m, f, h) => {
-  m = ba(m);
-  if ("body" == m) return !ka(Y(h, f));
-  if ("caption" == m || m == Rd || "head" == m) return zb(f, h);
-  if ("dd" == m) return zc(f, h);
-  if ("dt" == m) return ea(Y(h, f), "dt", "dd");
-  if (m == _c) return !ka(Y(h, f));
-  if ("li" == m) return nc(f, h);
-  if (m == Ud) return Ac(f, h);
-  if ("option" == m) return sc(f, h);
-  if ("p" == m) return yc(f, h);
-  if ("rp" == m || "rt" == m) return mc(f, h);
-  if (m == yd) return tc(f, h);
-  if ("td" == m || "th" == m) return ec(f, h);
-  if (m == Ge) return ja(h, f, 1, false) < 0;
-  if ("thead" == m) return ea(Y(h, f), yd, Ge);
-  if ("tr" == m) return Pc(f, h);
-  return false;
-};
-var wc = (g) => {
-  var B = ga(g);
-  var b = fa(B);
-  var g = false, a2 = false, c = 0, m;
-  while (c < b) {
-    m = B[c];
-    if (X(m) == Tc) {
-      m = ba(m);
-      if ("base" == m) {
-        if (g) return false;
-        g = true;
+var Ja = (e, a, n) => {
+  var r = g(e);
+  return "body" == r ? ((e2) => {
+    e2 = y(e2, -1, 1, true);
+    return e2 == null ? true : P(e2) ? false : "text" == d(e2) && Me(e2) ? false : "element" == d(e2) && (e2 = g(e2), "meta" == e2 || "link" == e2 || "script" == e2 || "style" == e2 || "template" == e2) ? false : true;
+  })(e) : "colgroup" == r ? ((e2, a2, n2) => {
+    var r2 = y(n2, a2, -1, false), t = y(e2, -1, 1, true);
+    e2 = n2 == null;
+    return !e2 && r2 != null && l(r2, "colgroup") && K(r2, L(n2, a2, -1, false), n2) ? false : l(t, "col");
+  })(e, a, n) : "head" == r ? ((e2) => {
+    var o, n2 = x(e2), t = k(n2), e2 = false, a2 = false, r2 = 0;
+    while (r2 < t) {
+      o = n2[r2];
+      if ("element" == d(o)) {
+        o = g(o);
+        if ("base" == o) {
+          if (e2) return false;
+          e2 = true;
+        }
+        if ("title" == o) {
+          if (a2) return false;
+          a2 = true;
+        }
       }
-      if ("title" == m) {
-        if (a2) return false;
-        a2 = true;
-      }
+      r2++;
     }
-    c = c + 1;
-  }
-  if (0 == b) return true;
-  return X(B[0]) == Tc;
+    return 0 == t ? true : "element" == d(n2[0]);
+  })(e) : "html" == r ? !P(y(e, -1, 1, false)) : "tbody" == r ? ((e2, a2, n2) => {
+    var r2 = y(n2, a2, -1, false), t = y(e2, -1, 1, false);
+    e2 = n2 == null;
+    return !e2 && r2 != null && (l(r2, "thead") || l(r2, "tbody")) && K(r2, L(n2, a2, -1, false), n2) ? false : l(t, "tr");
+  })(e, a, n) : false;
 };
-var Bb = (S) => {
-  S = da(S, -1, 1, true);
-  var m;
-  if (S === void 0 || S == null) return true;
-  if (ka(S)) return false;
-  if (X(S) == vd && Ya(S)) return false;
-  if (X(S) == Tc) {
-    m = ba(S);
-    if ("meta" == m || "link" == m || "script" == m || "style" == m || m == Vd) return false;
-  }
-  return true;
+var Re = (e) => {
+  var a = e.schema;
+  return "string" == typeof a ? a : "html";
 };
-var Cb = (g, f, h) => {
-  var a2 = da(h, f, -1, false);
-  var S = da(g, -1, 1, true);
-  g = h === void 0 || h == null;
-  if (!g) {
-    g = a2 === void 0 || a2 == null;
-    if (!g && W(a2, Rd) && Ba(a2, ja(h, f, -1, false), h)) return false;
-  }
-  return W(S, "col");
-};
-var Db = (g, f, h) => {
-  var a2 = da(h, f, -1, false);
-  var S = da(g, -1, 1, false);
-  g = h === void 0 || h == null;
-  if (!g) {
-    g = a2 === void 0 || a2 == null;
-    if (!g && (W(a2, "thead") || W(a2, yd)) && Ba(a2, ja(h, f, -1, false), h)) return false;
-  }
-  return W(S, "tr");
-};
-var Hc = (g, f, h) => {
-  var m = ba(g);
-  if ("body" == m) return Bb(g);
-  if (m == Rd) return Cb(g, f, h);
-  if ("head" == m) return wc(g);
-  if (m == _c) return !ka(da(g, -1, 1, false));
-  if (m == yd) return Db(g, f, h);
-  return false;
-};
-var Nc = (a2) => {
-  if (a2 === void 0 || a2 == null) return false;
-  if ("boolean" == typeof a2) return a2;
-  if ("string" == typeof a2) return a2.length > 0;
-  if (typeof a2 == Ed) {
-    if (Number.isNaN(a2)) return false;
-    return !!a2;
-  }
-  return !!a2;
-};
-var Kc = (d) => {
-  d = d.quote;
-  if ("string" == typeof d) return d;
-  return ke;
-};
-var fc = (d) => {
-  d = d.alternative;
-  if ("string" == typeof d) return d;
-  return Le;
-};
-var Za = (d) => {
-  d = d.schema;
-  if ("string" == typeof d) return d;
-  return _c;
-};
-var Eb = (d, i, a2) => {
-  var j = d.settings;
-  var p = Za(d);
-  var L = j.allowParseErrors && p == _c;
-  var e = !!j.allowDangerousCharacters;
-  i = Aa(p, i);
-  p = pb(i);
-  var n = Va(i);
-  i = Oc(n, "b");
-  var c = Oc(n, "o");
-  var f = Oc(n, "c");
-  c && "string" == typeof a2 && (a2 == p || a2 == Zc) && (a2 = true);
-  i || c ? (i = "string" == typeof a2, i = !i || i && (a2 == p || a2 == Zc)) : i = false;
-  i && (a2 = Nc(a2));
-  if (a2 === void 0 || a2 == null) return Zc;
-  i = "boolean" == typeof a2;
-  if (i && !a2) return Zc;
-  if (typeof a2 == Ed && Number.isNaN(a2)) return Zc;
-  var u = ub(L, e);
-  n = aa(p, u);
-  if (i && a2) return n;
-  if (Array.isArray(a2)) {
-    var g = f ? j.tightCommaSeparatedLists ? "," : ", " : oe, b, h;
-    b = fa(a2);
-    i = Zc;
-    p = false;
-    c = 0;
-    while (c < b) {
-      f = a2[c];
-      h = f === void 0 || f == null;
-      h || (p && (i = i + g), i = i + Z(f), p = true);
-      c = c + 1;
+var an = (e, a, n) => {
+  var i, l2, s2, d2, c, b2, f2, r = e.settings, t = Re(e), o = r.allowParseErrors && "html" == t;
+  c = !!r.allowDangerousCharacters, a = Y(t, a), t = ((e2) => {
+    e2 = Ae(e2);
+    var a2 = 0;
+    while (a2 < e2.length) {
+      if ("|" == e2.charAt(a2)) return e2.slice(0, a2);
+      a2++;
     }
+    return e2;
+  })(a), i = Ce(a), a = v(i, "b"), l2 = v(i, "o"), s2 = v(i, "c"), l2 && "string" == typeof n && (n == t || n == hn) && (n = true), a || l2 ? (a = "string" == typeof n, a = !a || a && (n == t || n == hn)) : a = false, a && (n = n == null ? false : "boolean" == typeof n ? n : "string" == typeof n ? n.length > 0 : "number" == typeof n ? Number.isNaN(n) ? false : !!n : !!n);
+  if (n == null) return hn;
+  a = "boolean" == typeof n;
+  if (a && !n) return hn;
+  if ("number" == typeof n && Number.isNaN(n)) return hn;
+  i = h(t, Ea(o, c));
+  if (a && n) return i;
+  if (Array.isArray(n)) {
+    d2 = s2 ? r.tightCommaSeparatedLists ? "," : ", " : " ", b2 = k(n), a = hn, t = false, l2 = 0;
+    while (l2 < b2) s2 = n[l2], f2 = s2 == null, f2 || (t && (a = a + d2), a = a + u(s2), t = true), l2++;
   } else {
-    i = Z(a2);
+    a = u(n);
   }
-  if (j.collapseEmptyAttributes && 0 == i.length) return n;
-  a2 = Kc(d);
-  j.preferUnquoted ? (p = aa(i, vb(L, e)), c = p == i) : (p = Zc, c = false);
-  c || (!j.quoteSmart || (d = fc(d), jc(i, a2) > jc(i, d) && (a2 = d)), d = xb(L, e), a2 == Le && (d = wb(L, e)), p = a2 + aa(i, d) + a2);
-  if (0 == p.length) return n;
-  return n + "=" + p;
+  if (r.collapseEmptyAttributes && 0 == a.length) return i;
+  n = ((e2) => {
+    var a2 = e2.quote;
+    return "string" == typeof a2 ? a2 : '"';
+  })(e), r.preferUnquoted ? (t = h(a, ja(o, c)), l2 = t == a) : (t = hn, l2 = false), l2 || (!r.quoteSmart || (e = ((e2) => {
+    var a2 = e2.alternative;
+    return "string" == typeof a2 ? a2 : "'";
+  })(e), ke(a, n) > ke(a, e) && (n = e)), e = Ta(o, c), "'" == n && (e = za(o, c)), t = n + h(a, e) + n);
+  return 0 == t.length ? i : i + "=" + t;
 };
-var lc = (d, J) => {
-  if (J === void 0 || J == null || typeof J != Rc) return Zc;
-  var f = !!d.settings.tightAttributes;
-  var i = Zc, b = true, c, a2, e;
-  for (c in J) {
-    a2 = J[c];
-    a2 === void 0 || a2 == null || (c = Eb(d, c, a2), c.length > 0 && (b || (b = f && i.length > 0 ? i.charAt(i.length - 1) : Zc, (!f || b != ke && b != Le) && (i = i + oe)), i = i + c, b = false));
+var Ue = (e, a, n) => {
+  var r = u(e.value);
+  e = a == null;
+  return !e && "element" == d(a) && (e = g(a), "script" == e || "style" == e) ? r : ((e2) => {
+    var a2 = e2.characterReferences;
+    return a2 == null || "object" != typeof a2 ? false : !!a2.useNamedReferences;
+  })(n.settings) ? ((e2) => {
+    var n2, t = e2.length, a2 = hn, r2 = 0;
+    while (r2 < t) n2 = e2.charAt(r2), "&" == n2 ? a2 = a2 + "&amp;" : "<" == n2 ? a2 = a2 + "&lt;" : a2 += n2, r2++;
+    return a2;
+  })(r) : h(r, "<&");
+};
+var on = (e, a) => {
+  var n = u(e.value);
+  return a.settings.bogusComments ? "<?" + h(n, ">") + ">" : "<!--" + ((e2) => {
+    var r, t = e2.length, a2 = hn, n2 = 0;
+    while (n2 < t) r = e2.slice(n2), 0 == n2 && r.length > 0 && ">" == r.charAt(0) ? (a2 = a2 + h(">", "<>"), n2++) : 0 == n2 && r.length >= 2 && "->" == r.slice(0, 2) ? (a2 = a2 + h("->", "<>"), n2 = n2 + 2 | 0) : r.length >= 4 && "<!--" == r.slice(0, 4) ? (a2 = a2 + h("<!--", "<>"), n2 = n2 + 4 | 0) : r.length >= 4 && "--!>" == r.slice(0, 4) ? (a2 = a2 + h("--!>", "<>"), n2 = n2 + 4 | 0) : r.length >= 3 && "-->" == r.slice(0, 3) ? (a2 = a2 + h("-->", "<>"), n2 = n2 + 3 | 0) : "<!-" == r ? (a2 = a2 + h("<!-", "<>"), n2 = t) : (a2 = a2 + r.charAt(0), n2++);
+    return a2;
+  })(n) + "-->";
+};
+var J = (e, a, n, r) => {
+  var t, o, i, c, l2, f2, h2, d2, b2, p2, s2;
+  (e == null || "object" != typeof e || Array.isArray(e)) && j("Expected node, not `" + u(e) + "`"), t = e.type, o = "string" == typeof t, o || j("Expected node, not `" + u(e) + "`"), o || (t = hn);
+  if ("text" == t) return Ue(e, n, r);
+  if ("comment" == t) return on(e, r);
+  if ("doctype" == t) return ((e2) => {
+    var a2 = e2.settings;
+    e2 = a2.upperDoctype ? "DOCTYPE" : "doctype", a2 = a2.tightDoctype ? hn : " ";
+    return "<!" + e2 + a2 + "html>";
+  })(r);
+  if ("raw" == t) return r.settings.allowDangerousHtml ? u(e.value) : Ue(e, n, r);
+  if ("root" == t) {
+    t = x(e), o = k(t), n = hn, a = 0;
+    while (a < o) n += J(t[a], a, e, r), a++;
+    return n;
   }
-  return i;
-};
-var Fb = (a2) => {
-  var b = a2.length;
-  var i = Zc, c = 0, w;
-  while (c < b) {
-    w = a2.charAt(c);
-    "&" == w ? i = i + "&amp;" : "<" == w ? i = i + "&lt;" : i = i + w;
-    c = c + 1;
-  }
-  return i;
-};
-var Gb = (j) => {
-  j = j.characterReferences;
-  var a2;
-  if (j === void 0 || j == null || typeof j != Rc) return false;
-  return !!j.useNamedReferences;
-};
-var uc = (m, h, d) => {
-  var b = m.value;
-  var a2 = Z(b);
-  m = h === void 0 || h == null;
-  if (!m) {
-    if (X(h) == Tc) {
-      m = ba(h);
-      if ("script" == m || "style" == m) return a2;
-    }
-  }
-  if (Gb(d.settings)) return Fb(a2);
-  return aa(a2, "<&");
-};
-var pc = (a2, d) => {
-  a2 = Z(a2.value);
-  if (d.settings.bogusComments) return "<?" + aa(a2, ">") + ">";
-  return Me + yb(a2) + "-->";
-};
-var rc = (j) => {
-  j = j.settings;
-  var a2 = j.upperDoctype ? "DOCTYPE" : de;
-  j = j.tightDoctype ? Zc : oe;
-  return "<!" + a2 + j + "html>";
-};
-var Ca = (a2, f, h, i) => {
-  (a2 === void 0 || a2 == null || typeof a2 != Rc || Array.isArray(a2)) && kc(Gd + Z(a2) + $d);
-  var b = a2.type;
-  var c = "string" == typeof b;
-  c || kc(Gd + Z(a2) + $d);
-  c || (b = Zc);
-  if (b == vd) return uc(a2, h, i);
-  if (b == be) return pc(a2, i);
-  if (b == de) return rc(i);
-  if ("raw" == b) {
-    if (i.settings.allowDangerousHtml) return Z(a2.value);
-    return uc(a2, h, i);
-  }
-  if (b == Pe) {
-    b = ga(a2);
-    c = fa(b);
-    h = Zc;
-    f = 0;
-    while (f < c) {
-      h = h + Ca(b[f], f, a2, i);
-      f = f + 1;
-    }
-    return h;
-  }
-  if (b == Tc) {
-    var j = i.settings;
-    b = Za(i);
-    var m = ba(a2);
-    var g = b != bd && !!j.omitOptionalTags, d, e, l, B, n, k;
-    d = b == bd ? !!j.closeEmptyElements : qc(j.voids, m.toLowerCase());
-    b == _c && m == bd && (i.schema = bd);
-    var W2 = a2.properties;
-    c = lc(i, W2);
-    l = b == _c && m == Vd ? a2.content : a2;
-    B = ga(l);
-    n = fa(B);
-    e = Zc;
-    k = 0;
-    while (k < n) {
-      e = e + Ca(B[k], k, l, i);
-      k = k + 1;
-    }
-    i.schema = b;
-    e.length > 0 && (d = false);
-    !(0 == c.length && g && Hc(a2, f, h)) ? (i = "<" + m, c.length > 0 && (i = i + oe + c), d && (b == bd || j.closeSelfClosing) && (b = c.length > 0 ? c.charAt(c.length - 1) : Zc, (j.tightSelfClosing ? "/" == b || b.length > 0 && b != ke && b != Le : true) && (i = i + oe), i = i + "/"), i = i + ">") : i = Zc;
-    i = i + e;
-    d || !(g && Ba(a2, f, h)) && (i = i + "</" + m + ">");
-    return i;
-  }
-  kc("Cannot compile unknown node `" + b + $d);
-  return Zc;
-};
-var Mc = (a2) => {
-  var j = {};
-  (a2 === void 0 || a2 == null) && (a2 = {});
-  Object.assign(j, { omitOptionalTags: hc(a2.omitOptionalTags), allowParseErrors: hc(a2.allowParseErrors), allowDangerousCharacters: hc(a2.allowDangerousCharacters), quoteSmart: hc(a2.quoteSmart), preferUnquoted: hc(a2.preferUnquoted), tightAttributes: hc(a2.tightAttributes), upperDoctype: hc(a2.upperDoctype), tightDoctype: hc(a2.tightDoctype), bogusComments: hc(a2.bogusComments), tightCommaSeparatedLists: hc(a2.tightCommaSeparatedLists), tightSelfClosing: hc(a2.tightSelfClosing), collapseEmptyAttributes: hc(a2.collapseEmptyAttributes), allowDangerousHtml: hc(a2.allowDangerousHtml), characterReferences: a2.characterReferences, closeSelfClosing: hc(a2.closeSelfClosing), closeEmptyElements: hc(a2.closeEmptyElements), voids: a2.voids });
-  return j;
-};
-var Hb = (a2, b) => {
-  (b === void 0 || b == null) && (b = {});
-  var c = b.quote;
-  var d = c === void 0 || c == null, e, p;
-  !d ? "string" == typeof c || (c = Z(c)) : c = ke;
-  c != ke && c != Le && kc("Invalid quote `" + c + "`, expected `'` or `\"`");
-  e = c == Le ? ke : Le;
-  p = Z(b.space) == bd ? bd : _c;
-  d = {};
-  Object.assign(d, { settings: Mc(b), schema: p, quote: c, alternative: e });
-  Array.isArray(a2) && (a2 = { type: Pe, children: a2 });
-  return Ca(a2, -1, void 0, d);
-};
-var cc = (Q, P) => {
-  if (P === void 0 || P == null || typeof P != Rc) return;
-  for (var a2 in P) Q[a2] = P[a2];
-};
-var dc = (e, y) => {
-  var j = {};
-  var a2 = e === void 0 || e == null;
-  a2 || (a2 = e.data, typeof a2 == Qc && cc(j, e.data(Sc)));
-  cc(j, y);
-  return j;
-};
-var X = (a2) => {
-  a2 = a2.type;
-  if ("string" == typeof a2) return a2;
-  return Zc;
-};
-var Y = (h, R) => {
-  R = ja(h, R, 1, false);
-  if (R < 0) return;
-  return ga(h)[R];
-};
-var ba = (a2) => {
-  a2 = a2.tagName;
-  if ("string" == typeof a2) return a2;
-  return Zc;
-};
-var pa = JSON.parse(Oe);
-var qa = Object.prototype.hasOwnProperty;
-var _a2 = (0, function() {
-  var b = $b(arguments);
-  var c = Array.prototype.pop.call(b);
-  typeof c == Qc || ca("Expected function as last argument, not " + c);
-  var E = {};
-  Object.assign(E, { middlewareIndex: -1, values: b, fns: this.fns, callback: c });
-  var a2;
-  a2 = (0, function() {
-    var l = E.fns;
-    var s = +E.middlewareIndex + 1;
-    E.middlewareIndex = s;
-    var sf = void 0;
-    s = s | 0;
-    s < (l.length | 0) && (sf = l[s]);
-    s = void 0;
-    l = [];
-    var c2 = arguments.length | 0;
-    if (c2 > 0) {
-      s = arguments[0];
-      var b2 = 1, f, vf, uf;
-      while (b2 < c2) {
-        l.push(arguments[b2]);
-        b2 = b2 + 1;
+  if ("element" == t) {
+    i = r.settings, t = Re(r), c = g(e), d2 = "svg" != t && i.omitOptionalTags, b2 = "svg" == t ? !!i.closeEmptyElements : ((e2, a2) => {
+      var n2, r2;
+      if (e2 == null || !Array.isArray(e2)) return "area" == a2 || "base" == a2 || "basefont" == a2 || "bgsound" == a2 || "br" == a2 || "col" == a2 || "command" == a2 || "embed" == a2 || "frame" == a2 || "hr" == a2 || "image" == a2 || "img" == a2 || "input" == a2 || "keygen" == a2 || "link" == a2 || "meta" == a2 || "param" == a2 || "source" == a2 || "track" == a2 || "wbr" == a2;
+      r2 = k(e2), n2 = 0;
+      while (n2 < r2) {
+        if (u(e2[n2]) == a2) return true;
+        n2++;
       }
+      return false;
+    })(i.voids, c.toLowerCase()), "html" == t && "svg" == c && (r.schema = "svg"), o = ((e2, a2) => {
+      var n2, t2, o2, r2, i2;
+      if (a2 == null || "object" != typeof a2) return hn;
+      i2 = !!e2.settings.tightAttributes, n2 = hn, r2 = true;
+      for (t2 in a2) o2 = a2[t2], o2 == null || (t2 = an(e2, t2, o2), t2.length > 0 && (r2 || (r2 = i2 && n2.length > 0 ? n2.charAt(n2.length - 1) : hn, (!i2 || '"' != r2 && "'" != r2) && (n2 = n2 + " ")), n2 = n2 + t2, r2 = false));
+      return n2;
+    })(r, e.properties), p2 = "html" == t && "template" == c ? e.content : e, f2 = x(p2), h2 = k(f2), l2 = hn, s2 = 0;
+    while (s2 < h2) l2 += J(f2[s2], s2, p2, r), s2++;
+    r.schema = t, l2.length > 0 && (b2 = false), !(0 == o.length && d2 && Ja(e, a, n)) ? (r = "<" + c, o.length > 0 && (r = r + " " + o), b2 && ("svg" == t || i.closeSelfClosing) && (t = o.length > 0 ? o.charAt(o.length - 1) : hn, (i.tightSelfClosing ? "/" == t || t.length > 0 && '"' != t && "'" != t : true) && (r = r + " "), r = r + "/"), r = r + ">") : r = hn, r += l2, b2 || !(d2 && K(e, a, n)) && (r = r + "</" + c + ">");
+    return r;
+  }
+  j("Cannot compile unknown node `" + t + "`");
+  return hn;
+};
+var qe = (e, a) => {
+  var n;
+  if (!(a == null || "object" != typeof a)) for (n in a) e[n] = a[n];
+};
+var d = (e) => {
+  var a = e.type;
+  return "string" == typeof a ? a : hn;
+};
+var b = (e, a) => {
+  a = L(e, a, 1, false);
+  return a < 0 ? void 0 : x(e)[a];
+};
+var g = (e) => {
+  var a = e.tagName;
+  return "string" == typeof a ? a : hn;
+};
+var T = JSON.parse("null");
+var M = Object.prototype.hasOwnProperty;
+var We = (0, function() {
+  var r = ce(arguments), t = Array.prototype.pop.call(r);
+  "function" == typeof t || m("Expected function as last argument, not " + t);
+  var e, n = { middlewareIndex: -1, values: r, fns: this.fns, callback: t };
+  e = function(b2) {
+    var me2 = n.fns, t2 = +n.middlewareIndex + 1;
+    n.middlewareIndex = t2;
+    var o2 = void 0;
+    t2 |= 0, t2 < me2.length && (o2 = me2[t2]), t2 = void 0, me2 = [];
+    var c = arguments.length;
+    if (c > 0) {
+      t2 = b2;
+      var r2, ye2, ve2, i = 1;
+      while (i < c) me2.push(arguments[i]), i++;
     }
-    if (s) {
-      E.callback(s);
+    if (t2) {
+      n.callback(t2);
       return;
     }
-    b2 = E.values;
-    c2 = b2.length | 0;
-    f = -1;
-    while (true) {
-      f = f + 1 | 0;
-      if (f >= c2) break;
-      s = void 0;
-      f < (l.length | 0) && (s = l[f]);
-      s == null && ac(l, f, b2[f]);
-    }
-    E.values = l;
-    if (typeof sf == Qc) {
-      f = a2;
-      uf = {};
-      uf.called = false;
-      f = (0, /* @__PURE__ */ ((a3) => function() {
-        if (uf.called) return;
-        uf.called = true;
-        a3.apply(void 0, arguments);
-      })(f));
-      s = (0, function(a3) {
-        let I = [];
-        I.push(pa);
-        I.push(a3);
-        f.apply(void 0, I);
-      });
-      (function() {
-        var g = $b(arguments);
-        var e = sf.length;
-        e = e > g.length;
-        e && Array.prototype.push.call(g, f);
-        var R;
-        try {
-          R = sf.apply(this, g);
-        } catch (g2) {
-          if (e && uf.called) throw g2;
-          var S = [];
-          Array.prototype.push.call(S, g2);
-          f.apply(void 0, S);
-          return;
-        }
-        if (!e) {
-          var V;
-          R && !!R.then && typeof R.then == Qc ? R.then(s, f) : bc(R) ? (V = [], V.push(R), f.apply(void 0, V)) : s(R);
-        }
-      }).apply(void 0, l);
-    } else {
-      vf = [];
-      vf.push(pa);
-      sf = l.length | 0;
-      f = 0;
-      while (f < sf) {
-        vf.push(l[f]);
-        f = f + 1;
-      }
-      E.callback.apply(void 0, vf);
-    }
-  });
-  var A = [];
-  A.push(pa);
-  var d = b.length | 0;
-  c = 0;
-  while (c < d) {
-    A.push(b[c]);
-    c = c + 1;
-  }
-  a2.apply(void 0, A);
-});
-var $a = (0, function(a2) {
-  typeof a2 == Qc || ca("Expected `middelware` to be a function, not " + a2);
-  Array.prototype.push.call(this.fns, a2);
-  return this;
-});
-var ha = (0, function(a2) {
-  this.data = {};
-  this.history = [];
-  this.messages = [];
-  this.cwd = Zc;
-  if (!a2) return this;
-  if (typeof a2 == ue || Ma(a2)) {
-    this.value = a2;
-    return this;
-  }
-  if (typeof a2 == Rc) for (var b in a2) this[b] = a2[b];
-  return this;
-});
-ha.prototype.message = function() {
-  var a2 = void 0;
-  (arguments.length | 0) > 0 && (a2 = arguments[0]);
-  var O = new Error(a2 + "");
-  Object.assign(O, { fatal: false, reason: a2 + "" });
-  Array.prototype.push.call(this.messages, O);
-  return O;
-};
-ha.prototype.toString = function(b) {
-  var a2 = this.value;
-  if (a2 === void 0) return Zc;
-  if ("string" == typeof a2) return a2;
-  return a2 + "";
-};
-ha.prototype.fail = function() {
-  let O = this.message.apply(this, arguments);
-  O.fatal = true;
-  throw O;
-};
-ha.prototype.info = function() {
-  let O = this.message.apply(this, arguments);
-  O.fatal = void 0;
-  return O;
-};
-var Da = {};
-var Ea = void 0;
-Da.add = function(t, D, a2) {
-  mb(t, D, a2);
-};
-var ab = (0, function() {
-  wa(ae, this.frozen);
-  var t = this.attachers;
-  var D = this.namespace;
-  var a2 = void 0;
-  (arguments.length | 0) > 0 && (a2 = arguments[0]);
-  if (a2 == null) return this;
-  if (typeof a2 == Qc) {
-    za(t, a2, la(arguments));
-    return this;
-  }
-  if (typeof a2 == Rc) {
-    Array.isArray(a2) ? Ra(t, D, a2) : Sa(t, D, a2);
-    return this;
-  }
-  var e = TypeError;
-  throw new e(od + a2 + $d);
-});
-var bb = (0, function(U) {
-  this.freeze();
-  U = na(U);
-  let e = xa(this);
-  ua(Pd, e);
-  return e(U + "", U);
-});
-var cb = (0, function(a2, o, F) {
-  Pa(a2);
-  var c = this.freeze;
-  this.freeze();
-  !F && typeof o == Qc && (F = o, o = void 0);
-  var b = this.transformers;
-  var e = (0, function(V, d) {
-    let m = na(o);
-    let c2 = (0, function(s, c3, l) {
-      var w = !c3 ? a2 : c3;
-      if (s) {
-        d(s);
+    for (t2 = n.values, c = t2.length, r2 = -1; ++r2 < c; ) i = void 0, r2 < me2.length && (i = me2[r2]), i == null && ((e2, a2, n2) => {
+      var r3 = e2.length;
+      if (a2 >= r3) {
+        while (r3 < a2) Array.prototype.push.call(e2, void 0), r3++;
+        Array.prototype.push.call(e2, n2);
         return;
       }
-      if (V) {
-        V(w);
+      Array.prototype.splice.call(e2, a2, 1, n2);
+    })(me2, r2, t2[r2]);
+    n.values = me2;
+    if ("function" == typeof o2) r2 = e, ve2 = { called: false }, r2 = /* @__PURE__ */ ((e2) => function() {
+      if (!ve2.called) ve2.called = true, e2.apply(void 0, arguments);
+    })(r2), t2 = function(n2) {
+      let a2 = [T, n2];
+      r2.apply(void 0, a2);
+    }, (function() {
+      var i2 = ce(arguments), $3 = o2.length;
+      $3 = $3 > i2.length, $3 && Array.prototype.push.call(i2, r2);
+      var _2;
+      try {
+        _2 = o2.apply(this, i2);
+      } catch (i3) {
+        if ($3 && ve2.called) throw i3;
+        var V2 = [];
+        Array.prototype.push.call(V2, i3), r2.apply(void 0, V2);
         return;
       }
-      F(void 0, w, l);
-    });
-    b.run(a2, m, c2);
-  });
-  if (F) {
-    e(void 0, F);
+      if (!$3) {
+        var K2;
+        _2 && _2.then && "function" == typeof _2.then ? _2.then(t2, r2) : (_2 == null ? false : "object" != typeof _2 && "function" != typeof _2 ? false : !!Error.prototype.isPrototypeOf(_2)) ? (K2 = [_2], r2.apply(void 0, K2)) : t2(_2);
+      }
+    }).apply(void 0, me2);
+    else {
+      ye2 = [T], t2 = me2.length, r2 = 0;
+      while (r2 < t2) ye2.push(me2[r2]), r2++;
+      n.callback.apply(void 0, ye2);
+    }
+  }, t = [], t.push(T);
+  var o = r.length, a = 0;
+  while (a < o) t.push(r[a]), a++;
+  e.apply(void 0, t);
+});
+var Ie = (0, function(a) {
+  return "function" == typeof a || m("Expected `middelware` to be a function, not " + a), Array.prototype.push.call(this.fns, a), this;
+});
+var C = class {
+  constructor(a) {
+    this.data = {}, this.history = [], this.messages = [], this.cwd = hn;
+    if (!a) return this;
+    var n;
+    if ("string" == typeof a || le(a)) return this.value = a, this;
+    if ("object" == typeof a) for (n in a) this[n] = a[n];
+  }
+  message(i) {
+    var a = new Error(i + "");
+    a.fatal = false, a.reason = i + "", Array.prototype.push.call(this.messages, a);
+    return a;
+  }
+  toString(a) {
+    a = this.value;
+    return a === void 0 ? hn : "string" == typeof a ? a : a + "";
+  }
+  fail() {
+    let a = this.message.apply(this, arguments);
+    a.fatal = true;
+    throw a;
+  }
+  info() {
+    let a = this.message.apply(this, arguments);
+    a.fatal = void 0;
+    return a;
+  }
+};
+var G = { add: function(a, n, r) {
+  ((e, a2, n2) => {
+    if ("function" == typeof n2) {
+      X(e, n2, []);
+      return;
+    }
+    if ("object" == typeof n2) {
+      if (Array.isArray(n2)) {
+        X(e, n2[0], O(n2));
+        return;
+      }
+      ve(e, a2, n2);
+      return;
+    }
+    m(gn + n2 + "`");
+  })(a, n, r);
+} };
+var Be = (0, function(s2) {
+  B("use", this.frozen);
+  var r = this.attachers, t = this.namespace;
+  if (s2 == null) return this;
+  if ("function" == typeof s2) return X(r, s2, O(arguments)), this;
+  if ("object" == typeof s2) return Array.isArray(s2) ? ge(r, t, s2) : ve(r, t, s2), this;
+  throw new TypeError(gn + s2 + "`");
+});
+var Ne = (0, function(a) {
+  this.freeze(), a = E(a);
+  let n = N(this);
+  W("parse", n);
+  return n(a + "", a);
+});
+var Fe = (0, function(a, n, r) {
+  pe(a), this.freeze();
+  var t, o;
+  !r && "function" == typeof n && (r = n, n = void 0), o = this.transformers, t = function(i, c) {
+    let v2 = E(n), g2 = function(o2, t2, C2) {
+      var S2 = !t2 ? a : t2;
+      if (o2) {
+        c(o2);
+        return;
+      }
+      if (i) {
+        i(S2);
+        return;
+      }
+      r(void 0, S2, C2);
+    };
+    o.run(a, v2, g2);
+  };
+  if (r) {
+    t(void 0, r);
     return;
   }
-  return new Promise(e);
+  return new Promise(t);
 });
-var db = (0, function(N, o) {
-  let d = {};
-  Object.assign(d, { complete: false, result: void 0 });
-  let a2 = (0, function(s, a3, b) {
-    Na(s);
-    Object.assign(d, { result: a3, complete: true });
-  });
-  this.run(N, o, a2);
-  Qa("runSync", De, d.complete);
-  Oa(d.result);
-  return d.result;
+var Xe = (0, function(a, n) {
+  let r = { complete: false, result: void 0 }, t = function(n2, a2, t2) {
+    se(n2), r.result = a2, r.complete = true;
+  };
+  this.run(a, n, t), he("runSync", "run", r.complete), de(r.result);
+  return r.result;
 });
-var eb = (0, function(N, U) {
+var Ye = (0, function(a, n) {
   this.freeze();
-  U = na(U);
-  let e = ya(this);
-  va(Te, e);
-  Pa(N);
-  return e(N, U);
+  let r = E(n);
+  n = F(this), I("stringify", n), pe(a);
+  return n(a, r);
 });
-var fb = (0, function(o, F) {
+var He = (0, function(a, n) {
   var e = this;
-  e.freeze();
-  ua("process", xa(e));
-  va("process", ya(e));
-  var a2 = (0, function(V, b) {
-    let m = na(o), a3 = e.parse(m);
-    let c = (0, function(s, N, w) {
-      if (s || !N || !w) {
-        b(s);
+  e.freeze(), W("process", N(e)), I("process", F(e));
+  var r = function(t, o) {
+    let h2 = E(a), r2 = e.parse(h2), i = function(P2, i2, c) {
+      var D2;
+      if (P2 || !i2 || !c) {
+        o(P2);
         return;
       }
-      var x = e.stringify(N, w);
-      kb(x) ? w.value = x : w.result = x;
-      if (V) {
-        V(w);
+      D2 = e.stringify(i2, c);
+      ("string" == typeof D2 ? true : le(D2)) ? c.value = D2 : c.result = D2;
+      if (t) {
+        t(c);
         return;
       }
-      F(void 0, w);
-    });
-    e.run(a3, m, c);
-  });
-  if (F) {
-    a2(void 0, F);
+      n(void 0, c);
+    };
+    e.run(r2, h2, i);
+  };
+  if (n) {
+    r(void 0, n);
     return;
   }
-  return new Promise(a2);
+  return new Promise(r);
 });
-var gb = (0, function(o) {
-  this.freeze();
-  let a2 = "processSync";
-  ua(a2, xa(this));
-  va(a2, ya(this));
-  let d = {};
-  Object.assign(d, { complete: false, result: void 0 });
-  let b = (0, function(s, a3) {
-    d.complete = true;
-    Na(s);
-    d.result = a3;
-  });
-  this.process(o, b);
-  Qa(a2, "process", d.complete);
-  Oa(d.result);
-  return d.result;
+var _e = (0, function(a) {
+  this.freeze(), W("processSync", N(this)), I("processSync", F(this));
+  let n = { complete: false, result: void 0 }, r = function(a2, r2) {
+    n.complete = true, se(a2), n.result = r2;
+  };
+  this.process(a, r), he("processSync", "process", n.complete), de(n.result);
+  return n.result;
 });
-var hb = (0, function() {
-  var D = this.namespace;
-  var b = arguments.length | 0;
-  var H = void 0;
-  b > 0 && (H = arguments[0]);
-  if ("string" == typeof H) {
-    if (2 == b) {
-      wa(Wc, this.frozen);
-      D[H] = arguments[1];
-      return this;
+var Ve = (0, function(c, b2) {
+  var r = this.namespace, t = arguments.length, n = void 0;
+  t > 0 && (n = c);
+  if ("string" == typeof n) {
+    if (2 == t) return B("data", this.frozen), r[n] = b2, this;
+    if (M.call(r, n)) {
+      var e = r[n];
+      if (e) return e;
     }
-    var e;
-    if (qa.call(D, H) && (e = D[H])) return e;
     return;
   }
-  if (H) {
-    wa(Wc, this.frozen);
-    this.namespace = H;
-    return this;
-  }
-  return D;
+  return n ? (B("data", this.frozen), this.namespace = n, this) : r;
 });
-var ib = (0, function() {
+var Ze = (0, function() {
   if (this.frozen) return this;
-  var t = this.attachers;
-  var a2 = this.transformers;
+  var n = this.attachers, r = this.transformers;
   while (true) {
-    var y = +this.freezeIndex + 1;
-    this.freezeIndex = y;
-    if (y >= t.length) break;
-    y = t[y];
-    var c = y[0];
-    y = la(y);
-    var b;
-    if ((y.length | 0) > 0 && y[0] === false) continue;
-    (y.length | 0) > 0 && true === y[0] && Array.prototype.splice.call(y, 0, 1, void 0);
-    y = c.apply(this, y);
-    typeof y == Qc && a2.use(y);
+    var a = +this.freezeIndex + 1;
+    this.freezeIndex = a;
+    if (a >= n.length) break;
+    var t = n[a], o = t[0];
+    a = O(t);
+    if (!(a.length > 0 && a[0] === false)) a.length > 0 && true === a[0] && Array.prototype.splice.call(a, 0, 1, void 0), a = o.apply(this, a), "function" == typeof a && r.use(a);
   }
   this.frozen = true;
   this.freezeIndex = Number.POSITIVE_INFINITY;
   return this;
 });
-Ea = (0, function() {
-  return Ta();
-});
-var a = Ta();
-a.freeze();
-var jb = a;
-var Fa = {};
-var Ga = {};
-var Ha = {};
-var Ia = {};
-var Ja = false;
-var ia = {};
-ia.one = function(d, g) {
-  return Xa(d, g);
+var Q = function() {
+  return me();
 };
-ia.element = function(d, g) {
-  return sb(d, g);
-};
-var ra = void 0;
-var Ka = (0, function(y) {
-  var j = {};
-  var a2 = this === void 0 || this == null;
-  a2 || (a2 = this.data, typeof a2 == Qc && _b(j, this.data(Sc)));
-  _b(j, y);
-  a2 = j.emitParseErrors;
-  y = this === void 0 || this == null;
-  y || (this.parser = function(v, o) {
-    var k = {};
-    _b(k, j);
-    a2 ? k.onerror = function(C) {
-      var a3 = o === void 0 || o == null;
-      if (!a3) {
-        a3 = o.path;
-        if (a3) {
-          var b = a3 + ":";
-          Object.assign(C, { name: b + C.name + "", file: a3 });
+var vn = me();
+vn.freeze();
+var $e = vn;
+var ee = {};
+var ae = {};
+var ne = {};
+var re = {};
+var te = false;
+var S = { one: function(a, n) {
+  return je(a, n);
+}, element: function(a, n) {
+  return ((e, a2) => {
+    var l2 = _(e);
+    e.space = "http://www.w3.org/2000/svg" == p(a2.namespaceURI) ? "svg" : "html";
+    var i = {}, r = a2.attrs;
+    if (Array.isArray(r)) {
+      var t, c, n2, s2 = Object.prototype, d2 = r.length, o = 0;
+      while (o < d2) t = r[o], c = p(t.prefix), n2 = p(t.name), c.length > 0 && (n2 = c + ":" + n2), M.call(s2, n2) || (i[n2] = t.value), o++;
+    }
+    n2 = _(e);
+    r = p(a2.tagName), n2 = ((e2, a3, n3, r2) => {
+      var o2 = {}, t2 = n3 == null;
+      if (!t2) for (t2 in n3) ((e3, a4, n4, r3) => {
+        var t3, o3, c2, i2;
+        if (r3 != null) {
+          t3 = Y(e3, n4), n4 = t3.property, "string" == typeof n4 || (n4 = hn), o3 = Ce(t3), "string" == typeof r3 && (r3 = ("svg" != e3 ? false : "about" == n4 || "kernelMatrix" == n4 || "property" == n4 || "rel" == n4 || "requiredExtensions" == n4 || "requiredFeatures" == n4 || "requiredFonts" == n4 || "requiredFormats" == n4 || "rev" == n4 || "strokeDashArray" == n4 || "systemLanguage" == n4 || "typeOf" == n4) ? Se(((e4) => {
+            var r4, t4 = e4.length, a5 = hn, n5 = 0;
+            while (n5 < t4) n5 > 0 && (a5 = a5 + " "), r4 = e4[n5], a5 = "string" == typeof r4 ? a5 + r4 : a5 + r4 + "", n5++;
+            return a5;
+          })(Le(r3))) : v(o3, "s") ? Se(r3) : v(o3, "c") ? Le(r3) : Pe(e3, n4, o3, r3));
+          if (Array.isArray(r3)) {
+            t3 = [], c2 = r3.length, i2 = 0;
+            while (i2 < c2) t3.push(Pe(e3, n4, o3, r3[i2])), i2++;
+          } else {
+            t3 = r3;
+          }
+          if ("className" == n4 && Array.isArray(a4.className)) {
+            e3 = a4.className;
+            if (Array.isArray(t3)) {
+              o3 = t3.length, r3 = 0;
+              while (r3 < o3) Array.prototype.push.call(e3, t3[r3]), r3++;
+            } else Array.prototype.push.call(e3, t3);
+          } else {
+            e3 = t3;
+          }
+          a4[n4] = e3;
         }
-        var p = o.messages;
-        Array.isArray(p) && Array.prototype.push.call(p, C);
-      }
-    } : k.onerror = void 0;
-    return Zb(v, k);
+      })(e2, o2, t2, n3[t2]);
+      (r2 == null || !Array.isArray(r2)) && (r2 = []);
+      return { type: "element", tagName: a3, properties: o2, children: r2 };
+    })(n2, r, i, Ee(e, a2.childNodes)), z(e, a2, n2), "template" == p(n2.tagName) && (o = S.one(e, a2.content), r = a2.sourceCodeLocation, a2 = r == null, !a2 && e.file && (a2 = A(r.startTag), t = A(r.endTag), r = a2 == null, !r ? (r = t == null, r = !r) : r = false, r && (r = a2.end, o.position = { start: r, end: t.start })), n2.content = o), e.space = l2;
+    return n2;
+  })(a, n);
+} };
+var R = void 0;
+var oe = (0, function(a) {
+  var n = {}, r = this === void 0 || this == null;
+  r || (r = this.data, "function" == typeof r && $2(n, this.data("settings"))), $2(n, a), r = n.emitParseErrors, a = this === void 0 || this == null, a || (this.parser = function(f2, t) {
+    var u2 = {};
+    $2(u2, n), u2.onerror = r ? function(n2) {
+      var r2, a2 = t == null;
+      a2 || (a2 = t.path, !a2 || (r2 = a2 + ":", n2.name = r2 + n2.name + "", n2.file = a2), a2 = t.messages, Array.isArray(a2) && Array.prototype.push.call(a2, n2));
+    } : void 0;
+    return ((a2, n2) => {
+      var e = n2;
+      n2 == null && (e = {});
+      var t2 = ((e2) => {
+        if ("string" == typeof e2) return e2;
+        var a3;
+        if (e2 == null) return hn;
+        a3 = e2.toString;
+        if ("function" == typeof a3) {
+          e2 = e2.toString();
+          return "string" == typeof e2 ? e2 : e2 + "";
+        }
+        return "object" == typeof e2 && "string" == typeof (a3 = e2.value) ? a3 : e2 + "";
+      })(a2), o = e.onerror, r2 = { sourceCodeLocationInfo: true, scriptingEnabled: false };
+      r2.onParseError = o && "function" == typeof o ? function(r3) {
+        ((e2, a3, n3, r4) => {
+          var t3 = e2.code;
+          "string" == typeof t3 || (t3 = hn);
+          var o2 = ((e3) => {
+            var r5 = e3.length, n4 = hn, a4 = 0;
+            while (a4 < r5) a4 + 1 < r5 && "-" == e3.charAt(a4) ? (n4 = n4 + e3.charAt(a4 + 1).toUpperCase(), a4 = a4 + 2 | 0) : (n4 = n4 + e3.charAt(a4), a4++);
+            return n4;
+          })(t3), i2 = ((e3, a4) => {
+            a4 = e3[a4];
+            return a4 == null ? 1 : "number" == typeof a4 ? a4 | 0 : a4 ? 1 : 0;
+          })(n3, o2);
+          if (0 != i2) {
+            n3 = ((e3) => {
+              R === void 0 && (R = getErrors());
+              return R[e3];
+            })(o2);
+            if (n3 != null) {
+              o2 = Z(hn, a3, e2);
+              var c = n3.reason;
+              "string" == typeof c && (o2 = Z(c, a3, e2));
+              c = e2.startLine;
+              var l2 = e2.startCol;
+              c = { line: c, column: l2, offset: e2.startOffset }, l2 = e2.endLine;
+              var s2 = e2.endCol;
+              o2 = ((e3, a4, n4) => {
+                var o3, r5 = new Error(e3), t4 = a4 == null;
+                t4 = !t4 && "start" in a4 ? a4.start : a4, o3 = Te(a4), 0 == o3.length && (o3 = "1:1"), Object.defineProperty(r5, "stack", { enumerable: false, configurable: true, writable: true, value: hn }), Object.defineProperty(r5, "message", { enumerable: true, configurable: true, writable: true, value: e3 }), r5.name = o3, r5.reason = e3, r5.ruleId = n4, r5.source = "hast-util-from-html", r5.place = a4, r5.file = hn, e3 = t4 == null, e3 || (r5.line = t4.line, r5.column = t4.column);
+                return r5;
+              })(o2, { start: c, end: { line: l2, column: s2, offset: e2.endOffset } }, t3), o2.fatal = 2 == i2 ? true : 1 == i2 ? false : void 0, i2 = n3.description, "string" == typeof i2 && (o2.note = Z(i2, a3, e2)), o2.url = false === n3.url ? void 0 : "https://html.spec.whatwg.org/multipage/parsing.html#parse-error-" + t3, r4(o2);
+            }
+          }
+        })(r3, t2, e, o);
+      } : JSON.parse("null"), r2 = e.fragment ? parseFragment(t2, r2) : parse(t2, r2), ("string" == typeof a2 || a2 == null || "object" != typeof a2) && (a2 = { value: t2, toString: function() {
+        return t2;
+      } }), n2 = { file: a2, space: e.space, verbose: e.verbose }, n2 == null && (n2 = {});
+      var i = "svg" == p(n2.space) ? "svg" : "html";
+      a2 = { file: n2.file, location: false, space: i, verbose: !!n2.verbose }, a2 = je(a2, r2);
+      return a2;
+    })(f2, u2);
   });
 });
-var La = (0, function(y) {
-  var j = dc(this, y);
-  y = this === void 0 || this == null;
-  y || (this.compiler = function(N) {
-    return Hb(N, j);
+var ie = (0, function(a) {
+  var n = ((e, a2) => {
+    var n2 = {}, r = e == null;
+    r || (r = e.data, "function" == typeof r && qe(n2, e.data("settings"))), qe(n2, a2);
+    return n2;
+  })(this, a);
+  a = this === void 0 || this == null, a || (this.compiler = function(a2) {
+    return ((e, a3) => {
+      var n2, r, t, o;
+      a3 == null && (a3 = {}), n2 = a3.quote, r = n2 == null, !r ? "string" == typeof n2 || (n2 = u(n2)) : n2 = '"', '"' != n2 && "'" != n2 && j("Invalid quote `" + n2 + "`, expected `'` or `\"`"), t = "'" == n2 ? '"' : "'", o = "svg" == u(a3.space) ? "svg" : "html", r = { settings: ((e2) => {
+        e2 == null && (e2 = {});
+        return { omitOptionalTags: s(e2.omitOptionalTags), allowParseErrors: s(e2.allowParseErrors), allowDangerousCharacters: s(e2.allowDangerousCharacters), quoteSmart: s(e2.quoteSmart), preferUnquoted: s(e2.preferUnquoted), tightAttributes: s(e2.tightAttributes), upperDoctype: s(e2.upperDoctype), tightDoctype: s(e2.tightDoctype), bogusComments: s(e2.bogusComments), tightCommaSeparatedLists: s(e2.tightCommaSeparatedLists), tightSelfClosing: s(e2.tightSelfClosing), collapseEmptyAttributes: s(e2.collapseEmptyAttributes), allowDangerousHtml: s(e2.allowDangerousHtml), characterReferences: e2.characterReferences, closeSelfClosing: s(e2.closeSelfClosing), closeEmptyElements: s(e2.closeEmptyElements), voids: e2.voids };
+      })(a3), schema: o, quote: n2, alternative: t }, Array.isArray(e) && (e = { type: "root", children: e });
+      return J(e, -1, void 0, r);
+    })(a2, n);
   });
 });
-a = jb();
-a = a.use(Ka);
-a = a.use(La);
-a = a.freeze();
-var Ib = a;
-var Jb = a;
-var Kb = Ka;
-var Lb = La;
+vn = $e();
+var mn = vn.use(oe);
+var yn = mn.use(ie);
+var wn = yn.freeze();
 export {
-  Jb as default,
-  Ib as rehype,
-  Kb as rehypeParse,
-  Lb as rehypeStringify
+  wn as default,
+  wn as rehype,
+  oe as rehypeParse,
+  ie as rehypeStringify
 };

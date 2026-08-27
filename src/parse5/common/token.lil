@@ -1,0 +1,27 @@
+import { NULL } from "../../unified/host.lil";
+
+export int TOKEN_CHARACTER = 0;
+export int TOKEN_NULL = 1;
+export int TOKEN_WHITESPACE = 2;
+export int TOKEN_START_TAG = 3;
+export int TOKEN_END_TAG = 4;
+export int TOKEN_COMMENT = 5;
+export int TOKEN_DOCTYPE = 6;
+export int TOKEN_EOF = 7;
+export int TOKEN_HIBERNATION = 8;
+
+export JsValue tokenAttr(JsValue token, string name) {
+  JsValue attrs = JS.get(token, "attrs");
+  if (!JS.isArray(attrs)) {
+    return NULL;
+  }
+  int i = JS.number(JS.get(attrs, "length")).toInt() - 1;
+  while (i >= 0) {
+    JsValue attr = attrs[i];
+    if (JS.strictEqual(JS.get(attr, "name"), name)) {
+      return JS.get(attr, "value");
+    }
+    i = i - 1;
+  }
+  return NULL;
+}

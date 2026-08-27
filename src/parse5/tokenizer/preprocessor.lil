@@ -1,0 +1,226 @@
+import { isUndef, isNullish } from "../../unified/host.lil";
+import {
+  CP_EOF,
+  CP_CR,
+  CP_LF,
+  isControlCodePoint,
+  isSurrogate,
+  isSurrogatePair,
+  isUndefinedCodePoint,
+  surrogatePairCp
+} from "../common/unicode.lil";
+import { ERR_controlCharacterInInputStream, ERR_noncharacterInInputStream, ERR_surrogateInInputStream } from "../common/error-codes.lil";
+
+int WATERLINE = 65536;
+
+export class Preprocessor {
+  JsValue handler;
+  string html;
+  int pos;
+  int lastGapPos;
+  int[] gapStack;
+  bool skipNextNewLine;
+  bool lastChunkWritten;
+  bool endOfChunkHit;
+  int bufferWaterline;
+  bool isEol;
+  int lineStartPos;
+  int droppedBufferSize;
+  int line;
+  int lastErrOffset;
+
+  init(JsValue handler) {
+    this.handler = handler;
+    this.html = "";
+    this.pos = -1;
+    this.lastGapPos = -2;
+    this.gapStack = [];
+    this.skipNextNewLine = false;
+    this.lastChunkWritten = false;
+    this.endOfChunkHit = false;
+    this.bufferWaterline = WATERLINE;
+    this.isEol = false;
+    this.lineStartPos = 0;
+    this.droppedBufferSize = 0;
+    this.line = 1;
+    this.lastErrOffset = -1;
+  }
+
+  int col() {
+    int extra = 0;
+    if (this.lastGapPos != this.pos) {
+      extra = 1;
+    }
+    return this.pos - this.lineStartPos + extra;
+  }
+
+  int offset() {
+    return this.droppedBufferSize + this.pos;
+  }
+
+  JsValue getError(string code, int cpOffset) {
+    int startCol = this.col() + cpOffset;
+    int startOffset = this.offset() + cpOffset;
+    return JS.object(
+      "code", code,
+      "startLine", this.line,
+      "endLine", this.line,
+      "startCol", startCol,
+      "endCol", startCol,
+      "startOffset", startOffset,
+      "endOffset", startOffset
+    );
+  }
+
+  void err(string code) {
+    JsValue onParseError = JS.get(this.handler, "onParseError");
+    if (isUndef(onParseError) || isNullish(onParseError)) {
+      return;
+    }
+    if (this.lastErrOffset == this.offset()) {
+      return;
+    }
+    this.lastErrOffset = this.offset();
+    JS.call(onParseError, this.handler, this.getError(code, 0));
+  }
+
+  void addGap() {
+    this.gapStack.push(this.lastGapPos);
+    this.lastGapPos = this.pos;
+  }
+
+  int processSurrogate(int cp) {
+    if (this.pos != this.html.length - 1) {
+      int nextCp = this.html.charCodeAt(this.pos + 1);
+      if (isSurrogatePair(nextCp)) {
+        this.pos = this.pos + 1;
+        this.addGap();
+        return surrogatePairCp(cp, nextCp);
+      }
+    } else if (!this.lastChunkWritten) {
+      this.endOfChunkHit = true;
+      return CP_EOF;
+    }
+    this.err(ERR_surrogateInInputStream);
+    return cp;
+  }
+
+  bool willDropParsedChunk() {
+    return this.pos > this.bufferWaterline;
+  }
+
+  void dropParsedChunk() {
+    if (!this.willDropParsedChunk()) {
+      return;
+    }
+    this.html = this.html.slice(this.pos);
+    this.lineStartPos = this.lineStartPos - this.pos;
+    this.droppedBufferSize = this.droppedBufferSize + this.pos;
+    this.pos = 0;
+    this.lastGapPos = -2;
+    this.gapStack = [];
+  }
+
+  void write(string chunk, bool isLastChunk) {
+    if (this.html.length > 0) {
+      this.html = this.html + chunk;
+    } else {
+      this.html = chunk;
+    }
+    this.endOfChunkHit = false;
+    this.lastChunkWritten = isLastChunk;
+  }
+
+  void insertHtmlAtCurrentPos(string chunk) {
+    this.html = this.html.slice(0, this.pos + 1) + chunk + this.html.slice(this.pos + 1);
+    this.endOfChunkHit = false;
+  }
+
+  bool startsWith(string pattern, bool caseSensitive) {
+    if (this.pos + pattern.length > this.html.length) {
+      this.endOfChunkHit = !this.lastChunkWritten;
+      return false;
+    }
+    if (caseSensitive) {
+      return this.html.slice(this.pos, this.pos + pattern.length) == pattern;
+    }
+    int i = 0;
+    while (i < pattern.length) {
+      int cp = this.html.charCodeAt(this.pos + i) | 32;
+      if (cp != pattern.charCodeAt(i)) {
+        return false;
+      }
+      i = i + 1;
+    }
+    return true;
+  }
+
+  int peek(int offset) {
+    int pos = this.pos + offset;
+    if (pos >= this.html.length) {
+      this.endOfChunkHit = !this.lastChunkWritten;
+      return CP_EOF;
+    }
+    int code = this.html.charCodeAt(pos);
+    if (code == CP_CR) {
+      return CP_LF;
+    }
+    return code;
+  }
+
+  int advance() {
+    this.pos = this.pos + 1;
+    if (this.isEol) {
+      this.isEol = false;
+      this.line = this.line + 1;
+      this.lineStartPos = this.pos;
+    }
+    if (this.pos >= this.html.length) {
+      this.endOfChunkHit = !this.lastChunkWritten;
+      return CP_EOF;
+    }
+    int cp = this.html.charCodeAt(this.pos);
+    if (cp == CP_CR) {
+      this.isEol = true;
+      this.skipNextNewLine = true;
+      return CP_LF;
+    }
+    if (cp == CP_LF) {
+      this.isEol = true;
+      if (this.skipNextNewLine) {
+        this.line = this.line - 1;
+        this.skipNextNewLine = false;
+        this.addGap();
+        return this.advance();
+      }
+    }
+    this.skipNextNewLine = false;
+    if (isSurrogate(cp)) {
+      cp = this.processSurrogate(cp);
+    }
+    JsValue onParseError = JS.get(this.handler, "onParseError");
+    bool skipCheck = isUndef(onParseError) || isNullish(onParseError);
+    bool common = skipCheck || (cp > 31 && cp < 127) || cp == CP_LF || cp == CP_CR || (cp > 159 && cp < 64976);
+    if (!common) {
+      this.checkProblematic(cp);
+    }
+    return cp;
+  }
+
+  void checkProblematic(int cp) {
+    if (isControlCodePoint(cp)) {
+      this.err(ERR_controlCharacterInInputStream);
+    } else if (isUndefinedCodePoint(cp)) {
+      this.err(ERR_noncharacterInInputStream);
+    }
+  }
+
+  void retreat(int count) {
+    this.pos = this.pos - count;
+    while (this.pos < this.lastGapPos) {
+      this.lastGapPos = this.gapStack.pop();
+      this.pos = this.pos - 1;
+    }
+    this.isEol = false;
+  }
+}

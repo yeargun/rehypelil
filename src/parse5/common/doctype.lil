@@ -1,0 +1,150 @@
+import { MODE_NO_QUIRKS, MODE_QUIRKS, MODE_LIMITED_QUIRKS } from "./html.lil";
+
+string VALID_DOCTYPE_NAME = "html";
+string VALID_SYSTEM_ID = "about:legacy-compat";
+string QUIRKS_MODE_SYSTEM_ID = "http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd";
+
+string[] QUIRKS_PREFIXES = [
+  "+//silmaril//dtd html pro v0r11 19970101//",
+  "-//as//dtd html 3.0 aswedit + extensions//",
+  "-//advasoft ltd//dtd html 3.0 aswedit + extensions//",
+  "-//ietf//dtd html 2.0 level 1//",
+  "-//ietf//dtd html 2.0 level 2//",
+  "-//ietf//dtd html 2.0 strict level 1//",
+  "-//ietf//dtd html 2.0 strict level 2//",
+  "-//ietf//dtd html 2.0 strict//",
+  "-//ietf//dtd html 2.0//",
+  "-//ietf//dtd html 2.1e//",
+  "-//ietf//dtd html 3.0//",
+  "-//ietf//dtd html 3.2 final//",
+  "-//ietf//dtd html 3.2//",
+  "-//ietf//dtd html 3//",
+  "-//ietf//dtd html level 0//",
+  "-//ietf//dtd html level 1//",
+  "-//ietf//dtd html level 2//",
+  "-//ietf//dtd html level 3//",
+  "-//ietf//dtd html strict level 0//",
+  "-//ietf//dtd html strict level 1//",
+  "-//ietf//dtd html strict level 2//",
+  "-//ietf//dtd html strict level 3//",
+  "-//ietf//dtd html strict//",
+  "-//ietf//dtd html//",
+  "-//metrius//dtd metrius presentational//",
+  "-//microsoft//dtd internet explorer 2.0 html strict//",
+  "-//microsoft//dtd internet explorer 2.0 html//",
+  "-//microsoft//dtd internet explorer 2.0 tables//",
+  "-//microsoft//dtd internet explorer 3.0 html strict//",
+  "-//microsoft//dtd internet explorer 3.0 html//",
+  "-//microsoft//dtd internet explorer 3.0 tables//",
+  "-//netscape comm. corp.//dtd html//",
+  "-//netscape comm. corp.//dtd strict html//",
+  "-//o'reilly and associates//dtd html 2.0//",
+  "-//o'reilly and associates//dtd html extended 1.0//",
+  "-//o'reilly and associates//dtd html extended relaxed 1.0//",
+  "-//sq//dtd html 2.0 hotmetal + extensions//",
+  "-//softquad software//dtd hotmetal pro 6.0::19990601::extensions to html 4.0//",
+  "-//softquad//dtd hotmetal pro 4.0::19971010::extensions to html 4.0//",
+  "-//spyglass//dtd html 2.0 extended//",
+  "-//sun microsystems corp.//dtd hotjava html//",
+  "-//sun microsystems corp.//dtd hotjava strict html//",
+  "-//w3c//dtd html 3 1995-03-24//",
+  "-//w3c//dtd html 3.2 draft//",
+  "-//w3c//dtd html 3.2 final//",
+  "-//w3c//dtd html 3.2//",
+  "-//w3c//dtd html 3.2s draft//",
+  "-//w3c//dtd html 4.0 frameset//",
+  "-//w3c//dtd html 4.0 transitional//",
+  "-//w3c//dtd html experimental 19960712//",
+  "-//w3c//dtd html experimental 970421//",
+  "-//w3c//dtd w3 html//",
+  "-//w3o//dtd w3 html 3.0//",
+  "-//webtechs//dtd mozilla html 2.0//",
+  "-//webtechs//dtd mozilla html//"
+];
+
+string[] QUIRKS_NO_SYSTEM_PREFIXES = [
+  "-//w3c//dtd html 4.01 frameset//",
+  "-//w3c//dtd html 4.01 transitional//"
+];
+
+string[] QUIRKS_PUBLIC_IDS = [
+  "-//w3o//dtd w3 html strict 3.0//en//",
+  "-/w3c/dtd html 4.0 transitional/en",
+  "html"
+];
+
+string[] LIMITED_QUIRKS_PREFIXES = [
+  "-//w3c//dtd xhtml 1.0 frameset//",
+  "-//w3c//dtd xhtml 1.0 transitional//"
+];
+
+string[] LIMITED_QUIRKS_WITH_SYSTEM = [
+  "-//w3c//dtd html 4.01 frameset//",
+  "-//w3c//dtd html 4.01 transitional//"
+];
+
+bool hasPrefix(string publicId, string[] prefixes) {
+  int i = 0;
+  while (i < prefixes.length) {
+    if (publicId.startsWith(prefixes[i])) {
+      return true;
+    }
+    i = i + 1;
+  }
+  return false;
+}
+
+bool isNullId(JsValue value) {
+  return JS.isUndefined(value) || JS.isNullish(value);
+}
+
+export bool isConforming(JsValue token) {
+  if (JS.string(JS.get(token, "name")) != VALID_DOCTYPE_NAME) {
+    return false;
+  }
+  if (!isNullId(JS.get(token, "publicId"))) {
+    return false;
+  }
+  JsValue systemId = JS.get(token, "systemId");
+  if (isNullId(systemId)) {
+    return true;
+  }
+  return JS.string(systemId) == VALID_SYSTEM_ID;
+}
+
+export string getDocumentMode(JsValue token) {
+  if (JS.string(JS.get(token, "name")) != VALID_DOCTYPE_NAME) {
+    return MODE_QUIRKS;
+  }
+  JsValue systemIdVal = JS.get(token, "systemId");
+  if (!isNullId(systemIdVal) && JS.string(systemIdVal).toLowerCase() == QUIRKS_MODE_SYSTEM_ID) {
+    return MODE_QUIRKS;
+  }
+  JsValue publicIdVal = JS.get(token, "publicId");
+  if (!isNullId(publicIdVal)) {
+    string publicId = JS.string(publicIdVal).toLowerCase();
+    int i = 0;
+    while (i < QUIRKS_PUBLIC_IDS.length) {
+      if (publicId == QUIRKS_PUBLIC_IDS[i]) {
+        return MODE_QUIRKS;
+      }
+      i = i + 1;
+    }
+    if (isNullId(systemIdVal)) {
+      if (hasPrefix(publicId, QUIRKS_PREFIXES) || hasPrefix(publicId, QUIRKS_NO_SYSTEM_PREFIXES)) {
+        return MODE_QUIRKS;
+      }
+      if (hasPrefix(publicId, LIMITED_QUIRKS_PREFIXES)) {
+        return MODE_LIMITED_QUIRKS;
+      }
+    } else {
+      if (hasPrefix(publicId, QUIRKS_PREFIXES)) {
+        return MODE_QUIRKS;
+      }
+      if (hasPrefix(publicId, LIMITED_QUIRKS_PREFIXES) || hasPrefix(publicId, LIMITED_QUIRKS_WITH_SYSTEM)) {
+        return MODE_LIMITED_QUIRKS;
+      }
+    }
+  }
+  return MODE_NO_QUIRKS;
+}

@@ -1,11 +1,66 @@
-import extern { getErrors } from "./errors-host.js";
-extern JsValue getErrors();
-
-JsValue cached = JS.undefined();
+JsValue errors = JS.object(
+  "abandonedHeadElementChild", JS.object("reason", "Unexpected metadata element after head", "description", "Unexpected element after head. Expected the element before `</head>`", "url", false),
+  "abruptClosingOfEmptyComment", JS.object("reason", "Unexpected abruptly closed empty comment", "description", "Unexpected `>` or `->`. Expected `-->` to close comments"),
+  "abruptDoctypePublicIdentifier", JS.object("reason", "Unexpected abruptly closed public identifier", "description", "Unexpected `>`. Expected a closing `\"` or `'` after the public identifier"),
+  "abruptDoctypeSystemIdentifier", JS.object("reason", "Unexpected abruptly closed system identifier", "description", "Unexpected `>`. Expected a closing `\"` or `'` after the identifier identifier"),
+  "absenceOfDigitsInNumericCharacterReference", JS.object("reason", "Unexpected non-digit at start of numeric character reference", "description", "Unexpected `%c`. Expected `[0-9]` for decimal references or `[0-9a-fA-F]` for hexadecimal references"),
+  "cdataInHtmlContent", JS.object("reason", "Unexpected CDATA section in HTML", "description", "Unexpected `<![CDATA[` in HTML. Remove it, use a comment, or encode special characters instead"),
+  "characterReferenceOutsideUnicodeRange", JS.object("reason", "Unexpected too big numeric character reference", "description", "Unexpectedly high character reference. Expected character references to be at most hexadecimal 10ffff (or decimal 1114111)"),
+  "closingOfElementWithOpenChildElements", JS.object("reason", "Unexpected closing tag with open child elements", "description", "Unexpectedly closing tag. Expected other tags to be closed first", "url", false),
+  "controlCharacterInInputStream", JS.object("reason", "Unexpected control character", "description", "Unexpected control character `%x`. Expected a non-control code point, 0x00, or ASCII whitespace"),
+  "controlCharacterReference", JS.object("reason", "Unexpected control character reference", "description", "Unexpectedly control character in reference. Expected a non-control code point, 0x00, or ASCII whitespace"),
+  "disallowedContentInNoscriptInHead", JS.object("reason", "Disallowed content inside `<noscript>` in `<head>`", "description", "Unexpected text character `%c`. Only use text in `<noscript>`s in `<body>`", "url", false),
+  "duplicateAttribute", JS.object("reason", "Unexpected duplicate attribute", "description", "Unexpectedly double attribute. Expected attributes to occur only once"),
+  "endTagWithAttributes", JS.object("reason", "Unexpected attribute on closing tag", "description", "Unexpected attribute. Expected `>` instead"),
+  "endTagWithTrailingSolidus", JS.object("reason", "Unexpected slash at end of closing tag", "description", "Unexpected `%c-1`. Expected `>` instead"),
+  "endTagWithoutMatchingOpenElement", JS.object("reason", "Unexpected unopened end tag", "description", "Unexpected end tag. Expected no end tag or another end tag", "url", false),
+  "eofBeforeTagName", JS.object("reason", "Unexpected end of file", "description", "Unexpected end of file. Expected tag name instead"),
+  "eofInCdata", JS.object("reason", "Unexpected end of file in CDATA", "description", "Unexpected end of file. Expected `]]>` to close the CDATA"),
+  "eofInComment", JS.object("reason", "Unexpected end of file in comment", "description", "Unexpected end of file. Expected `-->` to close the comment"),
+  "eofInDoctype", JS.object("reason", "Unexpected end of file in doctype", "description", "Unexpected end of file. Expected a valid doctype (such as `<!doctype html>`)"),
+  "eofInElementThatCanContainOnlyText", JS.object("reason", "Unexpected end of file in element that can only contain text", "description", "Unexpected end of file. Expected text or a closing tag", "url", false),
+  "eofInScriptHtmlCommentLikeText", JS.object("reason", "Unexpected end of file in comment inside script", "description", "Unexpected end of file. Expected `-->` to close the comment"),
+  "eofInTag", JS.object("reason", "Unexpected end of file in tag", "description", "Unexpected end of file. Expected `>` to close the tag"),
+  "incorrectlyClosedComment", JS.object("reason", "Incorrectly closed comment", "description", "Unexpected `%c-1`. Expected `-->` to close the comment"),
+  "incorrectlyOpenedComment", JS.object("reason", "Incorrectly opened comment", "description", "Unexpected `%c`. Expected `<!--` to open the comment"),
+  "invalidCharacterSequenceAfterDoctypeName", JS.object("reason", "Invalid sequence after doctype name", "description", "Unexpected sequence at `%c`. Expected `public` or `system`"),
+  "invalidFirstCharacterOfTagName", JS.object("reason", "Invalid first character in tag name", "description", "Unexpected `%c`. Expected an ASCII letter instead"),
+  "misplacedDoctype", JS.object("reason", "Misplaced doctype", "description", "Unexpected doctype. Expected doctype before head", "url", false),
+  "misplacedStartTagForHeadElement", JS.object("reason", "Misplaced `<head>` start tag", "description", "Unexpected start tag `<head>`. Expected `<head>` directly after doctype", "url", false),
+  "missingAttributeValue", JS.object("reason", "Missing attribute value", "description", "Unexpected `%c-1`. Expected an attribute value or no `%c-1` instead"),
+  "missingDoctype", JS.object("reason", "Missing doctype before other content", "description", "Expected a `<!doctype html>` before anything else", "url", false),
+  "missingDoctypeName", JS.object("reason", "Missing doctype name", "description", "Unexpected doctype end at `%c`. Expected `html` instead"),
+  "missingDoctypePublicIdentifier", JS.object("reason", "Missing public identifier in doctype", "description", "Unexpected `%c`. Expected identifier for `public` instead"),
+  "missingDoctypeSystemIdentifier", JS.object("reason", "Missing system identifier in doctype", "description", "Unexpected `%c`. Expected identifier for `system` instead (suggested: `\"about:legacy-compat\"`)"),
+  "missingEndTagName", JS.object("reason", "Missing name in end tag", "description", "Unexpected `%c`. Expected an ASCII letter instead"),
+  "missingQuoteBeforeDoctypePublicIdentifier", JS.object("reason", "Missing quote before public identifier in doctype", "description", "Unexpected `%c`. Expected `\"` or `'` instead"),
+  "missingQuoteBeforeDoctypeSystemIdentifier", JS.object("reason", "Missing quote before system identifier in doctype", "description", "Unexpected `%c`. Expected `\"` or `'` instead"),
+  "missingSemicolonAfterCharacterReference", JS.object("reason", "Missing semicolon after character reference", "description", "Unexpected `%c`. Expected `;` instead"),
+  "missingWhitespaceAfterDoctypePublicKeyword", JS.object("reason", "Missing whitespace after public identifier in doctype", "description", "Unexpected `%c`. Expected ASCII whitespace instead"),
+  "missingWhitespaceAfterDoctypeSystemKeyword", JS.object("reason", "Missing whitespace after system identifier in doctype", "description", "Unexpected `%c`. Expected ASCII whitespace instead"),
+  "missingWhitespaceBeforeDoctypeName", JS.object("reason", "Missing whitespace before doctype name", "description", "Unexpected `%c`. Expected ASCII whitespace instead"),
+  "missingWhitespaceBetweenAttributes", JS.object("reason", "Missing whitespace between attributes", "description", "Unexpected `%c`. Expected ASCII whitespace instead"),
+  "missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers", JS.object("reason", "Missing whitespace between public and system identifiers in doctype", "description", "Unexpected `%c`. Expected ASCII whitespace instead"),
+  "nestedComment", JS.object("reason", "Unexpected nested comment", "description", "Unexpected `<!--`. Expected `-->`"),
+  "nestedNoscriptInHead", JS.object("reason", "Unexpected nested `<noscript>` in `<head>`", "description", "Unexpected `<noscript>`. Expected a closing tag or a meta element", "url", false),
+  "nonConformingDoctype", JS.object("reason", "Unexpected non-conforming doctype declaration", "description", "Expected `<!doctype html>` or `<!doctype html system \"about:legacy-compat\">`", "url", false),
+  "nonVoidHtmlElementStartTagWithTrailingSolidus", JS.object("reason", "Unexpected trailing slash on start tag of non-void element", "description", "Unexpected `/`. Expected `>` instead"),
+  "noncharacterCharacterReference", JS.object("reason", "Unexpected noncharacter code point referenced by character reference", "description", "Unexpected code point. Do not use noncharacters in HTML"),
+  "noncharacterInInputStream", JS.object("reason", "Unexpected noncharacter character", "description", "Unexpected code point `%x`. Do not use noncharacters in HTML"),
+  "nullCharacterReference", JS.object("reason", "Unexpected NULL character referenced by character reference", "description", "Unexpected code point. Do not use NULL characters in HTML"),
+  "openElementsLeftAfterEof", JS.object("reason", "Unexpected end of file", "description", "Unexpected end of file. Expected closing tag instead", "url", false),
+  "surrogateCharacterReference", JS.object("reason", "Unexpected surrogate character referenced by character reference", "description", "Unexpected code point. Do not use lone surrogate characters in HTML"),
+  "surrogateInInputStream", JS.object("reason", "Unexpected surrogate character", "description", "Unexpected code point `%x`. Do not use lone surrogate characters in HTML"),
+  "unexpectedCharacterAfterDoctypeSystemIdentifier", JS.object("reason", "Invalid character after system identifier in doctype", "description", "Unexpected character at `%c`. Expected `>`"),
+  "unexpectedCharacterInAttributeName", JS.object("reason", "Unexpected character in attribute name", "description", "Unexpected `%c`. Expected whitespace, `/`, `>`, `=`, or probably an ASCII letter"),
+  "unexpectedCharacterInUnquotedAttributeValue", JS.object("reason", "Unexpected character in unquoted attribute value", "description", "Unexpected `%c`. Quote the attribute value to include it"),
+  "unexpectedEqualsSignBeforeAttributeName", JS.object("reason", "Unexpected equals sign before attribute name", "description", "Unexpected `%c`. Add an attribute name before it"),
+  "unexpectedNullCharacter", JS.object("reason", "Unexpected NULL character", "description", "Unexpected code point `%x`. Do not use NULL characters in HTML"),
+  "unexpectedQuestionMarkInsteadOfTagName", JS.object("reason", "Unexpected question mark instead of tag name", "description", "Unexpected `%c`. Expected an ASCII letter instead"),
+  "unexpectedSolidusInTag", JS.object("reason", "Unexpected slash in tag", "description", "Unexpected `%c-1`. Expected it followed by `>` or in a quoted attribute value"),
+  "unknownNamedCharacterReference", JS.object("reason", "Unexpected unknown named character reference", "description", "Unexpected character reference. Expected known named character references")
+);
 
 export JsValue parseErrorInfo(string name) {
-  if (JS.isUndefined(cached)) {
-    cached = JS.call(getErrors, JS.undefined());
-  }
-  return JS.get(cached, name);
+  return JS.get(errors, name);
 }

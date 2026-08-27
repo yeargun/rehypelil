@@ -1,0 +1,16 @@
+import { Uint16Array } from "../../unified/host.lil";
+
+string packed = "Ȁaglq\t\u0015\u0018\u001bɭ\u000f\u0000\u0000\u0012p;䀦os;䀧t;䀾t;䀼uot;䀢";
+
+JsValue buildDecodeTree(string data) {
+  int n = data.length;
+  JsValue tree = JS.construct(Uint16Array, n);
+  int i = 0;
+  while (i < n) {
+    tree[i] = data.charCodeAt(i);
+    i = i + 1;
+  }
+  return tree;
+}
+
+export JsValue xmlDecodeTree = buildDecodeTree(packed);

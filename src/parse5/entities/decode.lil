@@ -1,0 +1,328 @@
+import { isUndef, isNullish } from "../../unified/host.lil";
+import { htmlDecodeTree } from "./decode-data-html.lil";
+import { replaceCodePoint } from "./decode-codepoint.lil";
+
+export int DECODE_LEGACY = 0;
+export int DECODE_STRICT = 1;
+export int DECODE_ATTRIBUTE = 2;
+
+int FLAG_VALUE_LENGTH = 49152;
+int FLAG_BRANCH_LENGTH = 16256;
+int FLAG_JUMP_TABLE = 127;
+int VALUE_MASK = 16383;
+
+int ST_ENTITY_START = 0;
+int ST_NUMERIC_START = 1;
+int ST_NUMERIC_DECIMAL = 2;
+int ST_NUMERIC_HEX = 3;
+int ST_NAMED = 4;
+
+int CC_NUM = 35;
+int CC_SEMI = 59;
+int CC_EQUALS = 61;
+int CC_ZERO = 48;
+int CC_NINE = 57;
+int CC_LOWER_A = 97;
+int CC_LOWER_F = 102;
+int CC_LOWER_X = 120;
+int CC_UPPER_A = 65;
+int CC_UPPER_F = 70;
+int CC_UPPER_Z = 90;
+int CC_LOWER_Z = 122;
+int TO_LOWER_BIT = 32;
+
+bool isNumber(int code) {
+  return code >= CC_ZERO && code <= CC_NINE;
+}
+
+bool isHexChar(int code) {
+  return (code >= CC_UPPER_A && code <= CC_UPPER_F) || (code >= CC_LOWER_A && code <= CC_LOWER_F);
+}
+
+bool isAsciiAlphaNumeric(int code) {
+  return (code >= CC_UPPER_A && code <= CC_UPPER_Z) || (code >= CC_LOWER_A && code <= CC_LOWER_Z) || isNumber(code);
+}
+
+bool isAttrInvalidEnd(int code) {
+  return code == CC_EQUALS || isAsciiAlphaNumeric(code);
+}
+
+int treeAt(JsValue tree, int i) {
+  return JS.number(tree[i]).toInt();
+}
+
+int max1(int valueLength) {
+  if (valueLength > 1) {
+    return valueLength;
+  }
+  return 1;
+}
+
+export int determineBranch(JsValue decodeTree, int current, int nodeIndex, int charCode) {
+  int branchCount = (current & FLAG_BRANCH_LENGTH) >> 7;
+  int jumpOffset = current & FLAG_JUMP_TABLE;
+  if (branchCount == 0) {
+    if (jumpOffset != 0 && charCode == jumpOffset) {
+      return nodeIndex;
+    }
+    return -1;
+  }
+  if (jumpOffset != 0) {
+    int value = charCode - jumpOffset;
+    if (value < 0 || value >= branchCount) {
+      return -1;
+    }
+    return treeAt(decodeTree, nodeIndex + value) - 1;
+  }
+  int lo = nodeIndex;
+  int hi = lo + branchCount - 1;
+  while (lo <= hi) {
+    int mid = (lo + hi) >>> 1;
+    int midValue = treeAt(decodeTree, mid);
+    if (midValue < charCode) {
+      lo = mid + 1;
+    } else if (midValue > charCode) {
+      hi = mid - 1;
+    } else {
+      return treeAt(decodeTree, mid + branchCount);
+    }
+  }
+  return -1;
+}
+
+export class EntityDecoder {
+  JsValue decodeTree;
+  func(int, int)->void emitCodePoint;
+  JsValue errors;
+  int state;
+  int consumed;
+  int result;
+  int treeIndex;
+  int excess;
+  int decodeMode;
+
+  init(JsValue decodeTree, func(int, int)->void emitCodePoint, JsValue errors) {
+    this.decodeTree = decodeTree;
+    this.emitCodePoint = emitCodePoint;
+    this.errors = errors;
+    this.state = ST_ENTITY_START;
+    this.consumed = 1;
+    this.result = 0;
+    this.treeIndex = 0;
+    this.excess = 1;
+    this.decodeMode = DECODE_STRICT;
+  }
+
+  void startEntity(int decodeMode) {
+    this.decodeMode = decodeMode;
+    this.state = ST_ENTITY_START;
+    this.result = 0;
+    this.treeIndex = 0;
+    this.excess = 1;
+    this.consumed = 1;
+  }
+
+  void emitCp(int cp, int consumed) {
+    this.emitCodePoint(cp, consumed);
+  }
+
+  void errMissingSemi() {
+    if (isUndef(this.errors) || isNullish(this.errors)) {
+      return;
+    }
+    JS.invoke(this.errors, "missingSemicolonAfterCharacterReference");
+  }
+
+  void errAbsence(int consumed) {
+    if (isUndef(this.errors) || isNullish(this.errors)) {
+      return;
+    }
+    JS.invoke(this.errors, "absenceOfDigitsInNumericCharacterReference", consumed);
+  }
+
+  void errValidate(int code) {
+    if (isUndef(this.errors) || isNullish(this.errors)) {
+      return;
+    }
+    JS.invoke(this.errors, "validateNumericCharacterReference", code);
+  }
+
+  void addDigits(string input, int start, int end, int base) {
+    if (start == end) {
+      return;
+    }
+    int i = start;
+    while (i < end) {
+      int c = input.charCodeAt(i);
+      int d = 0;
+      if (c >= 48 && c <= 57) {
+        d = c - 48;
+      } else if (c >= 65 && c <= 70) {
+        d = c - 55;
+      } else {
+        d = c - 87;
+      }
+      this.result = this.result * base + d;
+      i = i + 1;
+    }
+    this.consumed = this.consumed + (end - start);
+  }
+
+  int emitNumericEntity(int lastCp, int expectedLength) {
+    if (this.consumed <= expectedLength) {
+      this.errAbsence(this.consumed);
+      return 0;
+    }
+    if (lastCp == CC_SEMI) {
+      this.consumed = this.consumed + 1;
+    } else if (this.decodeMode == DECODE_STRICT) {
+      return 0;
+    }
+    this.emitCp(replaceCodePoint(this.result), this.consumed);
+    if (!(isUndef(this.errors) || isNullish(this.errors))) {
+      if (lastCp != CC_SEMI) {
+        this.errMissingSemi();
+      }
+      this.errValidate(this.result);
+    }
+    return this.consumed;
+  }
+
+  int emitNamedEntityData(int result, int valueLength, int consumed) {
+    if (valueLength == 1) {
+      this.emitCp(treeAt(this.decodeTree, result) & VALUE_MASK, consumed);
+    } else {
+      this.emitCp(treeAt(this.decodeTree, result + 1), consumed);
+    }
+    if (valueLength == 3) {
+      this.emitCp(treeAt(this.decodeTree, result + 2), consumed);
+    }
+    return consumed;
+  }
+
+  int emitNotTerminatedNamedEntity() {
+    int valueLength = (treeAt(this.decodeTree, this.result) & FLAG_VALUE_LENGTH) >> 14;
+    this.emitNamedEntityData(this.result, valueLength, this.consumed);
+    this.errMissingSemi();
+    return this.consumed;
+  }
+
+  int stateNumericHex(string input, int offset) {
+    int startIndex = offset;
+    while (offset < input.length) {
+      int charCode = input.charCodeAt(offset);
+      if (isNumber(charCode) || isHexChar(charCode)) {
+        offset = offset + 1;
+      } else {
+        this.addDigits(input, startIndex, offset, 16);
+        return this.emitNumericEntity(charCode, 3);
+      }
+    }
+    this.addDigits(input, startIndex, offset, 16);
+    return -1;
+  }
+
+  int stateNumericDecimal(string input, int offset) {
+    int startIndex = offset;
+    while (offset < input.length) {
+      int charCode = input.charCodeAt(offset);
+      if (isNumber(charCode)) {
+        offset = offset + 1;
+      } else {
+        this.addDigits(input, startIndex, offset, 10);
+        return this.emitNumericEntity(charCode, 2);
+      }
+    }
+    this.addDigits(input, startIndex, offset, 10);
+    return -1;
+  }
+
+  int stateNumericStart(string input, int offset) {
+    if (offset >= input.length) {
+      return -1;
+    }
+    if ((input.charCodeAt(offset) | TO_LOWER_BIT) == CC_LOWER_X) {
+      this.state = ST_NUMERIC_HEX;
+      this.consumed = this.consumed + 1;
+      return this.stateNumericHex(input, offset + 1);
+    }
+    this.state = ST_NUMERIC_DECIMAL;
+    return this.stateNumericDecimal(input, offset);
+  }
+
+  int stateNamedEntity(string input, int offset) {
+    int current = treeAt(this.decodeTree, this.treeIndex);
+    int valueLength = (current & FLAG_VALUE_LENGTH) >> 14;
+    while (offset < input.length) {
+      int charCode = input.charCodeAt(offset);
+      this.treeIndex = determineBranch(this.decodeTree, current, this.treeIndex + max1(valueLength), charCode);
+      if (this.treeIndex < 0) {
+        if (this.result == 0) {
+          return 0;
+        }
+        if (this.decodeMode == DECODE_ATTRIBUTE && (valueLength == 0 || isAttrInvalidEnd(charCode))) {
+          return 0;
+        }
+        return this.emitNotTerminatedNamedEntity();
+      }
+      current = treeAt(this.decodeTree, this.treeIndex);
+      valueLength = (current & FLAG_VALUE_LENGTH) >> 14;
+      if (valueLength != 0) {
+        if (charCode == CC_SEMI) {
+          return this.emitNamedEntityData(this.treeIndex, valueLength, this.consumed + this.excess);
+        }
+        if (this.decodeMode != DECODE_STRICT) {
+          this.result = this.treeIndex;
+          this.consumed = this.consumed + this.excess;
+          this.excess = 0;
+        }
+      }
+      offset = offset + 1;
+      this.excess = this.excess + 1;
+    }
+    return -1;
+  }
+
+  int write(string input, int offset) {
+    if (this.state == ST_ENTITY_START) {
+      if (input.charCodeAt(offset) == CC_NUM) {
+        this.state = ST_NUMERIC_START;
+        this.consumed = this.consumed + 1;
+        return this.stateNumericStart(input, offset + 1);
+      }
+      this.state = ST_NAMED;
+      return this.stateNamedEntity(input, offset);
+    }
+    if (this.state == ST_NUMERIC_START) {
+      return this.stateNumericStart(input, offset);
+    }
+    if (this.state == ST_NUMERIC_DECIMAL) {
+      return this.stateNumericDecimal(input, offset);
+    }
+    if (this.state == ST_NUMERIC_HEX) {
+      return this.stateNumericHex(input, offset);
+    }
+    return this.stateNamedEntity(input, offset);
+  }
+
+  int end() {
+    if (this.state == ST_NAMED) {
+      if (this.result != 0 && (this.decodeMode != DECODE_ATTRIBUTE || this.result == this.treeIndex)) {
+        return this.emitNotTerminatedNamedEntity();
+      }
+      return 0;
+    }
+    if (this.state == ST_NUMERIC_DECIMAL) {
+      return this.emitNumericEntity(0, 2);
+    }
+    if (this.state == ST_NUMERIC_HEX) {
+      return this.emitNumericEntity(0, 3);
+    }
+    if (this.state == ST_NUMERIC_START) {
+      this.errAbsence(this.consumed);
+      return 0;
+    }
+    return 0;
+  }
+}
+

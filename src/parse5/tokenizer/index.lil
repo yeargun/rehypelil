@@ -1,0 +1,2048 @@
+import { isUndef, isNullish, isFn, throwError, NULL } from "../../unified/host.lil";
+import {
+  CP_EOF,
+  CP_NULL,
+  CP_TAB,
+  CP_LF,
+  CP_FF,
+  CP_CR,
+  CP_SPACE,
+  CP_BANG,
+  CP_QUOTE,
+  CP_AMP,
+  CP_APOS,
+  CP_DASH,
+  CP_SLASH,
+  CP_DIGIT_0,
+  CP_DIGIT_9,
+  CP_SEMI,
+  CP_LT,
+  CP_EQ,
+  CP_GT,
+  CP_QMARK,
+  CP_A,
+  CP_Z,
+  CP_RBRACK,
+  CP_GRAVE,
+  CP_a,
+  CP_z,
+  REPLACEMENT,
+  SEQ_DASH_DASH,
+  SEQ_CDATA,
+  SEQ_DOCTYPE,
+  SEQ_SCRIPT,
+  SEQ_PUBLIC,
+  SEQ_SYSTEM,
+  fromCodePoint,
+  isSurrogate,
+  isUndefinedCodePoint,
+  isControlCodePoint
+} from "../common/unicode.lil";
+import {
+  TOKEN_CHARACTER,
+  TOKEN_NULL,
+  TOKEN_WHITESPACE,
+  TOKEN_START_TAG,
+  TOKEN_END_TAG,
+  TOKEN_COMMENT,
+  TOKEN_DOCTYPE,
+  TOKEN_EOF,
+  tokenAttr
+} from "../common/token.lil";
+import { TAG_UNKNOWN, getTagID } from "../common/html.lil";
+import { EntityDecoder, DECODE_LEGACY, DECODE_ATTRIBUTE } from "../entities/decode.lil";
+import { htmlDecodeTree } from "../entities/decode-data-html.lil";
+import { Preprocessor } from "./preprocessor.lil";
+import {
+  ERR_endTagWithAttributes,
+  ERR_endTagWithTrailingSolidus,
+  ERR_unexpectedSolidusInTag,
+  ERR_unexpectedNullCharacter,
+  ERR_unexpectedQuestionMarkInsteadOfTagName,
+  ERR_invalidFirstCharacterOfTagName,
+  ERR_unexpectedEqualsSignBeforeAttributeName,
+  ERR_missingEndTagName,
+  ERR_unexpectedCharacterInAttributeName,
+  ERR_unknownNamedCharacterReference,
+  ERR_missingSemicolonAfterCharacterReference,
+  ERR_unexpectedCharacterAfterDoctypeSystemIdentifier,
+  ERR_unexpectedCharacterInUnquotedAttributeValue,
+  ERR_eofBeforeTagName,
+  ERR_eofInTag,
+  ERR_missingAttributeValue,
+  ERR_missingWhitespaceBetweenAttributes,
+  ERR_missingWhitespaceAfterDoctypePublicKeyword,
+  ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers,
+  ERR_missingWhitespaceAfterDoctypeSystemKeyword,
+  ERR_missingQuoteBeforeDoctypePublicIdentifier,
+  ERR_missingQuoteBeforeDoctypeSystemIdentifier,
+  ERR_missingDoctypePublicIdentifier,
+  ERR_missingDoctypeSystemIdentifier,
+  ERR_abruptDoctypePublicIdentifier,
+  ERR_abruptDoctypeSystemIdentifier,
+  ERR_cdataInHtmlContent,
+  ERR_incorrectlyOpenedComment,
+  ERR_eofInScriptHtmlCommentLikeText,
+  ERR_eofInDoctype,
+  ERR_nestedComment,
+  ERR_abruptClosingOfEmptyComment,
+  ERR_eofInComment,
+  ERR_incorrectlyClosedComment,
+  ERR_eofInCdata,
+  ERR_absenceOfDigitsInNumericCharacterReference,
+  ERR_nullCharacterReference,
+  ERR_surrogateCharacterReference,
+  ERR_characterReferenceOutsideUnicodeRange,
+  ERR_controlCharacterReference,
+  ERR_noncharacterCharacterReference,
+  ERR_missingWhitespaceBeforeDoctypeName,
+  ERR_missingDoctypeName,
+  ERR_invalidCharacterSequenceAfterDoctypeName,
+  ERR_duplicateAttribute
+} from "../common/error-codes.lil";
+
+export int ST_DATA = 0;
+export int ST_RCDATA = 1;
+export int ST_RAWTEXT = 2;
+export int ST_SCRIPT_DATA = 3;
+export int ST_PLAINTEXT = 4;
+export int ST_TAG_OPEN = 5;
+export int ST_END_TAG_OPEN = 6;
+export int ST_TAG_NAME = 7;
+export int ST_RCDATA_LESS_THAN_SIGN = 8;
+export int ST_RCDATA_END_TAG_OPEN = 9;
+export int ST_RCDATA_END_TAG_NAME = 10;
+export int ST_RAWTEXT_LESS_THAN_SIGN = 11;
+export int ST_RAWTEXT_END_TAG_OPEN = 12;
+export int ST_RAWTEXT_END_TAG_NAME = 13;
+export int ST_SCRIPT_DATA_LESS_THAN_SIGN = 14;
+export int ST_SCRIPT_DATA_END_TAG_OPEN = 15;
+export int ST_SCRIPT_DATA_END_TAG_NAME = 16;
+export int ST_SCRIPT_DATA_ESCAPE_START = 17;
+export int ST_SCRIPT_DATA_ESCAPE_START_DASH = 18;
+export int ST_SCRIPT_DATA_ESCAPED = 19;
+export int ST_SCRIPT_DATA_ESCAPED_DASH = 20;
+export int ST_SCRIPT_DATA_ESCAPED_DASH_DASH = 21;
+export int ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN = 22;
+export int ST_SCRIPT_DATA_ESCAPED_END_TAG_OPEN = 23;
+export int ST_SCRIPT_DATA_ESCAPED_END_TAG_NAME = 24;
+export int ST_SCRIPT_DATA_DOUBLE_ESCAPE_START = 25;
+export int ST_SCRIPT_DATA_DOUBLE_ESCAPED = 26;
+export int ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH = 27;
+export int ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH = 28;
+export int ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN = 29;
+export int ST_SCRIPT_DATA_DOUBLE_ESCAPE_END = 30;
+export int ST_BEFORE_ATTRIBUTE_NAME = 31;
+export int ST_ATTRIBUTE_NAME = 32;
+export int ST_AFTER_ATTRIBUTE_NAME = 33;
+export int ST_BEFORE_ATTRIBUTE_VALUE = 34;
+export int ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED = 35;
+export int ST_ATTRIBUTE_VALUE_SINGLE_QUOTED = 36;
+export int ST_ATTRIBUTE_VALUE_UNQUOTED = 37;
+export int ST_AFTER_ATTRIBUTE_VALUE_QUOTED = 38;
+export int ST_SELF_CLOSING_START_TAG = 39;
+export int ST_BOGUS_COMMENT = 40;
+export int ST_MARKUP_DECLARATION_OPEN = 41;
+export int ST_COMMENT_START = 42;
+export int ST_COMMENT_START_DASH = 43;
+export int ST_COMMENT = 44;
+export int ST_COMMENT_LESS_THAN_SIGN = 45;
+export int ST_COMMENT_LESS_THAN_SIGN_BANG = 46;
+export int ST_COMMENT_LESS_THAN_SIGN_BANG_DASH = 47;
+export int ST_COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH = 48;
+export int ST_COMMENT_END_DASH = 49;
+export int ST_COMMENT_END = 50;
+export int ST_COMMENT_END_BANG = 51;
+export int ST_DOCTYPE = 52;
+export int ST_BEFORE_DOCTYPE_NAME = 53;
+export int ST_DOCTYPE_NAME = 54;
+export int ST_AFTER_DOCTYPE_NAME = 55;
+export int ST_AFTER_DOCTYPE_PUBLIC_KEYWORD = 56;
+export int ST_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER = 57;
+export int ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED = 58;
+export int ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED = 59;
+export int ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER = 60;
+export int ST_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS = 61;
+export int ST_AFTER_DOCTYPE_SYSTEM_KEYWORD = 62;
+export int ST_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER = 63;
+export int ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED = 64;
+export int ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED = 65;
+export int ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER = 66;
+export int ST_BOGUS_DOCTYPE = 67;
+export int ST_CDATA_SECTION = 68;
+export int ST_CDATA_SECTION_BRACKET = 69;
+export int ST_CDATA_SECTION_END = 70;
+export int ST_CHARACTER_REFERENCE = 71;
+export int ST_AMBIGUOUS_AMPERSAND = 72;
+
+export int MODE_DATA = ST_DATA;
+export int MODE_RCDATA = ST_RCDATA;
+export int MODE_RAWTEXT = ST_RAWTEXT;
+export int MODE_SCRIPT_DATA = ST_SCRIPT_DATA;
+export int MODE_PLAINTEXT = ST_PLAINTEXT;
+export int MODE_CDATA_SECTION = ST_CDATA_SECTION;
+
+bool isAsciiDigit(int cp) {
+  return cp >= CP_DIGIT_0 && cp <= CP_DIGIT_9;
+}
+
+bool isAsciiUpper(int cp) {
+  return cp >= CP_A && cp <= CP_Z;
+}
+
+bool isAsciiLower(int cp) {
+  return cp >= CP_a && cp <= CP_z;
+}
+
+bool isAsciiLetter(int cp) {
+  return isAsciiLower(cp) || isAsciiUpper(cp);
+}
+
+bool isAsciiAlphaNumeric(int cp) {
+  return isAsciiLetter(cp) || isAsciiDigit(cp);
+}
+
+int toAsciiLower(int cp) {
+  return cp + 32;
+}
+
+bool isWs(int cp) {
+  return cp == CP_SPACE || cp == CP_LF || cp == CP_TAB || cp == CP_FF;
+}
+
+bool isScriptDataDoubleEscapeEnd(int cp) {
+  return isWs(cp) || cp == CP_SLASH || cp == CP_GT;
+}
+
+string numericRefError(int code) {
+  if (code == CP_NULL) {
+    return ERR_nullCharacterReference;
+  }
+  if (code > 1114111) {
+    return ERR_characterReferenceOutsideUnicodeRange;
+  }
+  if (isSurrogate(code)) {
+    return ERR_surrogateCharacterReference;
+  }
+  if (isUndefinedCodePoint(code)) {
+    return ERR_noncharacterCharacterReference;
+  }
+  if (isControlCodePoint(code) || code == CP_CR) {
+    return ERR_controlCharacterReference;
+  }
+  return "";
+}
+
+int tokenTypeOf(JsValue token) {
+  return JS.number(JS.get(token, "type")).toInt();
+}
+
+void appendKey(JsValue obj, string key, string extra) {
+  JS.set(obj, key, JS.string(JS.get(obj, key)) + extra);
+}
+
+export class Tokenizer {
+  JsValue options;
+  JsValue handler;
+  bool sourceLoc;
+  bool paused;
+  bool inLoop;
+  bool inForeignNode;
+  string lastStartTagName;
+  bool active;
+  int state;
+  int returnState;
+  int entityStartPos;
+  int consumedAfterSnapshot;
+  JsValue currentCharacterToken;
+  JsValue currentToken;
+  JsValue currentAttr;
+  JsValue currentLocation;
+  Preprocessor preprocessor;
+  EntityDecoder entityDecoder;
+
+  init(JsValue options, JsValue handler) {
+    this.options = options;
+    this.handler = handler;
+    this.sourceLoc = false;
+    if (!(isUndef(options) || isNullish(options))) {
+      this.sourceLoc = JS.get(options, "sourceCodeLocationInfo").truthy();
+    }
+    this.paused = false;
+    this.inLoop = false;
+    this.inForeignNode = false;
+    this.lastStartTagName = "";
+    this.active = false;
+    this.state = ST_DATA;
+    this.returnState = ST_DATA;
+    this.entityStartPos = 0;
+    this.consumedAfterSnapshot = -1;
+    this.currentCharacterToken = NULL;
+    this.currentToken = NULL;
+    this.currentAttr = JS.object("name", "", "value", "");
+    this.preprocessor = new Preprocessor(handler);
+    this.currentLocation = this.getCurrentLocation(-1);
+    Tokenizer tok = this;
+    JsValue onParseError = JS.get(handler, "onParseError");
+    JsValue entityErrors = NULL;
+    if (!(isUndef(onParseError) || isNullish(onParseError))) {
+      entityErrors = JS.object(
+        "missingSemicolonAfterCharacterReference",
+        JS.method0((JsValue _s) => {
+          tok.err(ERR_missingSemicolonAfterCharacterReference, 1);
+          return JS.undefined();
+        }),
+        "absenceOfDigitsInNumericCharacterReference",
+        JS.method1((JsValue _s, JsValue consumed) => {
+          tok.err(ERR_absenceOfDigitsInNumericCharacterReference, tok.entityStartPos - tok.preprocessor.pos + JS.number(consumed).toInt());
+          return JS.undefined();
+        }),
+        "validateNumericCharacterReference",
+        JS.method1((JsValue _s, JsValue codev) => {
+          string error = numericRefError(JS.number(codev).toInt());
+          if (error.length > 0) {
+            tok.err(error, 1);
+          }
+          return JS.undefined();
+        })
+      );
+    }
+    this.entityDecoder = new EntityDecoder(htmlDecodeTree, (int cp, int consumed) => {
+      tok.onEntityEmit(cp, consumed);
+    }, entityErrors);
+  }
+
+  void onEntityEmit(int cp, int consumed) {
+    this.preprocessor.pos = this.entityStartPos + consumed - 1;
+    this.flushCodePointConsumedAsCharacterReference(cp);
+  }
+
+  void err(string code, int cpOffset) {
+    JsValue onParseError = JS.get(this.handler, "onParseError");
+    if (isUndef(onParseError) || isNullish(onParseError)) {
+      return;
+    }
+    JS.call(onParseError, this.handler, this.preprocessor.getError(code, cpOffset));
+  }
+
+  JsValue getCurrentLocation(int offset) {
+    if (!this.sourceLoc) {
+      return NULL;
+    }
+    return JS.object(
+      "startLine", this.preprocessor.line,
+      "startCol", this.preprocessor.col() - offset,
+      "startOffset", this.preprocessor.offset() - offset,
+      "endLine", -1,
+      "endCol", -1,
+      "endOffset", -1
+    );
+  }
+
+  void runParsingLoop() {
+    if (this.inLoop) {
+      return;
+    }
+    this.inLoop = true;
+    while (this.active && !this.paused) {
+      this.consumedAfterSnapshot = 0;
+      int cp = this.consume();
+      if (!this.ensureHibernation()) {
+        this.callState(cp);
+      }
+    }
+    this.inLoop = false;
+  }
+
+  void pause() {
+    this.paused = true;
+  }
+
+  void resume(JsValue writeCallback) {
+    if (!this.paused) {
+      throwError("Parser was already resumed");
+    }
+    this.paused = false;
+    if (this.inLoop) {
+      return;
+    }
+    this.runParsingLoop();
+    if (!this.paused && isFn(writeCallback)) {
+      JS.call(writeCallback, JS.undefined());
+    }
+  }
+
+  void write(string chunk, bool isLastChunk) {
+    this.active = true;
+    this.preprocessor.write(chunk, isLastChunk);
+    this.runParsingLoop();
+  }
+
+  void insertHtmlAtCurrentPos(string chunk) {
+    this.active = true;
+    this.preprocessor.insertHtmlAtCurrentPos(chunk);
+    this.runParsingLoop();
+  }
+
+  bool ensureHibernation() {
+    if (this.preprocessor.endOfChunkHit) {
+      this.preprocessor.retreat(this.consumedAfterSnapshot);
+      this.consumedAfterSnapshot = 0;
+      this.active = false;
+      return true;
+    }
+    return false;
+  }
+
+  int consume() {
+    this.consumedAfterSnapshot = this.consumedAfterSnapshot + 1;
+    return this.preprocessor.advance();
+  }
+
+  void advanceBy(int count) {
+    this.consumedAfterSnapshot = this.consumedAfterSnapshot + count;
+    int i = 0;
+    while (i < count) {
+      this.preprocessor.advance();
+      i = i + 1;
+    }
+  }
+
+  bool consumeSequenceIfMatch(string pattern, bool caseSensitive) {
+    if (this.preprocessor.startsWith(pattern, caseSensitive)) {
+      this.advanceBy(pattern.length - 1);
+      return true;
+    }
+    return false;
+  }
+
+  void createStartTagToken() {
+    this.currentToken = JS.object(
+      "type", TOKEN_START_TAG,
+      "tagName", "",
+      "tagID", TAG_UNKNOWN,
+      "selfClosing", false,
+      "ackSelfClosing", false,
+      "attrs", JS.array(),
+      "location", this.getCurrentLocation(1)
+    );
+  }
+
+  void createEndTagToken() {
+    this.currentToken = JS.object(
+      "type", TOKEN_END_TAG,
+      "tagName", "",
+      "tagID", TAG_UNKNOWN,
+      "selfClosing", false,
+      "ackSelfClosing", false,
+      "attrs", JS.array(),
+      "location", this.getCurrentLocation(2)
+    );
+  }
+
+  void createCommentToken(int offset) {
+    this.currentToken = JS.object(
+      "type", TOKEN_COMMENT,
+      "data", "",
+      "location", this.getCurrentLocation(offset)
+    );
+  }
+
+  void createDoctypeToken(JsValue initialName) {
+    this.currentToken = JS.object(
+      "type", TOKEN_DOCTYPE,
+      "name", initialName,
+      "forceQuirks", false,
+      "publicId", NULL,
+      "systemId", NULL,
+      "location", this.currentLocation
+    );
+  }
+
+  void createCharacterToken(int type, string chars) {
+    this.currentCharacterToken = JS.object(
+      "type", type,
+      "chars", chars,
+      "location", this.currentLocation
+    );
+  }
+
+  void createAttr(string attrNameFirstCh) {
+    this.currentAttr = JS.object("name", attrNameFirstCh, "value", "");
+    this.currentLocation = this.getCurrentLocation(0);
+  }
+
+  void leaveAttrName() {
+    JsValue token = this.currentToken;
+    string attrName = JS.string(JS.get(this.currentAttr, "name"));
+    if (isNullish(tokenAttr(token, attrName))) {
+      JS.push(JS.get(token, "attrs"), this.currentAttr);
+      JsValue tokenLoc = JS.get(token, "location");
+      if (!(isNullish(tokenLoc) || isNullish(this.currentLocation))) {
+        JsValue attrLocations = JS.get(tokenLoc, "attrs");
+        if (isUndef(attrLocations) || isNullish(attrLocations)) {
+          attrLocations = JS.object();
+          JS.set(tokenLoc, "attrs", attrLocations);
+        }
+        JS.set(attrLocations, attrName, this.currentLocation);
+        this.leaveAttrValue();
+      }
+    } else {
+      this.err(ERR_duplicateAttribute, 0);
+    }
+  }
+
+  void leaveAttrValue() {
+    if (isNullish(this.currentLocation)) {
+      return;
+    }
+    JS.set(this.currentLocation, "endLine", this.preprocessor.line);
+    JS.set(this.currentLocation, "endCol", this.preprocessor.col());
+    JS.set(this.currentLocation, "endOffset", this.preprocessor.offset());
+  }
+
+  void prepareToken(JsValue ct) {
+    this.emitCurrentCharacterToken(JS.get(ct, "location"));
+    this.currentToken = NULL;
+    JsValue loc = JS.get(ct, "location");
+    if (!isNullish(loc)) {
+      JS.set(loc, "endLine", this.preprocessor.line);
+      JS.set(loc, "endCol", this.preprocessor.col() + 1);
+      JS.set(loc, "endOffset", this.preprocessor.offset() + 1);
+    }
+    this.currentLocation = this.getCurrentLocation(-1);
+  }
+
+  void emitCurrentTagToken() {
+    JsValue ct = this.currentToken;
+    this.prepareToken(ct);
+    JS.set(ct, "tagID", getTagID(JS.string(JS.get(ct, "tagName"))));
+    if (tokenTypeOf(ct) == TOKEN_START_TAG) {
+      this.lastStartTagName = JS.string(JS.get(ct, "tagName"));
+      JS.invoke(this.handler, "onStartTag", ct);
+    } else {
+      if (JS.number(JS.get(JS.get(ct, "attrs"), "length")).toInt() > 0) {
+        this.err(ERR_endTagWithAttributes, 0);
+      }
+      if (JS.get(ct, "selfClosing").truthy()) {
+        this.err(ERR_endTagWithTrailingSolidus, 0);
+      }
+      JS.invoke(this.handler, "onEndTag", ct);
+    }
+    this.preprocessor.dropParsedChunk();
+  }
+
+  void emitCurrentComment(JsValue ct) {
+    this.prepareToken(ct);
+    JS.invoke(this.handler, "onComment", ct);
+    this.preprocessor.dropParsedChunk();
+  }
+
+  void emitCurrentDoctype(JsValue ct) {
+    this.prepareToken(ct);
+    JS.invoke(this.handler, "onDoctype", ct);
+    this.preprocessor.dropParsedChunk();
+  }
+
+  void emitCurrentCharacterToken(JsValue nextLocation) {
+    if (isNullish(this.currentCharacterToken)) {
+      return;
+    }
+    JsValue loc = JS.get(this.currentCharacterToken, "location");
+    if (!(isNullish(nextLocation) || isNullish(loc))) {
+      JS.set(loc, "endLine", JS.get(nextLocation, "startLine"));
+      JS.set(loc, "endCol", JS.get(nextLocation, "startCol"));
+      JS.set(loc, "endOffset", JS.get(nextLocation, "startOffset"));
+    }
+    int type = tokenTypeOf(this.currentCharacterToken);
+    if (type == TOKEN_CHARACTER) {
+      JS.invoke(this.handler, "onCharacter", this.currentCharacterToken);
+    } else if (type == TOKEN_NULL) {
+      JS.invoke(this.handler, "onNullCharacter", this.currentCharacterToken);
+    } else if (type == TOKEN_WHITESPACE) {
+      JS.invoke(this.handler, "onWhitespaceCharacter", this.currentCharacterToken);
+    }
+    this.currentCharacterToken = NULL;
+  }
+
+  void emitEOFToken() {
+    JsValue location = this.getCurrentLocation(0);
+    if (!isNullish(location)) {
+      JS.set(location, "endLine", JS.get(location, "startLine"));
+      JS.set(location, "endCol", JS.get(location, "startCol"));
+      JS.set(location, "endOffset", JS.get(location, "startOffset"));
+    }
+    this.emitCurrentCharacterToken(location);
+    JS.invoke(this.handler, "onEof", JS.object("type", TOKEN_EOF, "location", location));
+    this.active = false;
+  }
+
+  void appendCharToCurrentCharacterToken(int type, string ch) {
+    if (!isNullish(this.currentCharacterToken)) {
+      if (tokenTypeOf(this.currentCharacterToken) == type) {
+        appendKey(this.currentCharacterToken, "chars", ch);
+        return;
+      }
+      this.currentLocation = this.getCurrentLocation(0);
+      this.emitCurrentCharacterToken(this.currentLocation);
+      this.preprocessor.dropParsedChunk();
+    }
+    this.createCharacterToken(type, ch);
+  }
+
+  void emitCodePoint(int cp) {
+    int type = TOKEN_CHARACTER;
+    if (isWs(cp)) {
+      type = TOKEN_WHITESPACE;
+    } else if (cp == CP_NULL) {
+      type = TOKEN_NULL;
+    }
+    this.appendCharToCurrentCharacterToken(type, fromCodePoint(cp));
+  }
+
+  void emitChars(string ch) {
+    this.appendCharToCurrentCharacterToken(TOKEN_CHARACTER, ch);
+  }
+
+  void startCharacterReference() {
+    this.returnState = this.state;
+    this.state = ST_CHARACTER_REFERENCE;
+    this.entityStartPos = this.preprocessor.pos;
+    int mode = DECODE_LEGACY;
+    if (this.isCharacterReferenceInAttribute()) {
+      mode = DECODE_ATTRIBUTE;
+    }
+    this.entityDecoder.startEntity(mode);
+  }
+
+  bool isCharacterReferenceInAttribute() {
+    return this.returnState == ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED || this.returnState == ST_ATTRIBUTE_VALUE_SINGLE_QUOTED || this.returnState == ST_ATTRIBUTE_VALUE_UNQUOTED;
+  }
+
+  void flushCodePointConsumedAsCharacterReference(int cp) {
+    if (this.isCharacterReferenceInAttribute()) {
+      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void callState(int cp) {
+    int s = this.state;
+    if (s == ST_DATA) {
+      this.stateData(cp);
+    } else if (s == ST_RCDATA) {
+      this.stateRcdata(cp);
+    } else if (s == ST_RAWTEXT) {
+      this.stateRawtext(cp);
+    } else if (s == ST_SCRIPT_DATA) {
+      this.stateScriptData(cp);
+    } else if (s == ST_PLAINTEXT) {
+      this.statePlaintext(cp);
+    } else if (s == ST_TAG_OPEN) {
+      this.stateTagOpen(cp);
+    } else if (s == ST_END_TAG_OPEN) {
+      this.stateEndTagOpen(cp);
+    } else if (s == ST_TAG_NAME) {
+      this.stateTagName(cp);
+    } else if (s == ST_RCDATA_LESS_THAN_SIGN) {
+      this.stateRcdataLessThanSign(cp);
+    } else if (s == ST_RCDATA_END_TAG_OPEN) {
+      this.stateRcdataEndTagOpen(cp);
+    } else if (s == ST_RCDATA_END_TAG_NAME) {
+      this.stateRcdataEndTagName(cp);
+    } else if (s == ST_RAWTEXT_LESS_THAN_SIGN) {
+      this.stateRawtextLessThanSign(cp);
+    } else if (s == ST_RAWTEXT_END_TAG_OPEN) {
+      this.stateRawtextEndTagOpen(cp);
+    } else if (s == ST_RAWTEXT_END_TAG_NAME) {
+      this.stateRawtextEndTagName(cp);
+    } else if (s == ST_SCRIPT_DATA_LESS_THAN_SIGN) {
+      this.stateScriptDataLessThanSign(cp);
+    } else if (s == ST_SCRIPT_DATA_END_TAG_OPEN) {
+      this.stateScriptDataEndTagOpen(cp);
+    } else if (s == ST_SCRIPT_DATA_END_TAG_NAME) {
+      this.stateScriptDataEndTagName(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPE_START) {
+      this.stateScriptDataEscapeStart(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPE_START_DASH) {
+      this.stateScriptDataEscapeStartDash(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPED) {
+      this.stateScriptDataEscaped(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPED_DASH) {
+      this.stateScriptDataEscapedDash(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPED_DASH_DASH) {
+      this.stateScriptDataEscapedDashDash(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN) {
+      this.stateScriptDataEscapedLessThanSign(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPED_END_TAG_OPEN) {
+      this.stateScriptDataEscapedEndTagOpen(cp);
+    } else if (s == ST_SCRIPT_DATA_ESCAPED_END_TAG_NAME) {
+      this.stateScriptDataEscapedEndTagName(cp);
+    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPE_START) {
+      this.stateScriptDataDoubleEscapeStart(cp);
+    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED) {
+      this.stateScriptDataDoubleEscaped(cp);
+    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH) {
+      this.stateScriptDataDoubleEscapedDash(cp);
+    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH) {
+      this.stateScriptDataDoubleEscapedDashDash(cp);
+    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN) {
+      this.stateScriptDataDoubleEscapedLessThanSign(cp);
+    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPE_END) {
+      this.stateScriptDataDoubleEscapeEnd(cp);
+    } else if (s == ST_BEFORE_ATTRIBUTE_NAME) {
+      this.stateBeforeAttributeName(cp);
+    } else if (s == ST_ATTRIBUTE_NAME) {
+      this.stateAttributeName(cp);
+    } else if (s == ST_AFTER_ATTRIBUTE_NAME) {
+      this.stateAfterAttributeName(cp);
+    } else if (s == ST_BEFORE_ATTRIBUTE_VALUE) {
+      this.stateBeforeAttributeValue(cp);
+    } else if (s == ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED) {
+      this.stateAttributeValueDoubleQuoted(cp);
+    } else if (s == ST_ATTRIBUTE_VALUE_SINGLE_QUOTED) {
+      this.stateAttributeValueSingleQuoted(cp);
+    } else if (s == ST_ATTRIBUTE_VALUE_UNQUOTED) {
+      this.stateAttributeValueUnquoted(cp);
+    } else if (s == ST_AFTER_ATTRIBUTE_VALUE_QUOTED) {
+      this.stateAfterAttributeValueQuoted(cp);
+    } else if (s == ST_SELF_CLOSING_START_TAG) {
+      this.stateSelfClosingStartTag(cp);
+    } else if (s == ST_BOGUS_COMMENT) {
+      this.stateBogusComment(cp);
+    } else if (s == ST_MARKUP_DECLARATION_OPEN) {
+      this.stateMarkupDeclarationOpen(cp);
+    } else if (s == ST_COMMENT_START) {
+      this.stateCommentStart(cp);
+    } else if (s == ST_COMMENT_START_DASH) {
+      this.stateCommentStartDash(cp);
+    } else if (s == ST_COMMENT) {
+      this.stateComment(cp);
+    } else if (s == ST_COMMENT_LESS_THAN_SIGN) {
+      this.stateCommentLessThanSign(cp);
+    } else if (s == ST_COMMENT_LESS_THAN_SIGN_BANG) {
+      this.stateCommentLessThanSignBang(cp);
+    } else if (s == ST_COMMENT_LESS_THAN_SIGN_BANG_DASH) {
+      this.stateCommentLessThanSignBangDash(cp);
+    } else if (s == ST_COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH) {
+      this.stateCommentLessThanSignBangDashDash(cp);
+    } else if (s == ST_COMMENT_END_DASH) {
+      this.stateCommentEndDash(cp);
+    } else if (s == ST_COMMENT_END) {
+      this.stateCommentEnd(cp);
+    } else if (s == ST_COMMENT_END_BANG) {
+      this.stateCommentEndBang(cp);
+    } else if (s == ST_DOCTYPE) {
+      this.stateDoctype(cp);
+    } else if (s == ST_BEFORE_DOCTYPE_NAME) {
+      this.stateBeforeDoctypeName(cp);
+    } else if (s == ST_DOCTYPE_NAME) {
+      this.stateDoctypeName(cp);
+    } else if (s == ST_AFTER_DOCTYPE_NAME) {
+      this.stateAfterDoctypeName(cp);
+    } else if (s == ST_AFTER_DOCTYPE_PUBLIC_KEYWORD) {
+      this.stateAfterDoctypePublicKeyword(cp);
+    } else if (s == ST_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER) {
+      this.stateBeforeDoctypePublicIdentifier(cp);
+    } else if (s == ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED) {
+      this.stateDoctypePublicIdentifierDoubleQuoted(cp);
+    } else if (s == ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED) {
+      this.stateDoctypePublicIdentifierSingleQuoted(cp);
+    } else if (s == ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER) {
+      this.stateAfterDoctypePublicIdentifier(cp);
+    } else if (s == ST_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS) {
+      this.stateBetweenDoctypePublicAndSystemIdentifiers(cp);
+    } else if (s == ST_AFTER_DOCTYPE_SYSTEM_KEYWORD) {
+      this.stateAfterDoctypeSystemKeyword(cp);
+    } else if (s == ST_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER) {
+      this.stateBeforeDoctypeSystemIdentifier(cp);
+    } else if (s == ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED) {
+      this.stateDoctypeSystemIdentifierDoubleQuoted(cp);
+    } else if (s == ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED) {
+      this.stateDoctypeSystemIdentifierSingleQuoted(cp);
+    } else if (s == ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER) {
+      this.stateAfterDoctypeSystemIdentifier(cp);
+    } else if (s == ST_BOGUS_DOCTYPE) {
+      this.stateBogusDoctype(cp);
+    } else if (s == ST_CDATA_SECTION) {
+      this.stateCdataSection(cp);
+    } else if (s == ST_CDATA_SECTION_BRACKET) {
+      this.stateCdataSectionBracket(cp);
+    } else if (s == ST_CDATA_SECTION_END) {
+      this.stateCdataSectionEnd(cp);
+    } else if (s == ST_CHARACTER_REFERENCE) {
+      this.stateCharacterReference();
+    } else if (s == ST_AMBIGUOUS_AMPERSAND) {
+      this.stateAmbiguousAmpersand(cp);
+    } else {
+      throwError("Unknown state");
+    }
+  }
+
+  void stateData(int cp) {
+    if (cp == CP_LT) {
+      this.state = ST_TAG_OPEN;
+    } else if (cp == CP_AMP) {
+      this.startCharacterReference();
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitCodePoint(cp);
+    } else if (cp == CP_EOF) {
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateRcdata(int cp) {
+    if (cp == CP_AMP) {
+      this.startCharacterReference();
+    } else if (cp == CP_LT) {
+      this.state = ST_RCDATA_LESS_THAN_SIGN;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateRawtext(int cp) {
+    if (cp == CP_LT) {
+      this.state = ST_RAWTEXT_LESS_THAN_SIGN;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptData(int cp) {
+    if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_LESS_THAN_SIGN;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void statePlaintext(int cp) {
+    if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateTagOpen(int cp) {
+    if (isAsciiLetter(cp)) {
+      this.createStartTagToken();
+      this.state = ST_TAG_NAME;
+      this.stateTagName(cp);
+      return;
+    }
+    if (cp == CP_BANG) {
+      this.state = ST_MARKUP_DECLARATION_OPEN;
+    } else if (cp == CP_SLASH) {
+      this.state = ST_END_TAG_OPEN;
+    } else if (cp == CP_QMARK) {
+      this.err(ERR_unexpectedQuestionMarkInsteadOfTagName, 0);
+      this.createCommentToken(1);
+      this.state = ST_BOGUS_COMMENT;
+      this.stateBogusComment(cp);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofBeforeTagName, 0);
+      this.emitChars("<");
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_invalidFirstCharacterOfTagName, 0);
+      this.emitChars("<");
+      this.state = ST_DATA;
+      this.stateData(cp);
+    }
+  }
+
+  void stateEndTagOpen(int cp) {
+    if (isAsciiLetter(cp)) {
+      this.createEndTagToken();
+      this.state = ST_TAG_NAME;
+      this.stateTagName(cp);
+      return;
+    }
+    if (cp == CP_GT) {
+      this.err(ERR_missingEndTagName, 0);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofBeforeTagName, 0);
+      this.emitChars("</");
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_invalidFirstCharacterOfTagName, 0);
+      this.createCommentToken(2);
+      this.state = ST_BOGUS_COMMENT;
+      this.stateBogusComment(cp);
+    }
+  }
+
+  void stateTagName(int cp) {
+    if (isWs(cp)) {
+      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+    } else if (cp == CP_SLASH) {
+      this.state = ST_SELF_CLOSING_START_TAG;
+    } else if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentTagToken();
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "tagName", REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      int out = cp;
+      if (isAsciiUpper(cp)) {
+        out = toAsciiLower(cp);
+      }
+      appendKey(this.currentToken, "tagName", fromCodePoint(out));
+    }
+  }
+
+  void stateRcdataLessThanSign(int cp) {
+    if (cp == CP_SLASH) {
+      this.state = ST_RCDATA_END_TAG_OPEN;
+    } else {
+      this.emitChars("<");
+      this.state = ST_RCDATA;
+      this.stateRcdata(cp);
+    }
+  }
+
+  void stateRcdataEndTagOpen(int cp) {
+    if (isAsciiLetter(cp)) {
+      this.state = ST_RCDATA_END_TAG_NAME;
+      this.stateRcdataEndTagName(cp);
+    } else {
+      this.emitChars("</");
+      this.state = ST_RCDATA;
+      this.stateRcdata(cp);
+    }
+  }
+
+  bool handleSpecialEndTag(int _cp) {
+    if (!this.preprocessor.startsWith(this.lastStartTagName, false)) {
+      return !this.ensureHibernation();
+    }
+    this.createEndTagToken();
+    JS.set(this.currentToken, "tagName", this.lastStartTagName);
+    int cp = this.preprocessor.peek(this.lastStartTagName.length);
+    if (isWs(cp)) {
+      this.advanceBy(this.lastStartTagName.length);
+      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+      return false;
+    }
+    if (cp == CP_SLASH) {
+      this.advanceBy(this.lastStartTagName.length);
+      this.state = ST_SELF_CLOSING_START_TAG;
+      return false;
+    }
+    if (cp == CP_GT) {
+      this.advanceBy(this.lastStartTagName.length);
+      this.emitCurrentTagToken();
+      this.state = ST_DATA;
+      return false;
+    }
+    return !this.ensureHibernation();
+  }
+
+  void stateRcdataEndTagName(int cp) {
+    if (this.handleSpecialEndTag(cp)) {
+      this.emitChars("</");
+      this.state = ST_RCDATA;
+      this.stateRcdata(cp);
+    }
+  }
+
+  void stateRawtextLessThanSign(int cp) {
+    if (cp == CP_SLASH) {
+      this.state = ST_RAWTEXT_END_TAG_OPEN;
+    } else {
+      this.emitChars("<");
+      this.state = ST_RAWTEXT;
+      this.stateRawtext(cp);
+    }
+  }
+
+  void stateRawtextEndTagOpen(int cp) {
+    if (isAsciiLetter(cp)) {
+      this.state = ST_RAWTEXT_END_TAG_NAME;
+      this.stateRawtextEndTagName(cp);
+    } else {
+      this.emitChars("</");
+      this.state = ST_RAWTEXT;
+      this.stateRawtext(cp);
+    }
+  }
+
+  void stateRawtextEndTagName(int cp) {
+    if (this.handleSpecialEndTag(cp)) {
+      this.emitChars("</");
+      this.state = ST_RAWTEXT;
+      this.stateRawtext(cp);
+    }
+  }
+
+  void stateScriptDataLessThanSign(int cp) {
+    if (cp == CP_SLASH) {
+      this.state = ST_SCRIPT_DATA_END_TAG_OPEN;
+    } else if (cp == CP_BANG) {
+      this.state = ST_SCRIPT_DATA_ESCAPE_START;
+      this.emitChars("<!");
+    } else {
+      this.emitChars("<");
+      this.state = ST_SCRIPT_DATA;
+      this.stateScriptData(cp);
+    }
+  }
+
+  void stateScriptDataEndTagOpen(int cp) {
+    if (isAsciiLetter(cp)) {
+      this.state = ST_SCRIPT_DATA_END_TAG_NAME;
+      this.stateScriptDataEndTagName(cp);
+    } else {
+      this.emitChars("</");
+      this.state = ST_SCRIPT_DATA;
+      this.stateScriptData(cp);
+    }
+  }
+
+  void stateScriptDataEndTagName(int cp) {
+    if (this.handleSpecialEndTag(cp)) {
+      this.emitChars("</");
+      this.state = ST_SCRIPT_DATA;
+      this.stateScriptData(cp);
+    }
+  }
+
+  void stateScriptDataEscapeStart(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_SCRIPT_DATA_ESCAPE_START_DASH;
+      this.emitChars("-");
+    } else {
+      this.state = ST_SCRIPT_DATA;
+      this.stateScriptData(cp);
+    }
+  }
+
+  void stateScriptDataEscapeStartDash(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_DASH_DASH;
+      this.emitChars("-");
+    } else {
+      this.state = ST_SCRIPT_DATA;
+      this.stateScriptData(cp);
+    }
+  }
+
+  void stateScriptDataEscaped(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_DASH;
+      this.emitChars("-");
+    } else if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptDataEscapedDash(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_DASH_DASH;
+      this.emitChars("-");
+    } else if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+      this.emitEOFToken();
+    } else {
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptDataEscapedDashDash(int cp) {
+    if (cp == CP_DASH) {
+      this.emitChars("-");
+    } else if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
+    } else if (cp == CP_GT) {
+      this.state = ST_SCRIPT_DATA;
+      this.emitChars(">");
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+      this.emitEOFToken();
+    } else {
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptDataEscapedLessThanSign(int cp) {
+    if (cp == CP_SLASH) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_END_TAG_OPEN;
+    } else if (isAsciiLetter(cp)) {
+      this.emitChars("<");
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPE_START;
+      this.stateScriptDataDoubleEscapeStart(cp);
+    } else {
+      this.emitChars("<");
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.stateScriptDataEscaped(cp);
+    }
+  }
+
+  void stateScriptDataEscapedEndTagOpen(int cp) {
+    if (isAsciiLetter(cp)) {
+      this.state = ST_SCRIPT_DATA_ESCAPED_END_TAG_NAME;
+      this.stateScriptDataEscapedEndTagName(cp);
+    } else {
+      this.emitChars("</");
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.stateScriptDataEscaped(cp);
+    }
+  }
+
+  void stateScriptDataEscapedEndTagName(int cp) {
+    if (this.handleSpecialEndTag(cp)) {
+      this.emitChars("</");
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.stateScriptDataEscaped(cp);
+    }
+  }
+
+  void stateScriptDataDoubleEscapeStart(int cp) {
+    if (this.preprocessor.startsWith(SEQ_SCRIPT, false) && isScriptDataDoubleEscapeEnd(this.preprocessor.peek(SEQ_SCRIPT.length))) {
+      this.emitCodePoint(cp);
+      int i = 0;
+      while (i < SEQ_SCRIPT.length) {
+        this.emitCodePoint(this.consume());
+        i = i + 1;
+      }
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+    } else if (!this.ensureHibernation()) {
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.stateScriptDataEscaped(cp);
+    }
+  }
+
+  void stateScriptDataDoubleEscaped(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH;
+      this.emitChars("-");
+    } else if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+      this.emitChars("<");
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptDataDoubleEscapedDash(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH;
+      this.emitChars("-");
+    } else if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+      this.emitChars("<");
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+      this.emitEOFToken();
+    } else {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptDataDoubleEscapedDashDash(int cp) {
+    if (cp == CP_DASH) {
+      this.emitChars("-");
+    } else if (cp == CP_LT) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+      this.emitChars("<");
+    } else if (cp == CP_GT) {
+      this.state = ST_SCRIPT_DATA;
+      this.emitChars(">");
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.emitChars(REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+      this.emitEOFToken();
+    } else {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateScriptDataDoubleEscapedLessThanSign(int cp) {
+    if (cp == CP_SLASH) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPE_END;
+      this.emitChars("/");
+    } else {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.stateScriptDataDoubleEscaped(cp);
+    }
+  }
+
+  void stateScriptDataDoubleEscapeEnd(int cp) {
+    if (this.preprocessor.startsWith(SEQ_SCRIPT, false) && isScriptDataDoubleEscapeEnd(this.preprocessor.peek(SEQ_SCRIPT.length))) {
+      this.emitCodePoint(cp);
+      int i = 0;
+      while (i < SEQ_SCRIPT.length) {
+        this.emitCodePoint(this.consume());
+        i = i + 1;
+      }
+      this.state = ST_SCRIPT_DATA_ESCAPED;
+    } else if (!this.ensureHibernation()) {
+      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.stateScriptDataDoubleEscaped(cp);
+    }
+  }
+
+  void stateBeforeAttributeName(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_SLASH || cp == CP_GT || cp == CP_EOF) {
+      this.state = ST_AFTER_ATTRIBUTE_NAME;
+      this.stateAfterAttributeName(cp);
+    } else if (cp == CP_EQ) {
+      this.err(ERR_unexpectedEqualsSignBeforeAttributeName, 0);
+      this.createAttr("=");
+      this.state = ST_ATTRIBUTE_NAME;
+    } else {
+      this.createAttr("");
+      this.state = ST_ATTRIBUTE_NAME;
+      this.stateAttributeName(cp);
+    }
+  }
+
+  void stateAttributeName(int cp) {
+    if (isWs(cp) || cp == CP_SLASH || cp == CP_GT || cp == CP_EOF) {
+      this.leaveAttrName();
+      this.state = ST_AFTER_ATTRIBUTE_NAME;
+      this.stateAfterAttributeName(cp);
+    } else if (cp == CP_EQ) {
+      this.leaveAttrName();
+      this.state = ST_BEFORE_ATTRIBUTE_VALUE;
+    } else if (cp == CP_QUOTE || cp == CP_APOS || cp == CP_LT) {
+      this.err(ERR_unexpectedCharacterInAttributeName, 0);
+      appendKey(this.currentAttr, "name", fromCodePoint(cp));
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentAttr, "name", REPLACEMENT);
+    } else {
+      int out = cp;
+      if (isAsciiUpper(cp)) {
+        out = toAsciiLower(cp);
+      }
+      appendKey(this.currentAttr, "name", fromCodePoint(out));
+    }
+  }
+
+  void stateAfterAttributeName(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_SLASH) {
+      this.state = ST_SELF_CLOSING_START_TAG;
+    } else if (cp == CP_EQ) {
+      this.state = ST_BEFORE_ATTRIBUTE_VALUE;
+    } else if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentTagToken();
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      this.createAttr("");
+      this.state = ST_ATTRIBUTE_NAME;
+      this.stateAttributeName(cp);
+    }
+  }
+
+  void stateBeforeAttributeValue(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_QUOTE) {
+      this.state = ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      this.state = ST_ATTRIBUTE_VALUE_SINGLE_QUOTED;
+    } else if (cp == CP_GT) {
+      this.err(ERR_missingAttributeValue, 0);
+      this.state = ST_DATA;
+      this.emitCurrentTagToken();
+    } else {
+      this.state = ST_ATTRIBUTE_VALUE_UNQUOTED;
+      this.stateAttributeValueUnquoted(cp);
+    }
+  }
+
+  void stateAttributeValueDoubleQuoted(int cp) {
+    if (cp == CP_QUOTE) {
+      this.state = ST_AFTER_ATTRIBUTE_VALUE_QUOTED;
+    } else if (cp == CP_AMP) {
+      this.startCharacterReference();
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentAttr, "value", REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+    }
+  }
+
+  void stateAttributeValueSingleQuoted(int cp) {
+    if (cp == CP_APOS) {
+      this.state = ST_AFTER_ATTRIBUTE_VALUE_QUOTED;
+    } else if (cp == CP_AMP) {
+      this.startCharacterReference();
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentAttr, "value", REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+    }
+  }
+
+  void stateAttributeValueUnquoted(int cp) {
+    if (isWs(cp)) {
+      this.leaveAttrValue();
+      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+    } else if (cp == CP_AMP) {
+      this.startCharacterReference();
+    } else if (cp == CP_GT) {
+      this.leaveAttrValue();
+      this.state = ST_DATA;
+      this.emitCurrentTagToken();
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentAttr, "value", REPLACEMENT);
+    } else if (cp == CP_QUOTE || cp == CP_APOS || cp == CP_LT || cp == CP_EQ || cp == CP_GRAVE) {
+      this.err(ERR_unexpectedCharacterInUnquotedAttributeValue, 0);
+      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+    }
+  }
+
+  void stateAfterAttributeValueQuoted(int cp) {
+    if (isWs(cp)) {
+      this.leaveAttrValue();
+      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+    } else if (cp == CP_SLASH) {
+      this.leaveAttrValue();
+      this.state = ST_SELF_CLOSING_START_TAG;
+    } else if (cp == CP_GT) {
+      this.leaveAttrValue();
+      this.state = ST_DATA;
+      this.emitCurrentTagToken();
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingWhitespaceBetweenAttributes, 0);
+      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+      this.stateBeforeAttributeName(cp);
+    }
+  }
+
+  void stateSelfClosingStartTag(int cp) {
+    if (cp == CP_GT) {
+      JS.set(this.currentToken, "selfClosing", true);
+      this.state = ST_DATA;
+      this.emitCurrentTagToken();
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInTag, 0);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_unexpectedSolidusInTag, 0);
+      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+      this.stateBeforeAttributeName(cp);
+    }
+  }
+
+  void stateBogusComment(int cp) {
+    if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentComment(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.emitCurrentComment(this.currentToken);
+      this.emitEOFToken();
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "data", REPLACEMENT);
+    } else {
+      appendKey(this.currentToken, "data", fromCodePoint(cp));
+    }
+  }
+
+  void stateMarkupDeclarationOpen(int cp) {
+    if (this.consumeSequenceIfMatch(SEQ_DASH_DASH, true)) {
+      this.createCommentToken(SEQ_DASH_DASH.length + 1);
+      this.state = ST_COMMENT_START;
+    } else if (this.consumeSequenceIfMatch(SEQ_DOCTYPE, false)) {
+      this.currentLocation = this.getCurrentLocation(SEQ_DOCTYPE.length + 1);
+      this.state = ST_DOCTYPE;
+    } else if (this.consumeSequenceIfMatch(SEQ_CDATA, true)) {
+      if (this.inForeignNode) {
+        this.state = ST_CDATA_SECTION;
+      } else {
+        this.err(ERR_cdataInHtmlContent, 0);
+        this.createCommentToken(SEQ_CDATA.length + 1);
+        JS.set(this.currentToken, "data", "[CDATA[");
+        this.state = ST_BOGUS_COMMENT;
+      }
+    } else if (!this.ensureHibernation()) {
+      this.err(ERR_incorrectlyOpenedComment, 0);
+      this.createCommentToken(2);
+      this.state = ST_BOGUS_COMMENT;
+      this.stateBogusComment(cp);
+    }
+  }
+
+  void stateCommentStart(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_COMMENT_START_DASH;
+    } else if (cp == CP_GT) {
+      this.err(ERR_abruptClosingOfEmptyComment, 0);
+      this.state = ST_DATA;
+      this.emitCurrentComment(this.currentToken);
+    } else {
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateCommentStartDash(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_COMMENT_END;
+    } else if (cp == CP_GT) {
+      this.err(ERR_abruptClosingOfEmptyComment, 0);
+      this.state = ST_DATA;
+      this.emitCurrentComment(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInComment, 0);
+      this.emitCurrentComment(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "data", "-");
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateComment(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_COMMENT_END_DASH;
+    } else if (cp == CP_LT) {
+      appendKey(this.currentToken, "data", "<");
+      this.state = ST_COMMENT_LESS_THAN_SIGN;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "data", REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInComment, 0);
+      this.emitCurrentComment(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "data", fromCodePoint(cp));
+    }
+  }
+
+  void stateCommentLessThanSign(int cp) {
+    if (cp == CP_BANG) {
+      appendKey(this.currentToken, "data", "!");
+      this.state = ST_COMMENT_LESS_THAN_SIGN_BANG;
+    } else if (cp == CP_LT) {
+      appendKey(this.currentToken, "data", "<");
+    } else {
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateCommentLessThanSignBang(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_COMMENT_LESS_THAN_SIGN_BANG_DASH;
+    } else {
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateCommentLessThanSignBangDash(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH;
+    } else {
+      this.state = ST_COMMENT_END_DASH;
+      this.stateCommentEndDash(cp);
+    }
+  }
+
+  void stateCommentLessThanSignBangDashDash(int cp) {
+    if (cp != CP_GT && cp != CP_EOF) {
+      this.err(ERR_nestedComment, 0);
+    }
+    this.state = ST_COMMENT_END;
+    this.stateCommentEnd(cp);
+  }
+
+  void stateCommentEndDash(int cp) {
+    if (cp == CP_DASH) {
+      this.state = ST_COMMENT_END;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInComment, 0);
+      this.emitCurrentComment(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "data", "-");
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateCommentEnd(int cp) {
+    if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentComment(this.currentToken);
+    } else if (cp == CP_BANG) {
+      this.state = ST_COMMENT_END_BANG;
+    } else if (cp == CP_DASH) {
+      appendKey(this.currentToken, "data", "-");
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInComment, 0);
+      this.emitCurrentComment(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "data", "--");
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateCommentEndBang(int cp) {
+    if (cp == CP_DASH) {
+      appendKey(this.currentToken, "data", "--!");
+      this.state = ST_COMMENT_END_DASH;
+    } else if (cp == CP_GT) {
+      this.err(ERR_incorrectlyClosedComment, 0);
+      this.state = ST_DATA;
+      this.emitCurrentComment(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInComment, 0);
+      this.emitCurrentComment(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "data", "--!");
+      this.state = ST_COMMENT;
+      this.stateComment(cp);
+    }
+  }
+
+  void stateDoctype(int cp) {
+    if (isWs(cp)) {
+      this.state = ST_BEFORE_DOCTYPE_NAME;
+    } else if (cp == CP_GT) {
+      this.state = ST_BEFORE_DOCTYPE_NAME;
+      this.stateBeforeDoctypeName(cp);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      this.createDoctypeToken(NULL);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingWhitespaceBeforeDoctypeName, 0);
+      this.state = ST_BEFORE_DOCTYPE_NAME;
+      this.stateBeforeDoctypeName(cp);
+    }
+  }
+
+  void stateBeforeDoctypeName(int cp) {
+    if (isAsciiUpper(cp)) {
+      this.createDoctypeToken(fromCodePoint(toAsciiLower(cp)));
+      this.state = ST_DOCTYPE_NAME;
+      return;
+    }
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      this.createDoctypeToken(REPLACEMENT);
+      this.state = ST_DOCTYPE_NAME;
+    } else if (cp == CP_GT) {
+      this.err(ERR_missingDoctypeName, 0);
+      this.createDoctypeToken(NULL);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      this.createDoctypeToken(NULL);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.createDoctypeToken(fromCodePoint(cp));
+      this.state = ST_DOCTYPE_NAME;
+    }
+  }
+
+  void stateDoctypeName(int cp) {
+    if (isWs(cp)) {
+      this.state = ST_AFTER_DOCTYPE_NAME;
+    } else if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "name", REPLACEMENT);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      int out = cp;
+      if (isAsciiUpper(cp)) {
+        out = toAsciiLower(cp);
+      }
+      appendKey(this.currentToken, "name", fromCodePoint(out));
+    }
+  }
+
+  void stateAfterDoctypeName(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else if (this.consumeSequenceIfMatch(SEQ_PUBLIC, false)) {
+      this.state = ST_AFTER_DOCTYPE_PUBLIC_KEYWORD;
+    } else if (this.consumeSequenceIfMatch(SEQ_SYSTEM, false)) {
+      this.state = ST_AFTER_DOCTYPE_SYSTEM_KEYWORD;
+    } else if (!this.ensureHibernation()) {
+      this.err(ERR_invalidCharacterSequenceAfterDoctypeName, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateAfterDoctypePublicKeyword(int cp) {
+    if (isWs(cp)) {
+      this.state = ST_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER;
+    } else if (cp == CP_QUOTE) {
+      this.err(ERR_missingWhitespaceAfterDoctypePublicKeyword, 0);
+      JS.set(this.currentToken, "publicId", "");
+      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      this.err(ERR_missingWhitespaceAfterDoctypePublicKeyword, 0);
+      JS.set(this.currentToken, "publicId", "");
+      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED;
+    } else if (cp == CP_GT) {
+      this.err(ERR_missingDoctypePublicIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingQuoteBeforeDoctypePublicIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateBeforeDoctypePublicIdentifier(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_QUOTE) {
+      JS.set(this.currentToken, "publicId", "");
+      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      JS.set(this.currentToken, "publicId", "");
+      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED;
+    } else if (cp == CP_GT) {
+      this.err(ERR_missingDoctypePublicIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingQuoteBeforeDoctypePublicIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateDoctypePublicIdentifierDoubleQuoted(int cp) {
+    if (cp == CP_QUOTE) {
+      this.state = ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "publicId", REPLACEMENT);
+    } else if (cp == CP_GT) {
+      this.err(ERR_abruptDoctypePublicIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "publicId", fromCodePoint(cp));
+    }
+  }
+
+  void stateDoctypePublicIdentifierSingleQuoted(int cp) {
+    if (cp == CP_APOS) {
+      this.state = ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "publicId", REPLACEMENT);
+    } else if (cp == CP_GT) {
+      this.err(ERR_abruptDoctypePublicIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "publicId", fromCodePoint(cp));
+    }
+  }
+
+  void stateAfterDoctypePublicIdentifier(int cp) {
+    if (isWs(cp)) {
+      this.state = ST_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS;
+    } else if (cp == CP_GT) {
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_QUOTE) {
+      this.err(ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers, 0);
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      this.err(ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers, 0);
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateBetweenDoctypePublicAndSystemIdentifiers(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_GT) {
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_QUOTE) {
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateAfterDoctypeSystemKeyword(int cp) {
+    if (isWs(cp)) {
+      this.state = ST_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER;
+    } else if (cp == CP_QUOTE) {
+      this.err(ERR_missingWhitespaceAfterDoctypeSystemKeyword, 0);
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      this.err(ERR_missingWhitespaceAfterDoctypeSystemKeyword, 0);
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+    } else if (cp == CP_GT) {
+      this.err(ERR_missingDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateBeforeDoctypeSystemIdentifier(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_QUOTE) {
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
+    } else if (cp == CP_APOS) {
+      JS.set(this.currentToken, "systemId", "");
+      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
+    } else if (cp == CP_GT) {
+      this.err(ERR_missingDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_DATA;
+      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateDoctypeSystemIdentifierDoubleQuoted(int cp) {
+    if (cp == CP_QUOTE) {
+      this.state = ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "systemId", REPLACEMENT);
+    } else if (cp == CP_GT) {
+      this.err(ERR_abruptDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "systemId", fromCodePoint(cp));
+    }
+  }
+
+  void stateDoctypeSystemIdentifierSingleQuoted(int cp) {
+    if (cp == CP_APOS) {
+      this.state = ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+      appendKey(this.currentToken, "systemId", REPLACEMENT);
+    } else if (cp == CP_GT) {
+      this.err(ERR_abruptDoctypeSystemIdentifier, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      appendKey(this.currentToken, "systemId", fromCodePoint(cp));
+    }
+  }
+
+  void stateAfterDoctypeSystemIdentifier(int cp) {
+    if (isWs(cp)) {
+      return;
+    }
+    if (cp == CP_GT) {
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInDoctype, 0);
+      JS.set(this.currentToken, "forceQuirks", true);
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    } else {
+      this.err(ERR_unexpectedCharacterAfterDoctypeSystemIdentifier, 0);
+      this.state = ST_BOGUS_DOCTYPE;
+      this.stateBogusDoctype(cp);
+    }
+  }
+
+  void stateBogusDoctype(int cp) {
+    if (cp == CP_GT) {
+      this.emitCurrentDoctype(this.currentToken);
+      this.state = ST_DATA;
+    } else if (cp == CP_NULL) {
+      this.err(ERR_unexpectedNullCharacter, 0);
+    } else if (cp == CP_EOF) {
+      this.emitCurrentDoctype(this.currentToken);
+      this.emitEOFToken();
+    }
+  }
+
+  void stateCdataSection(int cp) {
+    if (cp == CP_RBRACK) {
+      this.state = ST_CDATA_SECTION_BRACKET;
+    } else if (cp == CP_EOF) {
+      this.err(ERR_eofInCdata, 0);
+      this.emitEOFToken();
+    } else {
+      this.emitCodePoint(cp);
+    }
+  }
+
+  void stateCdataSectionBracket(int cp) {
+    if (cp == CP_RBRACK) {
+      this.state = ST_CDATA_SECTION_END;
+    } else {
+      this.emitChars("]");
+      this.state = ST_CDATA_SECTION;
+      this.stateCdataSection(cp);
+    }
+  }
+
+  void stateCdataSectionEnd(int cp) {
+    if (cp == CP_GT) {
+      this.state = ST_DATA;
+    } else if (cp == CP_RBRACK) {
+      this.emitChars("]");
+    } else {
+      this.emitChars("]]");
+      this.state = ST_CDATA_SECTION;
+      this.stateCdataSection(cp);
+    }
+  }
+
+  void stateCharacterReference() {
+    int length = this.entityDecoder.write(this.preprocessor.html, this.preprocessor.pos);
+    if (length < 0) {
+      if (this.preprocessor.lastChunkWritten) {
+        length = this.entityDecoder.end();
+      } else {
+        this.active = false;
+        this.preprocessor.pos = this.preprocessor.html.length - 1;
+        this.consumedAfterSnapshot = 0;
+        this.preprocessor.endOfChunkHit = true;
+        return;
+      }
+    }
+    if (length == 0) {
+      this.preprocessor.pos = this.entityStartPos;
+      this.flushCodePointConsumedAsCharacterReference(CP_AMP);
+      if (!this.isCharacterReferenceInAttribute() && isAsciiAlphaNumeric(this.preprocessor.peek(1))) {
+        this.state = ST_AMBIGUOUS_AMPERSAND;
+      } else {
+        this.state = this.returnState;
+      }
+    } else {
+      this.state = this.returnState;
+    }
+  }
+
+  void stateAmbiguousAmpersand(int cp) {
+    if (isAsciiAlphaNumeric(cp)) {
+      this.flushCodePointConsumedAsCharacterReference(cp);
+    } else {
+      if (cp == CP_SEMI) {
+        this.err(ERR_unknownNamedCharacterReference, 0);
+      }
+      this.state = this.returnState;
+      this.callState(cp);
+    }
+  }
+}

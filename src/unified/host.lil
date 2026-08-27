@@ -1,11 +1,14 @@
 export extern JsValue Object;
+export extern JsValue Array;
 export extern JsValue String;
 export extern JsValue Error;
 export extern JsValue TypeError;
 export extern JsValue Number;
+export extern JsValue Math;
 export extern JsValue Symbol;
 export extern JsValue JSON;
 export extern JsValue Promise;
+export extern JsValue Uint16Array;
 
 export JsValue NULL = JS.invoke(JSON, "parse", "null");
 export JsValue HAS_OWN = JS.get(JS.get(Object, "prototype"), "hasOwnProperty");
