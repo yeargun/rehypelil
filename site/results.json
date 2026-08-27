@@ -56,18 +56,18 @@
     {
       "id": "itslil",
       "name": "@itslil/rehype · library",
-      "raw": 369327,
-      "gzip9": 78587,
-      "brotli11": 64165,
+      "raw": 236405,
+      "gzip9": 63238,
+      "brotli11": 52059,
       "note": "LilScript js-module, extern_fields true. The npm ESM.",
       "primary": true
     },
     {
       "id": "itslil-closed",
       "name": "@itslil/rehype · closed",
-      "raw": 369328,
-      "gzip9": 78585,
-      "brotli11": 64199,
+      "raw": 161944,
+      "gzip9": 57464,
+      "brotli11": 48131,
       "note": "Same source, extern_fields false"
     }
   ],
