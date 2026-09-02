@@ -1,0 +1,2125 @@
+import { Object, NULL } from "../../unified/host.lil";
+import { DocumentMode, Namespace, TagId, getTagID, isNumberedHeader, isSpecial, namespaceUri } from "../common/html.lil";
+import { ErrorCode, ParserError, parserErrorValue } from "../common/error-codes.lil";
+import { getDocumentMode as modeForDoctype, isConforming } from "../common/doctype.lil";
+import { adjustTokenMathMLAttrs, adjustTokenSVGAttrs, adjustTokenSVGTagName, adjustTokenXMLAttrs, causesExit, isIntegrationPoint } from "../common/foreign-content.lil";
+import { Attribute, CharacterToken, CommentToken, DoctypeToken, EofToken, Location, TagLocation, TagToken, TokenType, getTokenAttr } from "../common/token.lil";
+import { REPLACEMENT_CHARACTER } from "../common/unicode.lil";
+import { State, Tokenizer, TypedTokenHandler, attrsValue, locationValue, tagLocationValue } from "../tokenizer/index.lil";
+import {
+  adoptAttributes, appendChild, createCommentNode, createDocument, createDocumentFragment,
+  createElement, detachNode, getAttrList, getChildNodes, getFirstChild, getNamespaceURI,
+  getDocumentMode, getNodeSourceCodeLocation, getParentNode, getTagName, getTemplateContent, insertBefore,
+  insertText, insertTextBefore, isDocumentTypeNode, setDocumentMode, setDocumentType,
+  setNodeSourceCodeLocation, setTemplateContent, updateNodeSourceCodeLocation
+} from "../tree-adapters/default.lil";
+import { FormattingElementList, FormattingEntry } from "./formatting-element-list.lil";
+import { OpenElementStack } from "./open-element-stack.lil";
+
+enum InsertionMode {
+  Initial, BeforeHtml, BeforeHead, InHead, InHeadNoScript, AfterHead, InBody, Text,
+  InTable, InTableText, InCaption, InColumnGroup, InTableBody, InRow, InCell,
+  InSelect, InSelectInTable, InTemplate, AfterBody, InFrameset, AfterFrameset,
+  AfterAfterBody, AfterAfterFrameset
+}
+
+struct FosterLocation {
+  JsValue parent;
+  JsValue beforeElement;
+  bool hasBeforeElement;
+}
+
+pure bool tableStructureTag(TagId id) {
+  return id == TagId.Table || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead || id == TagId.Tr;
+}
+
+pure bool tableVoidElement(TagId id) {
+  return id == TagId.Caption || id == TagId.Col || id == TagId.Colgroup || id == TagId.Tbody || id == TagId.Td || id == TagId.Tfoot || id == TagId.Th || id == TagId.Thead || id == TagId.Tr;
+}
+
+void pushTemplateMode(InsertionMode[] stack, InsertionMode mode) {
+  stack.push(mode);
+  int i = stack.length - 1;
+  while (i > 0) {
+    stack[i] = stack[i - 1];
+    i = i - 1;
+  }
+  stack[0] = mode;
+}
+
+void popTemplateMode(InsertionMode[] stack) {
+  int i = 0;
+  while (i + 1 < stack.length) {
+    stack[i] = stack[i + 1];
+    i = i + 1;
+  }
+  stack.pop();
+}
+
+Attribute[] attributesFromValue(JsValue value) {
+  Attribute[] result = [];
+  int length = JS.number(JS.get(value, "length")).toInt();
+  int i = 0;
+  while (i < length) {
+    JsValue item = value[i];
+    Attribute attr = Attribute{JS.string(JS.get(item, "name")), JS.string(JS.get(item, "value")), null, null};
+    JsValue namespace = JS.get(item, "namespace");
+    JsValue prefix = JS.get(item, "prefix");
+    if (namespace is string) attr.namespace = namespace;
+    if (prefix is string) attr.prefix = prefix;
+    result.push(attr);
+    i = i + 1;
+  }
+  return result;
+}
+
+pure Namespace namespaceFromUri(string uri) {
+  if (uri == namespaceUri(Namespace.MathMl)) return Namespace.MathMl;
+  if (uri == namespaceUri(Namespace.Svg)) return Namespace.Svg;
+  if (uri == namespaceUri(Namespace.XLink)) return Namespace.XLink;
+  if (uri == namespaceUri(Namespace.Xml)) return Namespace.Xml;
+  if (uri == namespaceUri(Namespace.Xmlns)) return Namespace.Xmlns;
+  return Namespace.Html;
+}
+
+export class Parser {
+  bool scriptingEnabled;
+  bool sourceCodeLocationInfo;
+  JsValue onParseError;
+  JsValue treeAdapterHooks;
+  JsValue scriptHandler;
+  JsValue document;
+  JsValue fragmentContext;
+  bool hasFragmentContext;
+  TagId fragmentContextID;
+  Tokenizer tokenizer;
+  OpenElementStack openElements;
+  FormattingElementList activeFormattingElements;
+  TokenType currentTokenType;
+  Location? currentTokenLocation;
+  TagToken currentTagToken;
+  CharacterToken currentCharacterToken;
+  CommentToken currentCommentToken;
+  DoctypeToken currentDoctypeToken;
+  EofToken currentEofToken;
+  InsertionMode insertionMode;
+  InsertionMode originalInsertionMode;
+  JsValue headElement;
+  bool hasHeadElement;
+  JsValue formElement;
+  bool hasFormElement;
+  bool currentNotInHTML;
+  InsertionMode[] tmplInsertionModeStack;
+  CharacterToken[] pendingCharacterTokens;
+  bool hasNonWhitespacePendingCharacterToken;
+  bool framesetOk;
+  bool skipNextNewLine;
+  bool fosterParentingEnabled;
+  bool stopped;
+
+  init(JsValue rawOptions, JsValue suppliedDocument, bool hasDocument, JsValue fragmentContext, bool hasFragmentContext, JsValue scriptHandler) {
+    this.scriptingEnabled = true;
+    this.sourceCodeLocationInfo = false;
+    this.onParseError = NULL;
+    this.treeAdapterHooks = JS.undefined();
+    if (!(JS.isUndefined(rawOptions) || JS.isNullish(rawOptions))) {
+      JsValue scripting = JS.get(rawOptions, "scriptingEnabled");
+      if (!JS.isUndefined(scripting)) this.scriptingEnabled = scripting.truthy();
+      JsValue locations = JS.get(rawOptions, "sourceCodeLocationInfo");
+      if (!JS.isUndefined(locations)) this.sourceCodeLocationInfo = locations.truthy();
+      JsValue errors = JS.get(rawOptions, "onParseError");
+      if (!JS.isUndefined(errors)) this.onParseError = errors;
+      this.treeAdapterHooks = JS.get(rawOptions, "treeAdapter");
+    }
+    if (this.onParseError.truthy()) this.sourceCodeLocationInfo = true;
+    this.scriptHandler = scriptHandler;
+    this.document = createDocument();
+    if (hasDocument) this.document = suppliedDocument;
+    this.fragmentContext = fragmentContext;
+    this.hasFragmentContext = hasFragmentContext;
+    this.fragmentContextID = TagId.Unknown;
+    if (hasFragmentContext) this.fragmentContextID = getTagID(getTagName(fragmentContext));
+    this.insertionMode = InsertionMode.Initial;
+    this.originalInsertionMode = InsertionMode.Initial;
+    this.headElement = NULL;
+    this.hasHeadElement = false;
+    this.formElement = NULL;
+    this.hasFormElement = false;
+    this.currentNotInHTML = false;
+    this.tmplInsertionModeStack = [];
+    this.pendingCharacterTokens = [];
+    this.hasNonWhitespacePendingCharacterToken = false;
+    this.framesetOk = true;
+    this.skipNextNewLine = false;
+    this.fosterParentingEnabled = false;
+    this.stopped = false;
+    this.currentTokenType = TokenType.Eof;
+    this.currentTokenLocation = null;
+    this.currentTagToken = TagToken{TokenType.Character, "", TagId.Unknown, false, false, [], null, JS.undefined()};
+    this.currentCharacterToken = CharacterToken{TokenType.Character, "", null};
+    this.currentCommentToken = CommentToken{TokenType.Comment, "", null};
+    this.currentDoctypeToken = DoctypeToken{TokenType.Doctype, null, false, null, null, null};
+    this.currentEofToken = EofToken{TokenType.Eof, null};
+
+    Parser parser = this;
+    JsValue tokenizerHandler = JS.object("onParseError", JS.undefined());
+    if (this.onParseError.truthy()) {
+      JS.set(tokenizerHandler, "onParseError", JS.method1((JsValue _self, JsValue error) => {
+        JS.call(parser.onParseError, parser, error);
+        return JS.undefined();
+      }));
+    }
+    JsValue tokenizerOptions = JS.object("sourceCodeLocationInfo", this.sourceCodeLocationInfo);
+    TypedTokenHandler typedHandler = TypedTokenHandler{
+      (CommentToken token) => { parser.onComment(token); },
+      (DoctypeToken token) => { parser.onDoctype(token); },
+      (TagToken token) => { parser.onStartTag(token); },
+      (TagToken token) => { parser.onEndTag(token); },
+      (EofToken token) => { parser.onEof(token); },
+      (CharacterToken token) => { parser.onCharacter(token); },
+      (CharacterToken token) => { parser.onNullCharacter(token); },
+      (CharacterToken token) => { parser.onWhitespaceCharacter(token); }
+    };
+    this.tokenizer = new Tokenizer(tokenizerOptions, tokenizerHandler, typedHandler);
+    this.activeFormattingElements = new FormattingElementList();
+    if (hasFragmentContext) this.setContextModes(fragmentContext, this.fragmentContextID, true);
+    else this.setContextModes(this.document, this.fragmentContextID, true);
+    this.openElements = new OpenElementStack(
+      this.document,
+      (JsValue node, TagId id, bool isTop) => { parser.onItemPush(node, id, isTop); },
+      (JsValue node, bool isTop) => { parser.onItemPop(node, isTop); }
+    );
+  }
+
+  void err(Location? location, ErrorCode code, bool beforeToken = false) {
+    if (!this.onParseError.truthy()) return;
+    int startLine = -1;
+    int startCol = -1;
+    int startOffset = -1;
+    int endLine = -1;
+    int endCol = -1;
+    int endOffset = -1;
+    Location? loc = location;
+    if (loc != null) {
+      startLine = loc.startLine;
+      startCol = loc.startCol;
+      startOffset = loc.startOffset;
+      endLine = loc.endLine;
+      endCol = loc.endCol;
+      endOffset = loc.endOffset;
+      if (beforeToken) {
+        endLine = loc.startLine;
+        endCol = loc.startCol;
+        endOffset = loc.startOffset;
+      }
+    }
+    ParserError error = ParserError{code, startLine, endLine, startCol, endCol, startOffset, endOffset};
+    JS.call(this.onParseError, this, parserErrorValue(error));
+  }
+
+  void onItemPush(JsValue node, TagId id, bool isTop) {
+    if (!(JS.isUndefined(this.treeAdapterHooks) || JS.isNullish(this.treeAdapterHooks))) {
+      JsValue callback = JS.get(this.treeAdapterHooks, "onItemPush");
+      if (!(JS.isUndefined(callback) || JS.isNullish(callback))) JS.call(callback, this.treeAdapterHooks, node);
+    }
+    if (isTop && this.openElements.stackTop > 0) this.setContextModes(node, id, true);
+  }
+
+  void onItemPop(JsValue node, bool isTop) {
+    if (this.sourceCodeLocationInfo) this.setEndLocation(node, this.currentTagToken);
+    if (!(JS.isUndefined(this.treeAdapterHooks) || JS.isNullish(this.treeAdapterHooks))) {
+      JsValue callback = JS.get(this.treeAdapterHooks, "onItemPop");
+      if (!(JS.isUndefined(callback) || JS.isNullish(callback))) JS.call(callback, this.treeAdapterHooks, node, this.openElements.current);
+    }
+    if (isTop) {
+      if (this.openElements.stackTop == 0 && this.hasFragmentContext) {
+        this.setContextModes(this.fragmentContext, this.fragmentContextID, true);
+      } else {
+        this.setContextModes(this.openElements.current, this.openElements.currentTagId, this.openElements.hasCurrent);
+      }
+    }
+  }
+
+  void setContextModes(JsValue current, TagId id, bool hasCurrent) {
+    bool isHTML = JS.strictEqual(current, this.document) || (hasCurrent && getNamespaceURI(current) == namespaceUri(Namespace.Html));
+    this.currentNotInHTML = !isHTML;
+    this.tokenizer.inForeignNode = !isHTML && hasCurrent && !this.isIntegrationPoint(id, current, null);
+  }
+
+  bool isIntegrationPoint(TagId id, JsValue element, Namespace? foreignNS) {
+    string uri = getNamespaceURI(element);
+    return isIntegrationPoint(id, namespaceFromUri(uri), attributesFromValue(getAttrList(element)), foreignNS);
+  }
+
+  void switchToTextParsing(TagToken token, State nextState) {
+    this.insertElement(token, namespaceUri(Namespace.Html));
+    this.tokenizer.state = nextState;
+    this.originalInsertionMode = this.insertionMode;
+    this.insertionMode = InsertionMode.Text;
+  }
+
+  void switchToPlaintextParsing() {
+    this.insertionMode = InsertionMode.Text;
+    this.originalInsertionMode = InsertionMode.InBody;
+    this.tokenizer.state = State.Plaintext;
+  }
+
+  JsValue adjustedCurrentElement() {
+    if (this.openElements.stackTop == 0 && this.hasFragmentContext) return this.fragmentContext;
+    return this.openElements.current;
+  }
+
+  void findFormInFragmentContext() {
+    if (!this.hasFragmentContext) return;
+    JsValue node = this.fragmentContext;
+    while (!(JS.isUndefined(node) || JS.isNullish(node))) {
+      if (getTagName(node) == "form") {
+        this.formElement = node;
+        this.hasFormElement = true;
+        return;
+      }
+      node = getParentNode(node);
+    }
+  }
+
+  void initTokenizerForFragmentParsing() {
+    if (!this.hasFragmentContext || getNamespaceURI(this.fragmentContext) != namespaceUri(Namespace.Html)) return;
+    TagId id = this.fragmentContextID;
+    if (id == TagId.Title || id == TagId.Textarea) {
+      this.tokenizer.state = State.Rcdata;
+    } else if (id == TagId.Style || id == TagId.Xmp || id == TagId.Iframe || id == TagId.Noembed || id == TagId.Noframes || id == TagId.Noscript) {
+      this.tokenizer.state = State.Rawtext;
+    } else if (id == TagId.Script) {
+      this.tokenizer.state = State.ScriptData;
+    } else if (id == TagId.Plaintext) {
+      this.tokenizer.state = State.Plaintext;
+    }
+  }
+
+  void setDocumentTypeToken(DoctypeToken token) {
+    string name = "";
+    string publicId = "";
+    string systemId = "";
+    string? tokenName = token.name;
+    string? tokenPublicId = token.publicId;
+    string? tokenSystemId = token.systemId;
+    if (tokenName != null) name = tokenName;
+    if (tokenPublicId != null) publicId = tokenPublicId;
+    if (tokenSystemId != null) systemId = tokenSystemId;
+    setDocumentType(this.document, name, publicId, systemId);
+    Location? tokenLocation = token.location;
+    if (tokenLocation == null) return;
+    JsValue children = getChildNodes(this.document);
+    int length = JS.number(JS.get(children, "length")).toInt();
+    int i = 0;
+    while (i < length) {
+      JsValue child = children[i];
+      if (isDocumentTypeNode(child)) {
+        setNodeSourceCodeLocation(child, locationValue(tokenLocation));
+        return;
+      }
+      i = i + 1;
+    }
+  }
+
+  void attachElementToTree(JsValue element, TagToken token) {
+    if (this.sourceCodeLocationInfo) {
+      if (token.location == null) {
+        setNodeSourceCodeLocation(element, NULL);
+      } else {
+        JsValue startTag = token.serializedLocation;
+        if (JS.isUndefined(startTag)) startTag = tagLocationValue(token.location, token.attrs);
+        JsValue location = JS.invoke(Object, "assign", JS.object(), startTag);
+        JS.set(location, "startTag", startTag);
+        setNodeSourceCodeLocation(element, location);
+      }
+    }
+    if (this.shouldFosterParentOnInsertion()) {
+      this.fosterParentElement(element);
+    } else {
+      JsValue parent = this.document;
+      if (this.openElements.hasCurrent) parent = this.openElements.currentTmplContentOrNode();
+      appendChild(parent, element);
+    }
+  }
+
+  void appendElement(TagToken token, string namespaceURI) {
+    JsValue element = createElement(token.tagName, namespaceURI, attrsValue(token.attrs));
+    this.attachElementToTree(element, token);
+  }
+
+  void insertElement(TagToken token, string namespaceURI) {
+    JsValue element = createElement(token.tagName, namespaceURI, attrsValue(token.attrs));
+    this.attachElementToTree(element, token);
+    this.openElements.push(element, token.tagID);
+  }
+
+  void insertFakeElement(string tagName, TagId tagID) {
+    TagToken token = TagToken{TokenType.StartTag, tagName, tagID, false, false, [], null, JS.undefined()};
+    this.insertElement(token, namespaceUri(Namespace.Html));
+  }
+
+  void insertTemplate(TagToken token) {
+    JsValue element = createElement(token.tagName, namespaceUri(Namespace.Html), attrsValue(token.attrs));
+    JsValue content = createDocumentFragment();
+    setTemplateContent(element, content);
+    this.attachElementToTree(element, token);
+    this.openElements.push(element, token.tagID);
+    if (this.sourceCodeLocationInfo) setNodeSourceCodeLocation(content, NULL);
+  }
+
+  void insertFakeRootElement() {
+    JsValue element = createElement("html", namespaceUri(Namespace.Html), JS.array());
+    if (this.sourceCodeLocationInfo) setNodeSourceCodeLocation(element, NULL);
+    appendChild(this.openElements.current, element);
+    this.openElements.push(element, TagId.Html);
+  }
+
+  void appendCommentNode(CommentToken token, JsValue parent) {
+    JsValue comment = createCommentNode(token.data);
+    appendChild(parent, comment);
+    if (this.sourceCodeLocationInfo) setNodeSourceCodeLocation(comment, locationValue(token.location));
+  }
+
+  void insertCharacters(CharacterToken token) {
+    JsValue parent = JS.undefined();
+    JsValue beforeElement = NULL;
+    bool hasBeforeElement = false;
+    if (this.shouldFosterParentOnInsertion()) {
+      FosterLocation location = this.findFosterParentingLocation();
+      parent = location.parent;
+      beforeElement = location.beforeElement;
+      hasBeforeElement = location.hasBeforeElement;
+      if (hasBeforeElement) insertTextBefore(parent, token.chars, beforeElement);
+      else insertText(parent, token.chars);
+    } else {
+      parent = this.openElements.currentTmplContentOrNode();
+      insertText(parent, token.chars);
+    }
+    Location? tokenLocation = token.location;
+    if (tokenLocation == null) return;
+    JsValue siblings = getChildNodes(parent);
+    int textNodeIndex = JS.number(JS.get(siblings, "length")).toInt();
+    if (hasBeforeElement) textNodeIndex = JS.number(JS.invoke(siblings, "lastIndexOf", beforeElement)).toInt();
+    JsValue textNode = siblings[textNodeIndex - 1];
+    JsValue currentLocation = getNodeSourceCodeLocation(textNode);
+    if (!(JS.isUndefined(currentLocation) || JS.isNullish(currentLocation))) {
+      updateNodeSourceCodeLocation(textNode, JS.object(
+        "endLine", tokenLocation.endLine,
+        "endCol", tokenLocation.endCol,
+        "endOffset", tokenLocation.endOffset
+      ));
+    } else if (this.sourceCodeLocationInfo) {
+      setNodeSourceCodeLocation(textNode, locationValue(tokenLocation));
+    }
+  }
+
+  void adoptNodes(JsValue donor, JsValue recipient) {
+    while (true) {
+      JsValue child = getFirstChild(donor);
+      if (JS.isUndefined(child) || JS.isNullish(child)) return;
+      detachNode(child);
+      appendChild(recipient, child);
+    }
+  }
+
+  void setEndLocation(JsValue element, TagToken closingToken) {
+    JsValue oldLocation = getNodeSourceCodeLocation(element);
+    TagLocation? tokenLocation = closingToken.location;
+    if (JS.isUndefined(oldLocation) || JS.isNullish(oldLocation) || tokenLocation == null) return;
+    JsValue closingLocation = closingToken.serializedLocation;
+    if (JS.isUndefined(closingLocation)) closingLocation = tagLocationValue(tokenLocation, closingToken.attrs);
+    if (closingToken.type == TokenType.EndTag && getTagName(element) == closingToken.tagName) {
+      updateNodeSourceCodeLocation(element, JS.object(
+        "endTag", JS.invoke(Object, "assign", JS.object(), closingLocation),
+        "endLine", tokenLocation.endLine,
+        "endCol", tokenLocation.endCol,
+        "endOffset", tokenLocation.endOffset
+      ));
+    } else {
+      updateNodeSourceCodeLocation(element, JS.object(
+        "endLine", tokenLocation.startLine,
+        "endCol", tokenLocation.startCol,
+        "endOffset", tokenLocation.startOffset
+      ));
+    }
+  }
+
+  void setEndLocationAtEof(JsValue element, EofToken token) {
+    JsValue oldLocation = getNodeSourceCodeLocation(element);
+    Location? tokenLocation = token.location;
+    if (JS.isUndefined(oldLocation) || JS.isNullish(oldLocation) || tokenLocation == null) return;
+    updateNodeSourceCodeLocation(element, JS.object(
+      "endLine", tokenLocation.startLine,
+      "endCol", tokenLocation.startCol,
+      "endOffset", tokenLocation.startOffset
+    ));
+  }
+
+  bool shouldProcessStartTagTokenInForeignContent(TagToken token) {
+    if (!this.currentNotInHTML) return false;
+    JsValue current = this.openElements.current;
+    TagId currentTagId = this.openElements.currentTagId;
+    if (this.openElements.stackTop == 0 && this.hasFragmentContext) {
+      current = this.fragmentContext;
+      currentTagId = this.fragmentContextID;
+    }
+    if (token.tagID == TagId.Svg && getTagName(current) == "annotation-xml" && getNamespaceURI(current) == namespaceUri(Namespace.MathMl)) return false;
+    return this.tokenizer.inForeignNode || ((token.tagID == TagId.Mglyph || token.tagID == TagId.Malignmark) && !this.isIntegrationPoint(currentTagId, current, Namespace.Html));
+  }
+
+  void reconstructActiveFormattingElements() {
+    int length = this.activeFormattingElements.entries.length;
+    if (length == 0) return;
+    int endIndex = -1;
+    int i = 0;
+    while (i < length) {
+      FormattingEntry? entry = this.activeFormattingElements.entries[i];
+      if (entry == null || this.openElements.contains(entry.element)) {
+        endIndex = i;
+        i = length;
+      }
+      i = i + 1;
+    }
+    int unopenIndex = length - 1;
+    if (endIndex != -1) unopenIndex = endIndex - 1;
+    i = unopenIndex;
+    while (i >= 0) {
+      FormattingEntry? entry = this.activeFormattingElements.entries[i];
+      if (entry != null) {
+        TagToken? token = entry.token;
+        if (token != null) {
+          this.insertElement(token, getNamespaceURI(entry.element));
+          entry.element = this.openElements.current;
+        }
+      }
+      i = i - 1;
+    }
+  }
+
+  void closeTableCell() {
+    this.openElements.generateImpliedEndTags();
+    this.openElements.popUntilTableCellPopped();
+    this.activeFormattingElements.clearToLastMarker();
+    this.insertionMode = InsertionMode.InRow;
+  }
+
+  void closePElement() {
+    this.openElements.generateImpliedEndTagsWithExclusion(TagId.P);
+    this.openElements.popUntilTagNamePopped(TagId.P);
+  }
+
+  void resetInsertionMode() {
+    int i = this.openElements.stackTop;
+    while (i >= 0) {
+      TagId id = this.openElements.tagIDs[i];
+      if (i == 0 && this.hasFragmentContext) id = this.fragmentContextID;
+      if (id == TagId.Tr) { this.insertionMode = InsertionMode.InRow; return; }
+      if (id == TagId.Tbody || id == TagId.Thead || id == TagId.Tfoot) { this.insertionMode = InsertionMode.InTableBody; return; }
+      if (id == TagId.Caption) { this.insertionMode = InsertionMode.InCaption; return; }
+      if (id == TagId.Colgroup) { this.insertionMode = InsertionMode.InColumnGroup; return; }
+      if (id == TagId.Table) { this.insertionMode = InsertionMode.InTable; return; }
+      if (id == TagId.Body) { this.insertionMode = InsertionMode.InBody; return; }
+      if (id == TagId.Frameset) { this.insertionMode = InsertionMode.InFrameset; return; }
+      if (id == TagId.Select) { this.resetInsertionModeForSelect(i); return; }
+      if (id == TagId.Template) { this.insertionMode = this.tmplInsertionModeStack[0]; return; }
+      if (id == TagId.Html) {
+        this.insertionMode = InsertionMode.BeforeHead;
+        if (this.hasHeadElement) this.insertionMode = InsertionMode.AfterHead;
+        return;
+      }
+      if ((id == TagId.Td || id == TagId.Th) && i > 0) { this.insertionMode = InsertionMode.InCell; return; }
+      if (id == TagId.Head && i > 0) { this.insertionMode = InsertionMode.InHead; return; }
+      i = i - 1;
+    }
+    this.insertionMode = InsertionMode.InBody;
+  }
+
+  void resetInsertionModeForSelect(int selectIndex) {
+    if (selectIndex > 0) {
+      int i = selectIndex - 1;
+      while (i > 0) {
+        TagId id = this.openElements.tagIDs[i];
+        if (id == TagId.Template) {
+          this.insertionMode = InsertionMode.InSelect;
+          return;
+        }
+        if (id == TagId.Table) { this.insertionMode = InsertionMode.InSelectInTable; return; }
+        i = i - 1;
+      }
+    }
+    this.insertionMode = InsertionMode.InSelect;
+  }
+
+  void setInsertionMode(InsertionMode mode) {
+    this.insertionMode = mode;
+  }
+
+  bool isElementCausesFosterParenting(TagId id) {
+    return tableStructureTag(id);
+  }
+
+  bool shouldFosterParentOnInsertion() {
+    return this.fosterParentingEnabled && this.openElements.hasCurrent && tableStructureTag(this.openElements.currentTagId);
+  }
+
+  FosterLocation findFosterParentingLocation() {
+    int i = this.openElements.stackTop;
+    while (i >= 0) {
+      JsValue element = this.openElements.items[i];
+      TagId id = this.openElements.tagIDs[i];
+      if (id == TagId.Template && getNamespaceURI(element) == namespaceUri(Namespace.Html)) {
+        return FosterLocation{getTemplateContent(element), NULL, false};
+      }
+      if (id == TagId.Table) {
+        JsValue parent = getParentNode(element);
+        if (!(JS.isUndefined(parent) || JS.isNullish(parent))) return FosterLocation{parent, element, true};
+        return FosterLocation{this.openElements.items[i - 1], NULL, false};
+      }
+      i = i - 1;
+    }
+    return FosterLocation{this.openElements.items[0], NULL, false};
+  }
+
+  void fosterParentElement(JsValue element) {
+    FosterLocation location = this.findFosterParentingLocation();
+    if (location.hasBeforeElement) insertBefore(location.parent, element, location.beforeElement);
+    else appendChild(location.parent, element);
+  }
+
+  bool isSpecialElement(JsValue element, TagId id) {
+    return isSpecial(namespaceFromUri(getNamespaceURI(element)), id);
+  }
+
+  void processCurrentToken() {
+    if (this.currentTokenType == TokenType.Character) this.processCharacter(this.currentCharacterToken);
+    else if (this.currentTokenType == TokenType.NullCharacter) this.processNullCharacter(this.currentCharacterToken);
+    else if (this.currentTokenType == TokenType.WhitespaceCharacter) this.processWhitespaceCharacter(this.currentCharacterToken);
+    else if (this.currentTokenType == TokenType.StartTag) this.processStartTag(this.currentTagToken);
+    else if (this.currentTokenType == TokenType.EndTag) this.processEndTag(this.currentTagToken);
+    else if (this.currentTokenType == TokenType.Comment) this.processComment(this.currentCommentToken);
+    else if (this.currentTokenType == TokenType.Doctype) this.processDoctype(this.currentDoctypeToken);
+    else if (this.currentTokenType == TokenType.Eof) this.processEof(this.currentEofToken);
+  }
+
+  void processCurrentTokenInBody() {
+    if (this.currentTokenType == TokenType.Character) characterInBody(this, this.currentCharacterToken);
+    else if (this.currentTokenType == TokenType.WhitespaceCharacter) whitespaceCharacterInBody(this, this.currentCharacterToken);
+    else if (this.currentTokenType == TokenType.Comment) appendComment(this, this.currentCommentToken);
+    else if (this.currentTokenType == TokenType.StartTag) startTagInBody(this, this.currentTagToken);
+    else if (this.currentTokenType == TokenType.EndTag) endTagInBody(this, this.currentTagToken);
+    else if (this.currentTokenType == TokenType.Eof) eofInBody(this, this.currentEofToken);
+  }
+
+  void onCharacter(CharacterToken token) {
+    this.skipNextNewLine = false;
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentCharacterToken = token;
+    this.processCharacter(token);
+  }
+
+  void processCharacter(CharacterToken token) {
+    if (this.tokenizer.inForeignNode) { characterInForeignContent(this, token); return; }
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.Initial) tokenInInitialMode(this);
+    else if (mode == InsertionMode.BeforeHtml) tokenBeforeHtml(this);
+    else if (mode == InsertionMode.BeforeHead) tokenBeforeHead(this);
+    else if (mode == InsertionMode.InHead) tokenInHead(this);
+    else if (mode == InsertionMode.InHeadNoScript) tokenInHeadNoScript(this);
+    else if (mode == InsertionMode.AfterHead) tokenAfterHead(this);
+    else if (mode == InsertionMode.InBody || mode == InsertionMode.InCaption || mode == InsertionMode.InCell || mode == InsertionMode.InTemplate) characterInBody(this, token);
+    else if (mode == InsertionMode.Text || mode == InsertionMode.InSelect || mode == InsertionMode.InSelectInTable) this.insertCharacters(token);
+    else if (mode == InsertionMode.InTable || mode == InsertionMode.InTableBody || mode == InsertionMode.InRow) characterInTable(this, token);
+    else if (mode == InsertionMode.InTableText) characterInTableText(this, token);
+    else if (mode == InsertionMode.InColumnGroup) tokenInColumnGroup(this);
+    else if (mode == InsertionMode.AfterBody) tokenAfterBody(this);
+    else if (mode == InsertionMode.AfterAfterBody) tokenAfterAfterBody(this);
+  }
+
+  void onNullCharacter(CharacterToken token) {
+    this.skipNextNewLine = false;
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentCharacterToken = token;
+    this.processNullCharacter(token);
+  }
+
+  void processNullCharacter(CharacterToken token) {
+    if (this.tokenizer.inForeignNode) { nullCharacterInForeignContent(this, token); return; }
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.Initial) tokenInInitialMode(this);
+    else if (mode == InsertionMode.BeforeHtml) tokenBeforeHtml(this);
+    else if (mode == InsertionMode.BeforeHead) tokenBeforeHead(this);
+    else if (mode == InsertionMode.InHead) tokenInHead(this);
+    else if (mode == InsertionMode.InHeadNoScript) tokenInHeadNoScript(this);
+    else if (mode == InsertionMode.AfterHead) tokenAfterHead(this);
+    else if (mode == InsertionMode.Text) this.insertCharacters(token);
+    else if (mode == InsertionMode.InTable || mode == InsertionMode.InTableBody || mode == InsertionMode.InRow) characterInTable(this, token);
+    else if (mode == InsertionMode.InColumnGroup) tokenInColumnGroup(this);
+    else if (mode == InsertionMode.AfterBody) tokenAfterBody(this);
+    else if (mode == InsertionMode.AfterAfterBody) tokenAfterAfterBody(this);
+  }
+
+  void onComment(CommentToken token) {
+    this.skipNextNewLine = false;
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentCommentToken = token;
+    this.processComment(token);
+  }
+
+  void processComment(CommentToken token) {
+    if (this.currentNotInHTML) { appendComment(this, token); return; }
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.InTableText) tokenInTableText(this);
+    else if (mode == InsertionMode.AfterBody) appendCommentToRootHtmlElement(this, token);
+    else if (mode == InsertionMode.AfterAfterBody || mode == InsertionMode.AfterAfterFrameset) appendCommentToDocument(this, token);
+    else if (mode == InsertionMode.Initial || mode == InsertionMode.BeforeHtml || mode == InsertionMode.BeforeHead || mode == InsertionMode.InHead || mode == InsertionMode.InHeadNoScript || mode == InsertionMode.AfterHead || mode == InsertionMode.InBody || mode == InsertionMode.InTable || mode == InsertionMode.InCaption || mode == InsertionMode.InColumnGroup || mode == InsertionMode.InTableBody || mode == InsertionMode.InRow || mode == InsertionMode.InCell || mode == InsertionMode.InSelect || mode == InsertionMode.InSelectInTable || mode == InsertionMode.InTemplate || mode == InsertionMode.InFrameset || mode == InsertionMode.AfterFrameset) appendComment(this, token);
+  }
+
+  void onDoctype(DoctypeToken token) {
+    this.skipNextNewLine = false;
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentDoctypeToken = token;
+    this.processDoctype(token);
+  }
+
+  void processDoctype(DoctypeToken token) {
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.Initial) doctypeInInitialMode(this, token);
+    else if (mode == InsertionMode.BeforeHead || mode == InsertionMode.InHead || mode == InsertionMode.InHeadNoScript || mode == InsertionMode.AfterHead) this.err(token.location, ErrorCode.MisplacedDoctype);
+    else if (mode == InsertionMode.InTableText) tokenInTableText(this);
+  }
+
+  void onStartTag(TagToken token) {
+    this.skipNextNewLine = false;
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentTagToken = token;
+    token.serializedLocation = tagLocationValue(token.location, token.attrs);
+    this.processStartTag(token);
+    if (token.selfClosing && !token.ackSelfClosing) this.err(token.location, ErrorCode.NonVoidHtmlElementStartTagWithTrailingSolidus);
+  }
+
+  void processStartTag(TagToken token) {
+    if (this.shouldProcessStartTagTokenInForeignContent(token)) startTagInForeignContent(this, token);
+    else this.startTagOutsideForeignContent(token);
+  }
+
+  void startTagOutsideForeignContent(TagToken token) {
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.Initial) tokenInInitialMode(this);
+    else if (mode == InsertionMode.BeforeHtml) startTagBeforeHtml(this, token);
+    else if (mode == InsertionMode.BeforeHead) startTagBeforeHead(this, token);
+    else if (mode == InsertionMode.InHead) startTagInHead(this, token);
+    else if (mode == InsertionMode.InHeadNoScript) startTagInHeadNoScript(this, token);
+    else if (mode == InsertionMode.AfterHead) startTagAfterHead(this, token);
+    else if (mode == InsertionMode.InBody) startTagInBody(this, token);
+    else if (mode == InsertionMode.InTable) startTagInTable(this, token);
+    else if (mode == InsertionMode.InTableText) tokenInTableText(this);
+    else if (mode == InsertionMode.InCaption) startTagInCaption(this, token);
+    else if (mode == InsertionMode.InColumnGroup) startTagInColumnGroup(this, token);
+    else if (mode == InsertionMode.InTableBody) startTagInTableBody(this, token);
+    else if (mode == InsertionMode.InRow) startTagInRow(this, token);
+    else if (mode == InsertionMode.InCell) startTagInCell(this, token);
+    else if (mode == InsertionMode.InSelect) startTagInSelect(this, token);
+    else if (mode == InsertionMode.InSelectInTable) startTagInSelectInTable(this, token);
+    else if (mode == InsertionMode.InTemplate) startTagInTemplate(this, token);
+    else if (mode == InsertionMode.AfterBody) startTagAfterBody(this, token);
+    else if (mode == InsertionMode.InFrameset) startTagInFrameset(this, token);
+    else if (mode == InsertionMode.AfterFrameset) startTagAfterFrameset(this, token);
+    else if (mode == InsertionMode.AfterAfterBody) startTagAfterAfterBody(this, token);
+    else if (mode == InsertionMode.AfterAfterFrameset) startTagAfterAfterFrameset(this, token);
+  }
+
+  void onEndTag(TagToken token) {
+    this.skipNextNewLine = false;
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentTagToken = token;
+    token.serializedLocation = tagLocationValue(token.location, token.attrs);
+    this.processEndTag(token);
+  }
+
+  void processEndTag(TagToken token) {
+    if (this.currentNotInHTML) endTagInForeignContent(this, token);
+    else this.endTagOutsideForeignContent(token);
+  }
+
+  void endTagOutsideForeignContent(TagToken token) {
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.Initial) tokenInInitialMode(this);
+    else if (mode == InsertionMode.BeforeHtml) endTagBeforeHtml(this, token);
+    else if (mode == InsertionMode.BeforeHead) endTagBeforeHead(this, token);
+    else if (mode == InsertionMode.InHead) endTagInHead(this, token);
+    else if (mode == InsertionMode.InHeadNoScript) endTagInHeadNoScript(this, token);
+    else if (mode == InsertionMode.AfterHead) endTagAfterHead(this, token);
+    else if (mode == InsertionMode.InBody) endTagInBody(this, token);
+    else if (mode == InsertionMode.Text) endTagInText(this, token);
+    else if (mode == InsertionMode.InTable) endTagInTable(this, token);
+    else if (mode == InsertionMode.InTableText) tokenInTableText(this);
+    else if (mode == InsertionMode.InCaption) endTagInCaption(this, token);
+    else if (mode == InsertionMode.InColumnGroup) endTagInColumnGroup(this, token);
+    else if (mode == InsertionMode.InTableBody) endTagInTableBody(this, token);
+    else if (mode == InsertionMode.InRow) endTagInRow(this, token);
+    else if (mode == InsertionMode.InCell) endTagInCell(this, token);
+    else if (mode == InsertionMode.InSelect) endTagInSelect(this, token);
+    else if (mode == InsertionMode.InSelectInTable) endTagInSelectInTable(this, token);
+    else if (mode == InsertionMode.InTemplate) endTagInTemplate(this, token);
+    else if (mode == InsertionMode.AfterBody) endTagAfterBody(this, token);
+    else if (mode == InsertionMode.InFrameset) endTagInFrameset(this, token);
+    else if (mode == InsertionMode.AfterFrameset) endTagAfterFrameset(this, token);
+    else if (mode == InsertionMode.AfterAfterBody) tokenAfterAfterBody(this);
+  }
+
+  void onEof(EofToken token) {
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentEofToken = token;
+    this.processEof(token);
+  }
+
+  void processEof(EofToken token) {
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.Initial) tokenInInitialMode(this);
+    else if (mode == InsertionMode.BeforeHtml) tokenBeforeHtml(this);
+    else if (mode == InsertionMode.BeforeHead) tokenBeforeHead(this);
+    else if (mode == InsertionMode.InHead) tokenInHead(this);
+    else if (mode == InsertionMode.InHeadNoScript) tokenInHeadNoScript(this);
+    else if (mode == InsertionMode.AfterHead) tokenAfterHead(this);
+    else if (mode == InsertionMode.Text) eofInText(this, token);
+    else if (mode == InsertionMode.InTableText) tokenInTableText(this);
+    else if (mode == InsertionMode.InTemplate) eofInTemplate(this, token);
+    else if (mode == InsertionMode.InBody || mode == InsertionMode.InTable || mode == InsertionMode.InCaption || mode == InsertionMode.InColumnGroup || mode == InsertionMode.InTableBody || mode == InsertionMode.InRow || mode == InsertionMode.InCell || mode == InsertionMode.InSelect || mode == InsertionMode.InSelectInTable) eofInBody(this, token);
+    else if (mode == InsertionMode.AfterBody || mode == InsertionMode.InFrameset || mode == InsertionMode.AfterFrameset || mode == InsertionMode.AfterAfterBody || mode == InsertionMode.AfterAfterFrameset) stopParsing(this, token);
+  }
+
+  void onWhitespaceCharacter(CharacterToken token) {
+    this.currentTokenType = token.type;
+    this.currentTokenLocation = token.location;
+    this.currentCharacterToken = token;
+    if (this.skipNextNewLine) {
+      this.skipNextNewLine = false;
+      if (token.chars.charCodeAt(0) == 10) {
+        if (token.chars.length == 1) return;
+        token.chars = token.chars.slice(1);
+      }
+    }
+    this.processWhitespaceCharacter(token);
+  }
+
+  void processWhitespaceCharacter(CharacterToken token) {
+    if (this.tokenizer.inForeignNode) { this.insertCharacters(token); return; }
+    InsertionMode mode = this.insertionMode;
+    if (mode == InsertionMode.InHead || mode == InsertionMode.InHeadNoScript || mode == InsertionMode.AfterHead || mode == InsertionMode.Text || mode == InsertionMode.InColumnGroup || mode == InsertionMode.InSelect || mode == InsertionMode.InSelectInTable || mode == InsertionMode.InFrameset || mode == InsertionMode.AfterFrameset) this.insertCharacters(token);
+    else if (mode == InsertionMode.InBody || mode == InsertionMode.InCaption || mode == InsertionMode.InCell || mode == InsertionMode.InTemplate || mode == InsertionMode.AfterBody || mode == InsertionMode.AfterAfterBody || mode == InsertionMode.AfterAfterFrameset) whitespaceCharacterInBody(this, token);
+    else if (mode == InsertionMode.InTable || mode == InsertionMode.InTableBody || mode == InsertionMode.InRow) characterInTable(this, token);
+    else if (mode == InsertionMode.InTableText) whitespaceCharacterInTableText(this, token);
+  }
+
+  JsValue getFragment() {
+    JsValue rootElement = getFirstChild(this.document);
+    JsValue fragment = createDocumentFragment();
+    this.adoptNodes(rootElement, fragment);
+    return fragment;
+  }
+}
+
+Parser createFragmentParser(JsValue fragmentContext, bool hasFragmentContext, JsValue options) {
+  JsValue context = fragmentContext;
+  if (!hasFragmentContext) context = createElement("template", namespaceUri(Namespace.Html), JS.array());
+  JsValue documentMock = createElement("documentmock", namespaceUri(Namespace.Html), JS.array());
+  Parser parser = new Parser(options, documentMock, true, context, true, JS.undefined());
+  if (parser.fragmentContextID == TagId.Template) pushTemplateMode(parser.tmplInsertionModeStack, InsertionMode.InTemplate);
+  parser.initTokenizerForFragmentParsing();
+  parser.insertFakeRootElement();
+  parser.resetInsertionMode();
+  parser.findFormInFragmentContext();
+  return parser;
+}
+
+export JsValue parseDocument(string html, JsValue options) {
+  Parser parser = new Parser(options, JS.undefined(), false, NULL, false, JS.undefined());
+  parser.tokenizer.write(html, true, JS.undefined());
+  return parser.document;
+}
+
+export JsValue parseFragment(string html, JsValue options) {
+  Parser parser = createFragmentParser(NULL, false, options);
+  parser.tokenizer.write(html, true, JS.undefined());
+  return parser.getFragment();
+}
+
+export JsValue parseFragmentWithContext(JsValue fragmentContext, string html, JsValue options) {
+  bool hasContext = !(JS.isUndefined(fragmentContext) || JS.isNullish(fragmentContext));
+  Parser parser = createFragmentParser(fragmentContext, hasContext, options);
+  parser.tokenizer.write(html, true, JS.undefined());
+  return parser.getFragment();
+}
+
+FormattingEntry? aaObtainFormattingElementEntry(Parser parser, TagToken token) {
+  FormattingEntry? entry = parser.activeFormattingElements.getElementEntryInScopeWithTagName(token.tagName);
+  if (entry != null) {
+    if (!parser.openElements.contains(entry.element)) {
+      parser.activeFormattingElements.removeEntry(entry);
+      return null;
+    }
+    if (!parser.openElements.hasInScope(token.tagID)) return null;
+  } else {
+    genericEndTagInBody(parser, token);
+  }
+  return entry;
+}
+
+JsValue aaObtainFurthestBlock(Parser parser, FormattingEntry entry) {
+  JsValue furthestBlock = NULL;
+  int index = parser.openElements.stackTop;
+  while (index >= 0) {
+    JsValue element = parser.openElements.items[index];
+    if (JS.strictEqual(element, entry.element)) break;
+    if (parser.isSpecialElement(element, parser.openElements.tagIDs[index])) furthestBlock = element;
+    index = index - 1;
+  }
+  if (JS.isNullish(furthestBlock)) {
+    if (index < 0) index = 0;
+    parser.openElements.shortenToLength(index);
+    parser.activeFormattingElements.removeEntry(entry);
+  }
+  return furthestBlock;
+}
+
+JsValue aaRecreateElementFromEntry(Parser parser, FormattingEntry entry) {
+  TagToken? token = entry.token;
+  if (token == null) return entry.element;
+  JsValue element = createElement(token.tagName, getNamespaceURI(entry.element), attrsValue(token.attrs));
+  parser.openElements.replace(entry.element, element);
+  entry.element = element;
+  return element;
+}
+
+JsValue aaInnerLoop(Parser parser, JsValue furthestBlock, JsValue formattingElement) {
+  JsValue lastElement = furthestBlock;
+  JsValue element = parser.openElements.getCommonAncestor(furthestBlock);
+  int i = 0;
+  while (!JS.strictEqual(element, formattingElement)) {
+    JsValue nextElement = parser.openElements.getCommonAncestor(element);
+    FormattingEntry? elementEntry = parser.activeFormattingElements.getElementEntry(element);
+    bool counterOverflow = elementEntry != null && i >= 3;
+    if (elementEntry == null || counterOverflow) {
+      if (counterOverflow && elementEntry != null) parser.activeFormattingElements.removeEntry(elementEntry);
+      parser.openElements.remove(element);
+    } else {
+      element = aaRecreateElementFromEntry(parser, elementEntry);
+      if (JS.strictEqual(lastElement, furthestBlock)) parser.activeFormattingElements.bookmark = elementEntry;
+      detachNode(lastElement);
+      appendChild(element, lastElement);
+      lastElement = element;
+    }
+    element = nextElement;
+    i = i + 1;
+  }
+  return lastElement;
+}
+
+void aaInsertLastNodeInCommonAncestor(Parser parser, JsValue commonAncestor, JsValue lastElement) {
+  TagId id = getTagID(getTagName(commonAncestor));
+  if (parser.isElementCausesFosterParenting(id)) {
+    parser.fosterParentElement(lastElement);
+    return;
+  }
+  if (id == TagId.Template && getNamespaceURI(commonAncestor) == namespaceUri(Namespace.Html)) commonAncestor = getTemplateContent(commonAncestor);
+  appendChild(commonAncestor, lastElement);
+}
+
+void aaReplaceFormattingElement(Parser parser, JsValue furthestBlock, FormattingEntry entry) {
+  TagToken? token = entry.token;
+  if (token == null) return;
+  JsValue element = createElement(token.tagName, getNamespaceURI(entry.element), attrsValue(token.attrs));
+  parser.adoptNodes(furthestBlock, element);
+  appendChild(furthestBlock, element);
+  parser.activeFormattingElements.insertElementAfterBookmark(element, token);
+  parser.activeFormattingElements.removeEntry(entry);
+  parser.openElements.remove(entry.element);
+  parser.openElements.insertAfter(furthestBlock, element, token.tagID);
+}
+
+void callAdoptionAgency(Parser parser, TagToken token) {
+  int i = 0;
+  while (i < 8) {
+    FormattingEntry? entry = aaObtainFormattingElementEntry(parser, token);
+    if (entry == null) return;
+    JsValue furthestBlock = aaObtainFurthestBlock(parser, entry);
+    if (JS.isNullish(furthestBlock)) return;
+    parser.activeFormattingElements.bookmark = entry;
+    JsValue lastElement = aaInnerLoop(parser, furthestBlock, entry.element);
+    JsValue commonAncestor = parser.openElements.getCommonAncestor(entry.element);
+    detachNode(lastElement);
+    if (!JS.isNullish(commonAncestor)) aaInsertLastNodeInCommonAncestor(parser, commonAncestor, lastElement);
+    aaReplaceFormattingElement(parser, furthestBlock, entry);
+    i = i + 1;
+  }
+}
+
+void appendComment(Parser parser, CommentToken token) {
+  parser.appendCommentNode(token, parser.openElements.currentTmplContentOrNode());
+}
+
+void appendCommentToRootHtmlElement(Parser parser, CommentToken token) {
+  parser.appendCommentNode(token, parser.openElements.items[0]);
+}
+
+void appendCommentToDocument(Parser parser, CommentToken token) {
+  parser.appendCommentNode(token, parser.document);
+}
+
+void stopParsing(Parser parser, EofToken token) {
+  parser.stopped = true;
+  if (token.location == null) return;
+  int target = 2;
+  if (parser.hasFragmentContext) target = 0;
+  int i = parser.openElements.stackTop;
+  while (i >= target) {
+    parser.setEndLocationAtEof(parser.openElements.items[i], token);
+    i = i - 1;
+  }
+  if (!parser.hasFragmentContext && parser.openElements.stackTop >= 0) {
+    JsValue htmlElement = parser.openElements.items[0];
+    JsValue htmlLocation = getNodeSourceCodeLocation(htmlElement);
+    if (!(JS.isUndefined(htmlLocation) || JS.isNullish(htmlLocation)) && !JS.get(htmlLocation, "endTag").truthy()) {
+      parser.setEndLocationAtEof(htmlElement, token);
+      if (parser.openElements.stackTop >= 1) {
+        JsValue bodyElement = parser.openElements.items[1];
+        JsValue bodyLocation = getNodeSourceCodeLocation(bodyElement);
+        if (!(JS.isUndefined(bodyLocation) || JS.isNullish(bodyLocation)) && !JS.get(bodyLocation, "endTag").truthy()) parser.setEndLocationAtEof(bodyElement, token);
+      }
+    }
+  }
+}
+
+void doctypeInInitialMode(Parser parser, DoctypeToken token) {
+  parser.setDocumentTypeToken(token);
+  DocumentMode mode = modeForDoctype(token);
+  if (token.forceQuirks) mode = DocumentMode.Quirks;
+  if (!isConforming(token)) parser.err(token.location, ErrorCode.NonConformingDoctype);
+  setDocumentMode(parser.document, mode);
+  parser.insertionMode = InsertionMode.BeforeHtml;
+}
+
+void tokenInInitialMode(Parser parser) {
+  parser.err(parser.currentTokenLocation, ErrorCode.MissingDoctype, true);
+  setDocumentMode(parser.document, DocumentMode.Quirks);
+  parser.insertionMode = InsertionMode.BeforeHtml;
+  parser.processCurrentToken();
+}
+
+void startTagBeforeHtml(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) {
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.insertionMode = InsertionMode.BeforeHead;
+  } else tokenBeforeHtml(parser);
+}
+
+void endTagBeforeHtml(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Html || id == TagId.Head || id == TagId.Body || id == TagId.Br) tokenBeforeHtml(parser);
+}
+
+void tokenBeforeHtml(Parser parser) {
+  parser.insertFakeRootElement();
+  parser.insertionMode = InsertionMode.BeforeHead;
+  parser.processCurrentToken();
+}
+
+void startTagBeforeHead(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) {
+    startTagInBody(parser, token);
+  } else if (token.tagID == TagId.Head) {
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.headElement = parser.openElements.current;
+    parser.hasHeadElement = true;
+    parser.insertionMode = InsertionMode.InHead;
+  } else tokenBeforeHead(parser);
+}
+
+void endTagBeforeHead(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Head || id == TagId.Body || id == TagId.Html || id == TagId.Br) tokenBeforeHead(parser);
+  else parser.err(token.location, ErrorCode.EndTagWithoutMatchingOpenElement);
+}
+
+void tokenBeforeHead(Parser parser) {
+  parser.insertFakeElement("head", TagId.Head);
+  parser.headElement = parser.openElements.current;
+  parser.hasHeadElement = true;
+  parser.insertionMode = InsertionMode.InHead;
+  parser.processCurrentToken();
+}
+
+void startTagInHead(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Html) startTagInBody(parser, token);
+  else if (id == TagId.Base || id == TagId.Basefont || id == TagId.Bgsound || id == TagId.Link || id == TagId.Meta) {
+    parser.appendElement(token, namespaceUri(Namespace.Html));
+    token.ackSelfClosing = true;
+  } else if (id == TagId.Title) parser.switchToTextParsing(token, State.Rcdata);
+  else if (id == TagId.Noscript) {
+    if (parser.scriptingEnabled) parser.switchToTextParsing(token, State.Rawtext);
+    else {
+      parser.insertElement(token, namespaceUri(Namespace.Html));
+      parser.insertionMode = InsertionMode.InHeadNoScript;
+    }
+  } else if (id == TagId.Noframes || id == TagId.Style) parser.switchToTextParsing(token, State.Rawtext);
+  else if (id == TagId.Script) parser.switchToTextParsing(token, State.ScriptData);
+  else if (id == TagId.Template) {
+    parser.insertTemplate(token);
+    parser.activeFormattingElements.insertMarker();
+    parser.framesetOk = false;
+    parser.insertionMode = InsertionMode.InTemplate;
+    pushTemplateMode(parser.tmplInsertionModeStack, InsertionMode.InTemplate);
+  } else if (id == TagId.Head) parser.err(token.location, ErrorCode.MisplacedStartTagForHeadElement);
+  else tokenInHead(parser);
+}
+
+void endTagInHead(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Head) {
+    parser.openElements.pop();
+    parser.insertionMode = InsertionMode.AfterHead;
+  } else if (id == TagId.Body || id == TagId.Br || id == TagId.Html) tokenInHead(parser);
+  else if (id == TagId.Template) templateEndTagInHead(parser, token);
+  else parser.err(token.location, ErrorCode.EndTagWithoutMatchingOpenElement);
+}
+
+void templateEndTagInHead(Parser parser, TagToken token) {
+  if (parser.openElements.tmplCount > 0) {
+    parser.openElements.generateImpliedEndTagsThoroughly();
+    if (parser.openElements.currentTagId != TagId.Template) parser.err(token.location, ErrorCode.ClosingOfElementWithOpenChildElements);
+    parser.openElements.popUntilTagNamePopped(TagId.Template);
+    parser.activeFormattingElements.clearToLastMarker();
+    popTemplateMode(parser.tmplInsertionModeStack);
+    parser.resetInsertionMode();
+  } else parser.err(token.location, ErrorCode.EndTagWithoutMatchingOpenElement);
+}
+
+void tokenInHead(Parser parser) {
+  parser.openElements.pop();
+  parser.insertionMode = InsertionMode.AfterHead;
+  parser.processCurrentToken();
+}
+
+void startTagInHeadNoScript(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Html) startTagInBody(parser, token);
+  else if (id == TagId.Basefont || id == TagId.Bgsound || id == TagId.Head || id == TagId.Link || id == TagId.Meta || id == TagId.Noframes || id == TagId.Style) startTagInHead(parser, token);
+  else if (id == TagId.Noscript) parser.err(token.location, ErrorCode.NestedNoscriptInHead);
+  else tokenInHeadNoScript(parser);
+}
+
+void endTagInHeadNoScript(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Noscript) {
+    parser.openElements.pop();
+    parser.insertionMode = InsertionMode.InHead;
+  } else if (token.tagID == TagId.Br) tokenInHeadNoScript(parser);
+  else parser.err(token.location, ErrorCode.EndTagWithoutMatchingOpenElement);
+}
+
+void tokenInHeadNoScript(Parser parser) {
+  ErrorCode code = ErrorCode.DisallowedContentInNoscriptInHead;
+  if (parser.currentTokenType == TokenType.Eof) code = ErrorCode.OpenElementsLeftAfterEof;
+  parser.err(parser.currentTokenLocation, code);
+  parser.openElements.pop();
+  parser.insertionMode = InsertionMode.InHead;
+  parser.processCurrentToken();
+}
+
+void startTagAfterHead(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Html) startTagInBody(parser, token);
+  else if (id == TagId.Body) {
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.framesetOk = false;
+    parser.insertionMode = InsertionMode.InBody;
+  } else if (id == TagId.Frameset) {
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.insertionMode = InsertionMode.InFrameset;
+  } else if (id == TagId.Base || id == TagId.Basefont || id == TagId.Bgsound || id == TagId.Link || id == TagId.Meta || id == TagId.Noframes || id == TagId.Script || id == TagId.Style || id == TagId.Template || id == TagId.Title) {
+    parser.err(token.location, ErrorCode.AbandonedHeadElementChild);
+    parser.openElements.push(parser.headElement, TagId.Head);
+    startTagInHead(parser, token);
+    parser.openElements.remove(parser.headElement);
+  } else if (id == TagId.Head) parser.err(token.location, ErrorCode.MisplacedStartTagForHeadElement);
+  else tokenAfterHead(parser);
+}
+
+void endTagAfterHead(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Body || id == TagId.Html || id == TagId.Br) tokenAfterHead(parser);
+  else if (id == TagId.Template) templateEndTagInHead(parser, token);
+  else parser.err(token.location, ErrorCode.EndTagWithoutMatchingOpenElement);
+}
+
+void tokenAfterHead(Parser parser) {
+  parser.insertFakeElement("body", TagId.Body);
+  parser.insertionMode = InsertionMode.InBody;
+  parser.processCurrentTokenInBody();
+}
+
+void whitespaceCharacterInBody(Parser parser, CharacterToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertCharacters(token);
+}
+
+void characterInBody(Parser parser, CharacterToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertCharacters(token);
+  parser.framesetOk = false;
+}
+
+void htmlStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.tmplCount == 0) adoptAttributes(parser.openElements.items[0], attrsValue(token.attrs));
+}
+
+void bodyStartTagInBody(Parser parser, TagToken token) {
+  JsValue body = parser.openElements.tryPeekProperlyNestedBodyElement();
+  if (!JS.isNullish(body) && parser.openElements.tmplCount == 0) {
+    parser.framesetOk = false;
+    adoptAttributes(body, attrsValue(token.attrs));
+  }
+}
+
+void framesetStartTagInBody(Parser parser, TagToken token) {
+  JsValue body = parser.openElements.tryPeekProperlyNestedBodyElement();
+  if (parser.framesetOk && !JS.isNullish(body)) {
+    detachNode(body);
+    parser.openElements.popAllUpToHtmlElement();
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.insertionMode = InsertionMode.InFrameset;
+  }
+}
+
+void addressStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+void numberedHeaderStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  if (parser.openElements.hasCurrent && isNumberedHeader(parser.openElements.currentTagId)) parser.openElements.pop();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+void preStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.skipNextNewLine = true;
+  parser.framesetOk = false;
+}
+
+void formStartTagInBody(Parser parser, TagToken token) {
+  bool inTemplate = parser.openElements.tmplCount > 0;
+  if (!parser.hasFormElement || inTemplate) {
+    if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    if (!inTemplate) {
+      parser.formElement = parser.openElements.current;
+      parser.hasFormElement = true;
+    }
+  }
+}
+
+void listItemStartTagInBody(Parser parser, TagToken token) {
+  parser.framesetOk = false;
+  TagId id = token.tagID;
+  int i = parser.openElements.stackTop;
+  while (i >= 0) {
+    TagId elementId = parser.openElements.tagIDs[i];
+    if ((id == TagId.Li && elementId == TagId.Li) || ((id == TagId.Dd || id == TagId.Dt) && (elementId == TagId.Dd || elementId == TagId.Dt))) {
+      parser.openElements.generateImpliedEndTagsWithExclusion(elementId);
+      parser.openElements.popUntilTagNamePopped(elementId);
+      i = -1;
+    } else if (elementId != TagId.Address && elementId != TagId.Div && elementId != TagId.P && parser.isSpecialElement(parser.openElements.items[i], elementId)) {
+      i = -1;
+    } else i = i - 1;
+  }
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+void plaintextStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.tokenizer.state = State.Plaintext;
+}
+
+void buttonStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(TagId.Button)) {
+    parser.openElements.generateImpliedEndTags();
+    parser.openElements.popUntilTagNamePopped(TagId.Button);
+  }
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.framesetOk = false;
+}
+
+void aStartTagInBody(Parser parser, TagToken token) {
+  FormattingEntry? entry = parser.activeFormattingElements.getElementEntryInScopeWithTagName("a");
+  if (entry != null) {
+    callAdoptionAgency(parser, token);
+    parser.openElements.remove(entry.element);
+    parser.activeFormattingElements.removeEntry(entry);
+  }
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.activeFormattingElements.pushElement(parser.openElements.current, token);
+}
+
+void bStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.activeFormattingElements.pushElement(parser.openElements.current, token);
+}
+
+void nobrStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  if (parser.openElements.hasInScope(TagId.Nobr)) {
+    callAdoptionAgency(parser, token);
+    parser.reconstructActiveFormattingElements();
+  }
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.activeFormattingElements.pushElement(parser.openElements.current, token);
+}
+
+void appletStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.activeFormattingElements.insertMarker();
+  parser.framesetOk = false;
+}
+
+void tableStartTagInBody(Parser parser, TagToken token) {
+  if (getDocumentMode(parser.document) != DocumentMode.Quirks && parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.framesetOk = false;
+  parser.insertionMode = InsertionMode.InTable;
+}
+
+void areaStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.appendElement(token, namespaceUri(Namespace.Html));
+  parser.framesetOk = false;
+  token.ackSelfClosing = true;
+}
+
+bool isHiddenInput(TagToken token) {
+  string? inputType = getTokenAttr(token, "type");
+  return inputType != null && inputType.toLowerCase() == "hidden";
+}
+
+void inputStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.appendElement(token, namespaceUri(Namespace.Html));
+  if (!isHiddenInput(token)) parser.framesetOk = false;
+  token.ackSelfClosing = true;
+}
+
+void paramStartTagInBody(Parser parser, TagToken token) {
+  parser.appendElement(token, namespaceUri(Namespace.Html));
+  token.ackSelfClosing = true;
+}
+
+void hrStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.appendElement(token, namespaceUri(Namespace.Html));
+  parser.framesetOk = false;
+  token.ackSelfClosing = true;
+}
+
+void imageStartTagInBody(Parser parser, TagToken token) {
+  token.tagName = "img";
+  token.tagID = TagId.Img;
+  areaStartTagInBody(parser, token);
+}
+
+void textareaStartTagInBody(Parser parser, TagToken token) {
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.skipNextNewLine = true;
+  parser.tokenizer.state = State.Rcdata;
+  parser.originalInsertionMode = parser.insertionMode;
+  parser.framesetOk = false;
+  parser.insertionMode = InsertionMode.Text;
+}
+
+void xmpStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInButtonScope(TagId.P)) parser.closePElement();
+  parser.reconstructActiveFormattingElements();
+  parser.framesetOk = false;
+  parser.switchToTextParsing(token, State.Rawtext);
+}
+
+void iframeStartTagInBody(Parser parser, TagToken token) {
+  parser.framesetOk = false;
+  parser.switchToTextParsing(token, State.Rawtext);
+}
+
+void rawTextStartTagInBody(Parser parser, TagToken token) {
+  parser.switchToTextParsing(token, State.Rawtext);
+}
+
+void selectStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.framesetOk = false;
+  InsertionMode mode = parser.insertionMode;
+  if (mode == InsertionMode.InTable || mode == InsertionMode.InCaption || mode == InsertionMode.InTableBody || mode == InsertionMode.InRow || mode == InsertionMode.InCell) parser.insertionMode = InsertionMode.InSelectInTable;
+  else parser.insertionMode = InsertionMode.InSelect;
+}
+
+void optgroupStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.currentTagId == TagId.Option) parser.openElements.pop();
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+void rbStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(TagId.Ruby)) parser.openElements.generateImpliedEndTags();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+void rtStartTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(TagId.Ruby)) parser.openElements.generateImpliedEndTagsWithExclusion(TagId.Rtc);
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+void mathStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  adjustTokenMathMLAttrs(token);
+  adjustTokenXMLAttrs(token);
+  if (token.selfClosing) parser.appendElement(token, namespaceUri(Namespace.MathMl));
+  else parser.insertElement(token, namespaceUri(Namespace.MathMl));
+  token.ackSelfClosing = true;
+}
+
+void svgStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  adjustTokenSVGAttrs(token);
+  adjustTokenXMLAttrs(token);
+  if (token.selfClosing) parser.appendElement(token, namespaceUri(Namespace.Svg));
+  else parser.insertElement(token, namespaceUri(Namespace.Svg));
+  token.ackSelfClosing = true;
+}
+
+void genericStartTagInBody(Parser parser, TagToken token) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+}
+
+pure bool formattingStartTag(TagId id) {
+  return id == TagId.I || id == TagId.S || id == TagId.B || id == TagId.U || id == TagId.Em || id == TagId.Tt || id == TagId.Big || id == TagId.Code || id == TagId.Font || id == TagId.Small || id == TagId.Strike || id == TagId.Strong;
+}
+
+pure bool blockStartTag(TagId id) {
+  return id == TagId.P || id == TagId.Dl || id == TagId.Ol || id == TagId.Ul || id == TagId.Div || id == TagId.Dir || id == TagId.Nav || id == TagId.Main || id == TagId.Menu || id == TagId.Aside || id == TagId.Center || id == TagId.Figure || id == TagId.Footer || id == TagId.Header || id == TagId.Hgroup || id == TagId.Dialog || id == TagId.Details || id == TagId.Address || id == TagId.Article || id == TagId.Search || id == TagId.Section || id == TagId.Summary || id == TagId.Fieldset || id == TagId.Blockquote || id == TagId.Figcaption;
+}
+
+pure bool voidBodyStartTag(TagId id) {
+  return id == TagId.Br || id == TagId.Img || id == TagId.Wbr || id == TagId.Area || id == TagId.Embed || id == TagId.Keygen;
+}
+
+pure bool headStartTag(TagId id) {
+  return id == TagId.Base || id == TagId.Link || id == TagId.Meta || id == TagId.Style || id == TagId.Title || id == TagId.Script || id == TagId.Bgsound || id == TagId.Basefont || id == TagId.Template;
+}
+
+pure bool ignoredBodyStartTag(TagId id) {
+  return id == TagId.Col || id == TagId.Th || id == TagId.Td || id == TagId.Tr || id == TagId.Head || id == TagId.Frame || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead || id == TagId.Caption || id == TagId.Colgroup;
+}
+
+void startTagInBody(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (formattingStartTag(id)) bStartTagInBody(parser, token);
+  else if (id == TagId.A) aStartTagInBody(parser, token);
+  else if (isNumberedHeader(id)) numberedHeaderStartTagInBody(parser, token);
+  else if (blockStartTag(id)) addressStartTagInBody(parser, token);
+  else if (id == TagId.Li || id == TagId.Dd || id == TagId.Dt) listItemStartTagInBody(parser, token);
+  else if (voidBodyStartTag(id)) areaStartTagInBody(parser, token);
+  else if (id == TagId.Hr) hrStartTagInBody(parser, token);
+  else if (id == TagId.Rb || id == TagId.Rtc) rbStartTagInBody(parser, token);
+  else if (id == TagId.Rt || id == TagId.Rp) rtStartTagInBody(parser, token);
+  else if (id == TagId.Pre || id == TagId.Listing) preStartTagInBody(parser, token);
+  else if (id == TagId.Xmp) xmpStartTagInBody(parser, token);
+  else if (id == TagId.Svg) svgStartTagInBody(parser, token);
+  else if (id == TagId.Html) htmlStartTagInBody(parser, token);
+  else if (headStartTag(id)) startTagInHead(parser, token);
+  else if (id == TagId.Body) bodyStartTagInBody(parser, token);
+  else if (id == TagId.Form) formStartTagInBody(parser, token);
+  else if (id == TagId.Nobr) nobrStartTagInBody(parser, token);
+  else if (id == TagId.Math) mathStartTagInBody(parser, token);
+  else if (id == TagId.Table) tableStartTagInBody(parser, token);
+  else if (id == TagId.Input) inputStartTagInBody(parser, token);
+  else if (id == TagId.Param || id == TagId.Track || id == TagId.Source) paramStartTagInBody(parser, token);
+  else if (id == TagId.Image) imageStartTagInBody(parser, token);
+  else if (id == TagId.Button) buttonStartTagInBody(parser, token);
+  else if (id == TagId.Applet || id == TagId.Object || id == TagId.Marquee) appletStartTagInBody(parser, token);
+  else if (id == TagId.Iframe) iframeStartTagInBody(parser, token);
+  else if (id == TagId.Select) selectStartTagInBody(parser, token);
+  else if (id == TagId.Option || id == TagId.Optgroup) optgroupStartTagInBody(parser, token);
+  else if (id == TagId.Noembed || id == TagId.Noframes) rawTextStartTagInBody(parser, token);
+  else if (id == TagId.Frameset) framesetStartTagInBody(parser, token);
+  else if (id == TagId.Textarea) textareaStartTagInBody(parser, token);
+  else if (id == TagId.Noscript) {
+    if (parser.scriptingEnabled) rawTextStartTagInBody(parser, token);
+    else genericStartTagInBody(parser, token);
+  } else if (id == TagId.Plaintext) plaintextStartTagInBody(parser, token);
+  else if (!ignoredBodyStartTag(id)) genericStartTagInBody(parser, token);
+}
+
+void bodyEndTagInBody(Parser parser, TagToken token) {
+  if (!parser.openElements.hasInScope(TagId.Body)) return;
+  parser.insertionMode = InsertionMode.AfterBody;
+  if (parser.sourceCodeLocationInfo) {
+    JsValue body = parser.openElements.tryPeekProperlyNestedBodyElement();
+    if (!JS.isNullish(body)) parser.setEndLocation(body, token);
+  }
+}
+
+void htmlEndTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(TagId.Body)) {
+    parser.insertionMode = InsertionMode.AfterBody;
+    endTagAfterBody(parser, token);
+  }
+}
+
+void addressEndTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(token.tagID)) {
+    parser.openElements.generateImpliedEndTags();
+    parser.openElements.popUntilTagNamePopped(token.tagID);
+  }
+}
+
+void formEndTagInBody(Parser parser) {
+  bool inTemplate = parser.openElements.tmplCount > 0;
+  JsValue form = parser.formElement;
+  bool hasForm = parser.hasFormElement;
+  if (!inTemplate) {
+    parser.formElement = NULL;
+    parser.hasFormElement = false;
+  }
+  if ((hasForm || inTemplate) && parser.openElements.hasInScope(TagId.Form)) {
+    parser.openElements.generateImpliedEndTags();
+    if (inTemplate) parser.openElements.popUntilTagNamePopped(TagId.Form);
+    else if (hasForm) parser.openElements.remove(form);
+  }
+}
+
+void pEndTagInBody(Parser parser) {
+  if (!parser.openElements.hasInButtonScope(TagId.P)) parser.insertFakeElement("p", TagId.P);
+  parser.closePElement();
+}
+
+void liEndTagInBody(Parser parser) {
+  if (parser.openElements.hasInListItemScope(TagId.Li)) {
+    parser.openElements.generateImpliedEndTagsWithExclusion(TagId.Li);
+    parser.openElements.popUntilTagNamePopped(TagId.Li);
+  }
+}
+
+void ddEndTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(token.tagID)) {
+    parser.openElements.generateImpliedEndTagsWithExclusion(token.tagID);
+    parser.openElements.popUntilTagNamePopped(token.tagID);
+  }
+}
+
+void numberedHeaderEndTagInBody(Parser parser) {
+  if (parser.openElements.hasNumberedHeaderInScope()) {
+    parser.openElements.generateImpliedEndTags();
+    parser.openElements.popUntilNumberedHeaderPopped();
+  }
+}
+
+void appletEndTagInBody(Parser parser, TagToken token) {
+  if (parser.openElements.hasInScope(token.tagID)) {
+    parser.openElements.generateImpliedEndTags();
+    parser.openElements.popUntilTagNamePopped(token.tagID);
+    parser.activeFormattingElements.clearToLastMarker();
+  }
+}
+
+void brEndTagInBody(Parser parser) {
+  parser.reconstructActiveFormattingElements();
+  parser.insertFakeElement("br", TagId.Br);
+  parser.openElements.pop();
+  parser.framesetOk = false;
+}
+
+void genericEndTagInBody(Parser parser, TagToken token) {
+  int i = parser.openElements.stackTop;
+  while (i > 0) {
+    JsValue element = parser.openElements.items[i];
+    TagId elementId = parser.openElements.tagIDs[i];
+    if (token.tagID == elementId && (token.tagID != TagId.Unknown || getTagName(element) == token.tagName)) {
+      parser.openElements.generateImpliedEndTagsWithExclusion(token.tagID);
+      if (parser.openElements.stackTop >= i) parser.openElements.shortenToLength(i);
+      return;
+    }
+    if (parser.isSpecialElement(element, elementId)) return;
+    i = i - 1;
+  }
+}
+
+pure bool formattingEndTag(TagId id) {
+  return id == TagId.A || id == TagId.B || id == TagId.I || id == TagId.S || id == TagId.U || id == TagId.Em || id == TagId.Tt || id == TagId.Big || id == TagId.Code || id == TagId.Font || id == TagId.Nobr || id == TagId.Small || id == TagId.Strike || id == TagId.Strong;
+}
+
+pure bool blockEndTag(TagId id) {
+  return id == TagId.Dl || id == TagId.Ul || id == TagId.Ol || id == TagId.Dir || id == TagId.Div || id == TagId.Nav || id == TagId.Pre || id == TagId.Main || id == TagId.Menu || id == TagId.Aside || id == TagId.Button || id == TagId.Center || id == TagId.Figure || id == TagId.Footer || id == TagId.Header || id == TagId.Hgroup || id == TagId.Dialog || id == TagId.Address || id == TagId.Article || id == TagId.Details || id == TagId.Search || id == TagId.Section || id == TagId.Summary || id == TagId.Listing || id == TagId.Fieldset || id == TagId.Blockquote || id == TagId.Figcaption;
+}
+
+void endTagInBody(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (formattingEndTag(id)) callAdoptionAgency(parser, token);
+  else if (id == TagId.P) pEndTagInBody(parser);
+  else if (blockEndTag(id)) addressEndTagInBody(parser, token);
+  else if (id == TagId.Li) liEndTagInBody(parser);
+  else if (id == TagId.Dd || id == TagId.Dt) ddEndTagInBody(parser, token);
+  else if (isNumberedHeader(id)) numberedHeaderEndTagInBody(parser);
+  else if (id == TagId.Br) brEndTagInBody(parser);
+  else if (id == TagId.Body) bodyEndTagInBody(parser, token);
+  else if (id == TagId.Html) htmlEndTagInBody(parser, token);
+  else if (id == TagId.Form) formEndTagInBody(parser);
+  else if (id == TagId.Applet || id == TagId.Object || id == TagId.Marquee) appletEndTagInBody(parser, token);
+  else if (id == TagId.Template) templateEndTagInHead(parser, token);
+  else genericEndTagInBody(parser, token);
+}
+
+void eofInBody(Parser parser, EofToken token) {
+  if (parser.tmplInsertionModeStack.length > 0) eofInTemplate(parser, token);
+  else stopParsing(parser, token);
+}
+
+void endTagInText(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Script && parser.scriptHandler.truthy()) JS.call(parser.scriptHandler, parser, parser.openElements.current);
+  parser.openElements.pop();
+  parser.insertionMode = parser.originalInsertionMode;
+}
+
+void eofInText(Parser parser, EofToken token) {
+  parser.err(token.location, ErrorCode.EofInElementThatCanContainOnlyText);
+  parser.openElements.pop();
+  parser.insertionMode = parser.originalInsertionMode;
+  parser.processEof(token);
+}
+
+void characterInTable(Parser parser, CharacterToken token) {
+  if (parser.openElements.hasCurrent && tableStructureTag(parser.openElements.currentTagId)) {
+    while (parser.pendingCharacterTokens.length > 0) parser.pendingCharacterTokens.pop();
+    parser.hasNonWhitespacePendingCharacterToken = false;
+    parser.originalInsertionMode = parser.insertionMode;
+    parser.insertionMode = InsertionMode.InTableText;
+    if (token.type == TokenType.Character) characterInTableText(parser, token);
+    else if (token.type == TokenType.WhitespaceCharacter) whitespaceCharacterInTableText(parser, token);
+  } else tokenInTable(parser);
+}
+
+void captionStartTagInTable(Parser parser, TagToken token) {
+  parser.openElements.clearBackToTableContext();
+  parser.activeFormattingElements.insertMarker();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.insertionMode = InsertionMode.InCaption;
+}
+
+void colgroupStartTagInTable(Parser parser, TagToken token) {
+  parser.openElements.clearBackToTableContext();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.insertionMode = InsertionMode.InColumnGroup;
+}
+
+void colStartTagInTable(Parser parser, TagToken token) {
+  parser.openElements.clearBackToTableContext();
+  parser.insertFakeElement("colgroup", TagId.Colgroup);
+  parser.insertionMode = InsertionMode.InColumnGroup;
+  startTagInColumnGroup(parser, token);
+}
+
+void tbodyStartTagInTable(Parser parser, TagToken token) {
+  parser.openElements.clearBackToTableContext();
+  parser.insertElement(token, namespaceUri(Namespace.Html));
+  parser.insertionMode = InsertionMode.InTableBody;
+}
+
+void tdStartTagInTable(Parser parser, TagToken token) {
+  parser.openElements.clearBackToTableContext();
+  parser.insertFakeElement("tbody", TagId.Tbody);
+  parser.insertionMode = InsertionMode.InTableBody;
+  startTagInTableBody(parser, token);
+}
+
+void tableStartTagInTable(Parser parser, TagToken token) {
+  if (parser.openElements.hasInTableScope(TagId.Table)) {
+    parser.openElements.popUntilTagNamePopped(TagId.Table);
+    parser.resetInsertionMode();
+    parser.processStartTag(token);
+  }
+}
+
+void inputStartTagInTable(Parser parser, TagToken token) {
+  if (isHiddenInput(token)) parser.appendElement(token, namespaceUri(Namespace.Html));
+  else tokenInTable(parser);
+  token.ackSelfClosing = true;
+}
+
+void formStartTagInTable(Parser parser, TagToken token) {
+  if (!parser.hasFormElement && parser.openElements.tmplCount == 0) {
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.formElement = parser.openElements.current;
+    parser.hasFormElement = true;
+    parser.openElements.pop();
+  }
+}
+
+void startTagInTable(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Td || id == TagId.Th || id == TagId.Tr) tdStartTagInTable(parser, token);
+  else if (id == TagId.Style || id == TagId.Script || id == TagId.Template) startTagInHead(parser, token);
+  else if (id == TagId.Col) colStartTagInTable(parser, token);
+  else if (id == TagId.Form) formStartTagInTable(parser, token);
+  else if (id == TagId.Table) tableStartTagInTable(parser, token);
+  else if (id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead) tbodyStartTagInTable(parser, token);
+  else if (id == TagId.Input) inputStartTagInTable(parser, token);
+  else if (id == TagId.Caption) captionStartTagInTable(parser, token);
+  else if (id == TagId.Colgroup) colgroupStartTagInTable(parser, token);
+  else tokenInTable(parser);
+}
+
+void endTagInTable(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Table) {
+    if (parser.openElements.hasInTableScope(TagId.Table)) {
+      parser.openElements.popUntilTagNamePopped(TagId.Table);
+      parser.resetInsertionMode();
+    }
+  } else if (id == TagId.Template) templateEndTagInHead(parser, token);
+  else if (id != TagId.Body && id != TagId.Caption && id != TagId.Col && id != TagId.Colgroup && id != TagId.Html && id != TagId.Tbody && id != TagId.Td && id != TagId.Tfoot && id != TagId.Th && id != TagId.Thead && id != TagId.Tr) tokenInTable(parser);
+}
+
+void tokenInTable(Parser parser) {
+  bool foster = parser.fosterParentingEnabled;
+  parser.fosterParentingEnabled = true;
+  parser.processCurrentTokenInBody();
+  parser.fosterParentingEnabled = foster;
+}
+
+void whitespaceCharacterInTableText(Parser parser, CharacterToken token) {
+  parser.pendingCharacterTokens.push(token);
+}
+
+void characterInTableText(Parser parser, CharacterToken token) {
+  parser.pendingCharacterTokens.push(token);
+  parser.hasNonWhitespacePendingCharacterToken = true;
+}
+
+void tokenInTableText(Parser parser) {
+  int i = 0;
+  if (parser.hasNonWhitespacePendingCharacterToken) {
+    while (i < parser.pendingCharacterTokens.length) {
+      CharacterToken token = parser.pendingCharacterTokens[i];
+      bool foster = parser.fosterParentingEnabled;
+      parser.fosterParentingEnabled = true;
+      if (token.type == TokenType.Character) characterInBody(parser, token);
+      else whitespaceCharacterInBody(parser, token);
+      parser.fosterParentingEnabled = foster;
+      i = i + 1;
+    }
+  } else {
+    while (i < parser.pendingCharacterTokens.length) {
+      parser.insertCharacters(parser.pendingCharacterTokens[i]);
+      i = i + 1;
+    }
+  }
+  parser.insertionMode = parser.originalInsertionMode;
+  parser.processCurrentToken();
+}
+
+void startTagInCaption(Parser parser, TagToken token) {
+  if (tableVoidElement(token.tagID)) {
+    if (parser.openElements.hasInTableScope(TagId.Caption)) {
+      parser.openElements.generateImpliedEndTags();
+      parser.openElements.popUntilTagNamePopped(TagId.Caption);
+      parser.activeFormattingElements.clearToLastMarker();
+      parser.insertionMode = InsertionMode.InTable;
+      startTagInTable(parser, token);
+    }
+  } else startTagInBody(parser, token);
+}
+
+void endTagInCaption(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Caption || id == TagId.Table) {
+    if (parser.openElements.hasInTableScope(TagId.Caption)) {
+      parser.openElements.generateImpliedEndTags();
+      parser.openElements.popUntilTagNamePopped(TagId.Caption);
+      parser.activeFormattingElements.clearToLastMarker();
+      parser.insertionMode = InsertionMode.InTable;
+      if (id == TagId.Table) endTagInTable(parser, token);
+    }
+  } else if (id != TagId.Body && id != TagId.Col && id != TagId.Colgroup && id != TagId.Html && id != TagId.Tbody && id != TagId.Td && id != TagId.Tfoot && id != TagId.Th && id != TagId.Thead && id != TagId.Tr) endTagInBody(parser, token);
+}
+
+void startTagInColumnGroup(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Html) startTagInBody(parser, token);
+  else if (id == TagId.Col) {
+    parser.appendElement(token, namespaceUri(Namespace.Html));
+    token.ackSelfClosing = true;
+  } else if (id == TagId.Template) startTagInHead(parser, token);
+  else tokenInColumnGroup(parser);
+}
+
+void endTagInColumnGroup(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Colgroup) {
+    if (parser.openElements.currentTagId == TagId.Colgroup) {
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTable;
+    }
+  } else if (token.tagID == TagId.Template) templateEndTagInHead(parser, token);
+  else if (token.tagID != TagId.Col) tokenInColumnGroup(parser);
+}
+
+void tokenInColumnGroup(Parser parser) {
+  if (parser.openElements.currentTagId == TagId.Colgroup) {
+    parser.openElements.pop();
+    parser.insertionMode = InsertionMode.InTable;
+    parser.processCurrentToken();
+  }
+}
+
+void startTagInTableBody(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Tr) {
+    parser.openElements.clearBackToTableBodyContext();
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.insertionMode = InsertionMode.InRow;
+  } else if (id == TagId.Th || id == TagId.Td) {
+    parser.openElements.clearBackToTableBodyContext();
+    parser.insertFakeElement("tr", TagId.Tr);
+    parser.insertionMode = InsertionMode.InRow;
+    startTagInRow(parser, token);
+  } else if (id == TagId.Caption || id == TagId.Col || id == TagId.Colgroup || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead) {
+    if (parser.openElements.hasTableBodyContextInTableScope()) {
+      parser.openElements.clearBackToTableBodyContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTable;
+      startTagInTable(parser, token);
+    }
+  } else startTagInTable(parser, token);
+}
+
+void endTagInTableBody(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead) {
+    if (parser.openElements.hasInTableScope(id)) {
+      parser.openElements.clearBackToTableBodyContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTable;
+    }
+  } else if (id == TagId.Table) {
+    if (parser.openElements.hasTableBodyContextInTableScope()) {
+      parser.openElements.clearBackToTableBodyContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTable;
+      endTagInTable(parser, token);
+    }
+  } else if (id != TagId.Body && id != TagId.Caption && id != TagId.Col && id != TagId.Colgroup && id != TagId.Html && id != TagId.Td && id != TagId.Th && id != TagId.Tr) endTagInTable(parser, token);
+}
+
+void startTagInRow(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Th || id == TagId.Td) {
+    parser.openElements.clearBackToTableRowContext();
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+    parser.insertionMode = InsertionMode.InCell;
+    parser.activeFormattingElements.insertMarker();
+  } else if (id == TagId.Caption || id == TagId.Col || id == TagId.Colgroup || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead || id == TagId.Tr) {
+    if (parser.openElements.hasInTableScope(TagId.Tr)) {
+      parser.openElements.clearBackToTableRowContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTableBody;
+      startTagInTableBody(parser, token);
+    }
+  } else startTagInTable(parser, token);
+}
+
+void endTagInRow(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Tr) {
+    if (parser.openElements.hasInTableScope(TagId.Tr)) {
+      parser.openElements.clearBackToTableRowContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTableBody;
+    }
+  } else if (id == TagId.Table) {
+    if (parser.openElements.hasInTableScope(TagId.Tr)) {
+      parser.openElements.clearBackToTableRowContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTableBody;
+      endTagInTableBody(parser, token);
+    }
+  } else if (id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead) {
+    if (parser.openElements.hasInTableScope(id) || parser.openElements.hasInTableScope(TagId.Tr)) {
+      parser.openElements.clearBackToTableRowContext();
+      parser.openElements.pop();
+      parser.insertionMode = InsertionMode.InTableBody;
+      endTagInTableBody(parser, token);
+    }
+  } else if (id != TagId.Body && id != TagId.Caption && id != TagId.Col && id != TagId.Colgroup && id != TagId.Html && id != TagId.Td && id != TagId.Th) endTagInTable(parser, token);
+}
+
+void startTagInCell(Parser parser, TagToken token) {
+  if (tableVoidElement(token.tagID)) {
+    if (parser.openElements.hasInTableScope(TagId.Td) || parser.openElements.hasInTableScope(TagId.Th)) {
+      parser.closeTableCell();
+      startTagInRow(parser, token);
+    }
+  } else startTagInBody(parser, token);
+}
+
+void endTagInCell(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Td || id == TagId.Th) {
+    if (parser.openElements.hasInTableScope(id)) {
+      parser.openElements.generateImpliedEndTags();
+      parser.openElements.popUntilTagNamePopped(id);
+      parser.activeFormattingElements.clearToLastMarker();
+      parser.insertionMode = InsertionMode.InRow;
+    }
+  } else if (id == TagId.Table || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead || id == TagId.Tr) {
+    if (parser.openElements.hasInTableScope(id)) {
+      parser.closeTableCell();
+      endTagInRow(parser, token);
+    }
+  } else if (id != TagId.Body && id != TagId.Caption && id != TagId.Col && id != TagId.Colgroup && id != TagId.Html) endTagInBody(parser, token);
+}
+
+void startTagInSelect(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Html) startTagInBody(parser, token);
+  else if (id == TagId.Option) {
+    if (parser.openElements.currentTagId == TagId.Option) parser.openElements.pop();
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+  } else if (id == TagId.Optgroup) {
+    if (parser.openElements.currentTagId == TagId.Option) parser.openElements.pop();
+    if (parser.openElements.currentTagId == TagId.Optgroup) parser.openElements.pop();
+    parser.insertElement(token, namespaceUri(Namespace.Html));
+  } else if (id == TagId.Hr) {
+    if (parser.openElements.currentTagId == TagId.Option) parser.openElements.pop();
+    if (parser.openElements.currentTagId == TagId.Optgroup) parser.openElements.pop();
+    parser.appendElement(token, namespaceUri(Namespace.Html));
+    token.ackSelfClosing = true;
+  } else if (id == TagId.Input || id == TagId.Keygen || id == TagId.Textarea || id == TagId.Select) {
+    if (parser.openElements.hasInSelectScope(TagId.Select)) {
+      parser.openElements.popUntilTagNamePopped(TagId.Select);
+      parser.resetInsertionMode();
+      if (id != TagId.Select) parser.processStartTag(token);
+    }
+  } else if (id == TagId.Script || id == TagId.Template) startTagInHead(parser, token);
+}
+
+void endTagInSelect(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Optgroup) {
+    if (parser.openElements.stackTop > 0 && parser.openElements.currentTagId == TagId.Option && parser.openElements.tagIDs[parser.openElements.stackTop - 1] == TagId.Optgroup) parser.openElements.pop();
+    if (parser.openElements.currentTagId == TagId.Optgroup) parser.openElements.pop();
+  } else if (id == TagId.Option) {
+    if (parser.openElements.currentTagId == TagId.Option) parser.openElements.pop();
+  } else if (id == TagId.Select) {
+    if (parser.openElements.hasInSelectScope(TagId.Select)) {
+      parser.openElements.popUntilTagNamePopped(TagId.Select);
+      parser.resetInsertionMode();
+    }
+  } else if (id == TagId.Template) templateEndTagInHead(parser, token);
+}
+
+pure bool selectTableTag(TagId id) {
+  return id == TagId.Caption || id == TagId.Table || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead || id == TagId.Tr || id == TagId.Td || id == TagId.Th;
+}
+
+void startTagInSelectInTable(Parser parser, TagToken token) {
+  if (selectTableTag(token.tagID)) {
+    parser.openElements.popUntilTagNamePopped(TagId.Select);
+    parser.resetInsertionMode();
+    parser.processStartTag(token);
+  } else startTagInSelect(parser, token);
+}
+
+void endTagInSelectInTable(Parser parser, TagToken token) {
+  if (selectTableTag(token.tagID)) {
+    if (parser.openElements.hasInTableScope(token.tagID)) {
+      parser.openElements.popUntilTagNamePopped(TagId.Select);
+      parser.resetInsertionMode();
+      parser.onEndTag(token);
+    }
+  } else endTagInSelect(parser, token);
+}
+
+void startTagInTemplate(Parser parser, TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Base || id == TagId.Basefont || id == TagId.Bgsound || id == TagId.Link || id == TagId.Meta || id == TagId.Noframes || id == TagId.Script || id == TagId.Style || id == TagId.Template || id == TagId.Title) startTagInHead(parser, token);
+  else if (id == TagId.Caption || id == TagId.Colgroup || id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead) {
+    parser.tmplInsertionModeStack[0] = InsertionMode.InTable;
+    parser.insertionMode = InsertionMode.InTable;
+    startTagInTable(parser, token);
+  } else if (id == TagId.Col) {
+    parser.tmplInsertionModeStack[0] = InsertionMode.InColumnGroup;
+    parser.insertionMode = InsertionMode.InColumnGroup;
+    startTagInColumnGroup(parser, token);
+  } else if (id == TagId.Tr) {
+    parser.tmplInsertionModeStack[0] = InsertionMode.InTableBody;
+    parser.insertionMode = InsertionMode.InTableBody;
+    startTagInTableBody(parser, token);
+  } else if (id == TagId.Td || id == TagId.Th) {
+    parser.tmplInsertionModeStack[0] = InsertionMode.InRow;
+    parser.insertionMode = InsertionMode.InRow;
+    startTagInRow(parser, token);
+  } else {
+    parser.tmplInsertionModeStack[0] = InsertionMode.InBody;
+    parser.insertionMode = InsertionMode.InBody;
+    startTagInBody(parser, token);
+  }
+}
+
+void endTagInTemplate(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Template) templateEndTagInHead(parser, token);
+}
+
+void eofInTemplate(Parser parser, EofToken token) {
+  if (parser.openElements.tmplCount > 0) {
+    parser.openElements.popUntilTagNamePopped(TagId.Template);
+    parser.activeFormattingElements.clearToLastMarker();
+    popTemplateMode(parser.tmplInsertionModeStack);
+    parser.resetInsertionMode();
+    parser.processEof(token);
+  } else stopParsing(parser, token);
+}
+
+void startTagAfterBody(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) startTagInBody(parser, token);
+  else tokenAfterBody(parser);
+}
+
+void endTagAfterBody(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) {
+    if (!parser.hasFragmentContext) parser.insertionMode = InsertionMode.AfterAfterBody;
+    if (parser.sourceCodeLocationInfo && parser.openElements.tagIDs[0] == TagId.Html) {
+      parser.setEndLocation(parser.openElements.items[0], token);
+      if (parser.openElements.stackTop >= 1) {
+        JsValue body = parser.openElements.items[1];
+        if (!(JS.isUndefined(body) || JS.isNullish(body))) {
+          JsValue bodyLocation = getNodeSourceCodeLocation(body);
+          if (JS.isUndefined(bodyLocation) || JS.isNullish(bodyLocation) || !JS.get(bodyLocation, "endTag").truthy()) parser.setEndLocation(body, token);
+        }
+      }
+    }
+  } else tokenAfterBody(parser);
+}
+
+void tokenAfterBody(Parser parser) {
+  parser.insertionMode = InsertionMode.InBody;
+  parser.processCurrentTokenInBody();
+}
+
+void startTagInFrameset(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) startTagInBody(parser, token);
+  else if (token.tagID == TagId.Frameset) parser.insertElement(token, namespaceUri(Namespace.Html));
+  else if (token.tagID == TagId.Frame) {
+    parser.appendElement(token, namespaceUri(Namespace.Html));
+    token.ackSelfClosing = true;
+  } else if (token.tagID == TagId.Noframes) startTagInHead(parser, token);
+}
+
+void endTagInFrameset(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Frameset && !parser.openElements.isRootHtmlElementCurrent()) {
+    parser.openElements.pop();
+    if (!parser.hasFragmentContext && parser.openElements.currentTagId != TagId.Frameset) parser.insertionMode = InsertionMode.AfterFrameset;
+  }
+}
+
+void startTagAfterFrameset(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) startTagInBody(parser, token);
+  else if (token.tagID == TagId.Noframes) startTagInHead(parser, token);
+}
+
+void endTagAfterFrameset(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) parser.insertionMode = InsertionMode.AfterAfterFrameset;
+}
+
+void startTagAfterAfterBody(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) startTagInBody(parser, token);
+  else tokenAfterAfterBody(parser);
+}
+
+void tokenAfterAfterBody(Parser parser) {
+  parser.insertionMode = InsertionMode.InBody;
+  parser.processCurrentTokenInBody();
+}
+
+void startTagAfterAfterFrameset(Parser parser, TagToken token) {
+  if (token.tagID == TagId.Html) startTagInBody(parser, token);
+  else if (token.tagID == TagId.Noframes) startTagInHead(parser, token);
+}
+
+void nullCharacterInForeignContent(Parser parser, CharacterToken token) {
+  token.chars = REPLACEMENT_CHARACTER;
+  parser.insertCharacters(token);
+}
+
+void characterInForeignContent(Parser parser, CharacterToken token) {
+  parser.insertCharacters(token);
+  parser.framesetOk = false;
+}
+
+void popUntilHtmlOrIntegrationPoint(Parser parser) {
+  while (getNamespaceURI(parser.openElements.current) != namespaceUri(Namespace.Html) && parser.openElements.hasCurrent && !parser.isIntegrationPoint(parser.openElements.currentTagId, parser.openElements.current, null)) parser.openElements.pop();
+}
+
+void startTagInForeignContent(Parser parser, TagToken token) {
+  if (causesExit(token)) {
+    popUntilHtmlOrIntegrationPoint(parser);
+    parser.startTagOutsideForeignContent(token);
+    return;
+  }
+  JsValue current = parser.adjustedCurrentElement();
+  string currentNamespace = getNamespaceURI(current);
+  if (currentNamespace == namespaceUri(Namespace.MathMl)) adjustTokenMathMLAttrs(token);
+  else if (currentNamespace == namespaceUri(Namespace.Svg)) {
+    adjustTokenSVGTagName(token);
+    adjustTokenSVGAttrs(token);
+  }
+  adjustTokenXMLAttrs(token);
+  if (token.selfClosing) parser.appendElement(token, currentNamespace);
+  else parser.insertElement(token, currentNamespace);
+  token.ackSelfClosing = true;
+}
+
+void endTagInForeignContent(Parser parser, TagToken token) {
+  if (token.tagID == TagId.P || token.tagID == TagId.Br) {
+    popUntilHtmlOrIntegrationPoint(parser);
+    parser.endTagOutsideForeignContent(token);
+    return;
+  }
+  int i = parser.openElements.stackTop;
+  while (i > 0) {
+    JsValue element = parser.openElements.items[i];
+    if (getNamespaceURI(element) == namespaceUri(Namespace.Html)) {
+      parser.endTagOutsideForeignContent(token);
+      return;
+    }
+    string tagName = getTagName(element);
+    if (tagName.toLowerCase() == token.tagName) {
+      token.tagName = tagName;
+      parser.openElements.shortenToLength(i);
+      return;
+    }
+    i = i - 1;
+  }
+}

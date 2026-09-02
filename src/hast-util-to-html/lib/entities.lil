@@ -1,0 +1,193 @@
+import { CharacterReferences, charInSet, fromCharCode } from "./types.lil";
+
+pure string hexUpper(int code) {
+  if (code <= 0) {
+    return "0";
+  }
+  string digits = "0123456789ABCDEF";
+  string out = "";
+  int n = code;
+  while (n > 0) {
+    int d = n % 16;
+    out = digits.charAt(d) + out;
+    n = n / 16;
+  }
+  return out;
+}
+
+pure bool isDigit(int code) {
+  return code >= 48 && code <= 57;
+}
+
+pure bool isHexadecimal(int code) {
+  return isDigit(code) || (code >= 65 && code <= 70) || (code >= 97 && code <= 102);
+}
+
+pure bool isAlphanumeric(int code) {
+  return isDigit(code) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+}
+
+pure string decimal(int code) {
+  return code.toString();
+}
+
+string formatEntity(int code, int next, CharacterReferences options, bool attribute) {
+  bool omit = options.omitOptionalSemicolons;
+  string hexadecimal = "&#x" + hexUpper(code);
+  if (!(omit && next != 0 && !isHexadecimal(next))) {
+    hexadecimal = hexadecimal + ";";
+  }
+
+  bool shortest = options.useShortestReferences;
+  string numeric = hexadecimal;
+  if (shortest) {
+    string candidate = "&#" + decimal(code);
+    if (!(omit && next != 0 && !isDigit(next))) {
+      candidate = candidate + ";";
+    }
+    if (candidate.length < numeric.length) {
+      numeric = candidate;
+    }
+  }
+
+  bool namedRequested = shortest || options.useNamedReferences;
+  string name = "";
+  if (code == 34) {
+    name = "quot";
+  } else if (code == 38) {
+    name = "amp";
+  } else if (code == 60) {
+    name = "lt";
+  } else if (code == 62) {
+    name = "gt";
+  }
+  if (!namedRequested || name.length == 0) {
+    return numeric;
+  }
+
+  string named = "&" + name;
+  bool dangerous = name == "lt" || name == "gt";
+  if (!(omit && !dangerous && (!attribute || (next != 0 && next != 61 && !isAlphanumeric(next))))) {
+    named = named + ";";
+  }
+  if (!shortest || named.length < numeric.length) {
+    return named;
+  }
+  return numeric;
+}
+
+export string stringifyEntities(string value, string subset, CharacterReferences options, bool attribute) {
+  string out = "";
+  int n = value.length;
+  int i = 0;
+  while (i < n) {
+    string ch = value.charAt(i);
+    if (charInSet(ch, subset)) {
+      int next = 0;
+      if (i + 1 < n) {
+        next = value.charCodeAt(i + 1);
+      }
+      out = out + formatEntity(ch.charCodeAt(0), next, options, attribute);
+    } else {
+      out = out + ch;
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+export pure string textSubset() {
+  return "<&";
+}
+
+export pure string commentSubset() {
+  return "<>";
+}
+
+export pure string bogusSubset() {
+  return ">";
+}
+
+export string nameSubset(bool parseErrors, bool dangerous) {
+  string nul = fromCharCode(0);
+  string ws = fromCharCode(9) + fromCharCode(10) + fromCharCode(12) + fromCharCode(13) + " ";
+  if (parseErrors) {
+    if (dangerous) {
+      return ws + "&/=>";
+    }
+    return ws + "\"&'/=>`";
+  }
+  if (dangerous) {
+    return nul + ws + "\"&'/<=>";
+  }
+  return nul + ws + "\"&'/<=>`";
+}
+
+export string unquotedSubset(bool parseErrors, bool dangerous) {
+  string nul = fromCharCode(0);
+  string ws = fromCharCode(9) + fromCharCode(10) + fromCharCode(12) + fromCharCode(13) + " ";
+  if (parseErrors && dangerous) {
+    return ws + "&>";
+  }
+  return nul + ws + "\"&'<=>`";
+}
+
+export string singleSubset(bool parseErrors, bool dangerous) {
+  string nul = fromCharCode(0);
+  if (parseErrors) {
+    if (dangerous) {
+      return "&'";
+    }
+    return "\"&'`";
+  }
+  if (dangerous) {
+    return nul + "&'";
+  }
+  return nul + "\"&'`";
+}
+
+export string doubleSubset(bool parseErrors, bool dangerous) {
+  string nul = fromCharCode(0);
+  if (parseErrors) {
+    if (dangerous) {
+      return "\"&";
+    }
+    return "\"&'`";
+  }
+  if (dangerous) {
+    return nul + "\"&";
+  }
+  return nul + "\"&'`";
+}
+
+export string encodeCommentValue(string value, CharacterReferences options) {
+  string out = "";
+  int n = value.length;
+  int i = 0;
+  while (i < n) {
+    string rest = value.slice(i);
+    if (i == 0 && rest.length > 0 && rest.charAt(0) == ">") {
+      out = out + stringifyEntities(">", commentSubset(), options, false);
+      i = i + 1;
+    } else if (i == 0 && rest.length >= 2 && rest.slice(0, 2) == "->") {
+      out = out + stringifyEntities("->", commentSubset(), options, false);
+      i = i + 2;
+    } else if (rest.length >= 4 && rest.slice(0, 4) == "<!--") {
+      out = out + stringifyEntities("<!--", commentSubset(), options, false);
+      i = i + 4;
+    } else if (rest.length >= 4 && rest.slice(0, 4) == "--!>") {
+      out = out + stringifyEntities("--!>", commentSubset(), options, false);
+      i = i + 4;
+    } else if (rest.length >= 3 && rest.slice(0, 3) == "-->") {
+      out = out + stringifyEntities("-->", commentSubset(), options, false);
+      i = i + 3;
+    } else if (rest == "<!-") {
+      out = out + stringifyEntities("<!-", commentSubset(), options, false);
+      i = n;
+    } else {
+      out = out + rest.charAt(0);
+      i = i + 1;
+    }
+  }
+  return out;
+}

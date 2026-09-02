@@ -1,80 +1,68 @@
-import { String } from "../../unified/host.lil";
+export int EOF = -1;
+export int NULL = 0;
+export int TABULATION = 9;
+export int LINE_FEED = 10;
+export int FORM_FEED = 12;
+export int CARRIAGE_RETURN = 13;
+export int SPACE = 32;
+export int EXCLAMATION_MARK = 33;
+export int QUOTATION_MARK = 34;
+export int AMPERSAND = 38;
+export int APOSTROPHE = 39;
+export int HYPHEN_MINUS = 45;
+export int SOLIDUS = 47;
+export int DIGIT_0 = 48;
+export int DIGIT_9 = 57;
+export int SEMICOLON = 59;
+export int LESS_THAN_SIGN = 60;
+export int EQUALS_SIGN = 61;
+export int GREATER_THAN_SIGN = 62;
+export int QUESTION_MARK = 63;
+export int LATIN_CAPITAL_A = 65;
+export int LATIN_CAPITAL_Z = 90;
+export int RIGHT_SQUARE_BRACKET = 93;
+export int GRAVE_ACCENT = 96;
+export int LATIN_SMALL_A = 97;
+export int LATIN_SMALL_Z = 122;
 
-export int CP_EOF = -1;
-export int CP_NULL = 0;
-export int CP_TAB = 9;
-export int CP_LF = 10;
-export int CP_FF = 12;
-export int CP_CR = 13;
-export int CP_SPACE = 32;
-export int CP_BANG = 33;
-export int CP_QUOTE = 34;
-export int CP_AMP = 38;
-export int CP_APOS = 39;
-export int CP_DASH = 45;
-export int CP_SLASH = 47;
-export int CP_DIGIT_0 = 48;
-export int CP_DIGIT_9 = 57;
-export int CP_SEMI = 59;
-export int CP_LT = 60;
-export int CP_EQ = 61;
-export int CP_GT = 62;
-export int CP_QMARK = 63;
-export int CP_A = 65;
-export int CP_F = 70;
-export int CP_X = 88;
-export int CP_Z = 90;
-export int CP_RBRACK = 93;
-export int CP_GRAVE = 96;
-export int CP_a = 97;
-export int CP_f = 102;
-export int CP_x = 120;
-export int CP_z = 122;
+export string REPLACEMENT_CHARACTER = "\uFFFD";
+export string DASH_DASH = "--";
+export string CDATA_START = "[CDATA[";
+export string DOCTYPE = "doctype";
+export string SCRIPT = "script";
+export string PUBLIC = "public";
+export string SYSTEM = "system";
 
-export string REPLACEMENT = "\uFFFD";
-export string SEQ_DASH_DASH = "--";
-export string SEQ_CDATA = "[CDATA[";
-export string SEQ_DOCTYPE = "doctype";
-export string SEQ_SCRIPT = "script";
-export string SEQ_PUBLIC = "public";
-export string SEQ_SYSTEM = "system";
-
-int[] UNDEFINED_CPS = [
+int[] UNDEFINED_CODE_POINTS = [
   65534, 65535, 131070, 131071, 196606, 196607, 262142, 262143, 327678, 327679,
   393214, 393215, 458750, 458751, 524286, 524287, 589822, 589823, 655358, 655359,
   720894, 720895, 786430, 786431, 851966, 851967, 917502, 917503, 983038, 983039,
   1048574, 1048575, 1114110, 1114111
 ];
 
-export bool isSurrogate(int cp) {
+export pure bool isSurrogate(int cp) {
   return cp >= 55296 && cp <= 57343;
 }
 
-export bool isSurrogatePair(int cp) {
+export pure bool isSurrogatePair(int cp) {
   return cp >= 56320 && cp <= 57343;
 }
 
-export int surrogatePairCp(int cp1, int cp2) {
+export pure int getSurrogatePairCodePoint(int cp1, int cp2) {
   return (cp1 - 55296) * 1024 + 9216 + cp2;
 }
 
-export bool isControlCodePoint(int cp) {
-  if (cp == 32 || cp == 10 || cp == 13 || cp == 9 || cp == 12) {
-    return false;
-  }
-  if (cp >= 1 && cp <= 31) {
-    return true;
-  }
-  return cp >= 127 && cp <= 159;
+export pure bool isControlCodePoint(int cp) {
+  return ((cp != 32 && cp != 10 && cp != 13 && cp != 9 && cp != 12 && cp >= 1 && cp <= 31) || (cp >= 127 && cp <= 159));
 }
 
-export bool isUndefinedCodePoint(int cp) {
+export pure bool isUndefinedCodePoint(int cp) {
   if (cp >= 64976 && cp <= 65007) {
     return true;
   }
   int i = 0;
-  while (i < UNDEFINED_CPS.length) {
-    if (UNDEFINED_CPS[i] == cp) {
+  while (i < UNDEFINED_CODE_POINTS.length) {
+    if (UNDEFINED_CODE_POINTS[i] == cp) {
       return true;
     }
     i = i + 1;
@@ -85,3 +73,4 @@ export bool isUndefinedCodePoint(int cp) {
 export string fromCodePoint(int cp) {
   return JS.string(JS.invoke(String, "fromCodePoint", cp));
 }
+import { String } from "../../unified/host.lil";

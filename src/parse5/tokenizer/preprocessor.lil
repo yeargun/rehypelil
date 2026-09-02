@@ -1,19 +1,10 @@
-import { isUndef, isNullish } from "../../unified/host.lil";
-import {
-  CP_EOF,
-  CP_CR,
-  CP_LF,
-  isControlCodePoint,
-  isSurrogate,
-  isSurrogatePair,
-  isUndefinedCodePoint,
-  surrogatePairCp
-} from "../common/unicode.lil";
-import { ERR_controlCharacterInInputStream, ERR_noncharacterInInputStream, ERR_surrogateInInputStream } from "../common/error-codes.lil";
+import { ErrorCode, ParserError, parserErrorValue } from "../common/error-codes.lil";
+import { CARRIAGE_RETURN, EOF, LINE_FEED, getSurrogatePairCodePoint, isControlCodePoint, isSurrogate, isSurrogatePair, isUndefinedCodePoint } from "../common/unicode.lil";
 
-int WATERLINE = 65536;
+int DEFAULT_BUFFER_WATERLINE = 65536;
 
 export class Preprocessor {
+  // The callback is intentionally dynamic: parse errors are a public boundary.
   JsValue handler;
   string html;
   int pos;
@@ -38,7 +29,7 @@ export class Preprocessor {
     this.skipNextNewLine = false;
     this.lastChunkWritten = false;
     this.endOfChunkHit = false;
-    this.bufferWaterline = WATERLINE;
+    this.bufferWaterline = DEFAULT_BUFFER_WATERLINE;
     this.isEol = false;
     this.lineStartPos = 0;
     this.droppedBufferSize = 0;
@@ -47,41 +38,28 @@ export class Preprocessor {
   }
 
   int col() {
-    int extra = 0;
-    if (this.lastGapPos != this.pos) {
-      extra = 1;
-    }
-    return this.pos - this.lineStartPos + extra;
+    int gap = 1;
+    if (this.lastGapPos == this.pos) gap = 0;
+    return this.pos - this.lineStartPos + gap;
   }
 
   int offset() {
     return this.droppedBufferSize + this.pos;
   }
 
-  JsValue getError(string code, int cpOffset) {
+  ParserError getError(ErrorCode code, int cpOffset) {
     int startCol = this.col() + cpOffset;
     int startOffset = this.offset() + cpOffset;
-    return JS.object(
-      "code", code,
-      "startLine", this.line,
-      "endLine", this.line,
-      "startCol", startCol,
-      "endCol", startCol,
-      "startOffset", startOffset,
-      "endOffset", startOffset
-    );
+    return ParserError{code, this.line, this.line, startCol, startCol, startOffset, startOffset};
   }
 
-  void err(string code) {
+  void err(ErrorCode code) {
     JsValue onParseError = JS.get(this.handler, "onParseError");
-    if (isUndef(onParseError) || isNullish(onParseError)) {
-      return;
-    }
-    if (this.lastErrOffset == this.offset()) {
+    if (JS.isUndefined(onParseError) || JS.isNullish(onParseError) || this.lastErrOffset == this.offset()) {
       return;
     }
     this.lastErrOffset = this.offset();
-    JS.call(onParseError, this.handler, this.getError(code, 0));
+    JS.call(onParseError, this.handler, parserErrorValue(this.getError(code, 0)));
   }
 
   void addGap() {
@@ -95,13 +73,13 @@ export class Preprocessor {
       if (isSurrogatePair(nextCp)) {
         this.pos = this.pos + 1;
         this.addGap();
-        return surrogatePairCp(cp, nextCp);
+        return getSurrogatePairCodePoint(cp, nextCp);
       }
     } else if (!this.lastChunkWritten) {
       this.endOfChunkHit = true;
-      return CP_EOF;
+      return EOF;
     }
-    this.err(ERR_surrogateInInputStream);
+    this.err(ErrorCode.SurrogateInInputStream);
     return cp;
   }
 
@@ -110,15 +88,14 @@ export class Preprocessor {
   }
 
   void dropParsedChunk() {
-    if (!this.willDropParsedChunk()) {
-      return;
+    if (this.willDropParsedChunk()) {
+      this.html = this.html.slice(this.pos);
+      this.lineStartPos = this.lineStartPos - this.pos;
+      this.droppedBufferSize = this.droppedBufferSize + this.pos;
+      this.pos = 0;
+      this.lastGapPos = -2;
+      this.gapStack = [];
     }
-    this.html = this.html.slice(this.pos);
-    this.lineStartPos = this.lineStartPos - this.pos;
-    this.droppedBufferSize = this.droppedBufferSize + this.pos;
-    this.pos = 0;
-    this.lastGapPos = -2;
-    this.gapStack = [];
   }
 
   void write(string chunk, bool isLastChunk) {
@@ -146,8 +123,7 @@ export class Preprocessor {
     }
     int i = 0;
     while (i < pattern.length) {
-      int cp = this.html.charCodeAt(this.pos + i) | 32;
-      if (cp != pattern.charCodeAt(i)) {
+      if ((this.html.charCodeAt(this.pos + i) | 32) != pattern.charCodeAt(i)) {
         return false;
       }
       i = i + 1;
@@ -155,16 +131,14 @@ export class Preprocessor {
     return true;
   }
 
-  int peek(int offset) {
-    int pos = this.pos + offset;
-    if (pos >= this.html.length) {
+  int peek(int relativeOffset) {
+    int position = this.pos + relativeOffset;
+    if (position >= this.html.length) {
       this.endOfChunkHit = !this.lastChunkWritten;
-      return CP_EOF;
+      return EOF;
     }
-    int code = this.html.charCodeAt(pos);
-    if (code == CP_CR) {
-      return CP_LF;
-    }
+    int code = this.html.charCodeAt(position);
+    if (code == CARRIAGE_RETURN) return LINE_FEED;
     return code;
   }
 
@@ -177,15 +151,15 @@ export class Preprocessor {
     }
     if (this.pos >= this.html.length) {
       this.endOfChunkHit = !this.lastChunkWritten;
-      return CP_EOF;
+      return EOF;
     }
     int cp = this.html.charCodeAt(this.pos);
-    if (cp == CP_CR) {
+    if (cp == CARRIAGE_RETURN) {
       this.isEol = true;
       this.skipNextNewLine = true;
-      return CP_LF;
+      return LINE_FEED;
     }
-    if (cp == CP_LF) {
+    if (cp == LINE_FEED) {
       this.isEol = true;
       if (this.skipNextNewLine) {
         this.line = this.line - 1;
@@ -199,19 +173,19 @@ export class Preprocessor {
       cp = this.processSurrogate(cp);
     }
     JsValue onParseError = JS.get(this.handler, "onParseError");
-    bool skipCheck = isUndef(onParseError) || isNullish(onParseError);
-    bool common = skipCheck || (cp > 31 && cp < 127) || cp == CP_LF || cp == CP_CR || (cp > 159 && cp < 64976);
-    if (!common) {
-      this.checkProblematic(cp);
+    bool noErrors = JS.isUndefined(onParseError) || JS.isNullish(onParseError);
+    bool commonValidRange = noErrors || (cp > 31 && cp < 127) || cp == LINE_FEED || cp == CARRIAGE_RETURN || (cp > 159 && cp < 64976);
+    if (!commonValidRange) {
+      this.checkForProblematicCharacters(cp);
     }
     return cp;
   }
 
-  void checkProblematic(int cp) {
+  void checkForProblematicCharacters(int cp) {
     if (isControlCodePoint(cp)) {
-      this.err(ERR_controlCharacterInInputStream);
+      this.err(ErrorCode.ControlCharacterInInputStream);
     } else if (isUndefinedCodePoint(cp)) {
-      this.err(ERR_noncharacterInInputStream);
+      this.err(ErrorCode.NoncharacterInInputStream);
     }
   }
 

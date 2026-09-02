@@ -1,355 +1,382 @@
-import { isUndef, isNullish, isFn, throwError, NULL } from "../../unified/host.lil";
+import { JSON, Object, throwError } from "../../unified/host.lil";
+import { ErrorCode, parserErrorValue } from "../common/error-codes.lil";
+import { TagId, getTagID } from "../common/html.lil";
+import { Attribute, CharacterToken, CommentToken, DoctypeToken, EofToken, Location, TagLocation, TagToken, TokenType, getTokenAttr } from "../common/token.lil";
 import {
-  CP_EOF,
-  CP_NULL,
-  CP_TAB,
-  CP_LF,
-  CP_FF,
-  CP_CR,
-  CP_SPACE,
-  CP_BANG,
-  CP_QUOTE,
-  CP_AMP,
-  CP_APOS,
-  CP_DASH,
-  CP_SLASH,
-  CP_DIGIT_0,
-  CP_DIGIT_9,
-  CP_SEMI,
-  CP_LT,
-  CP_EQ,
-  CP_GT,
-  CP_QMARK,
-  CP_A,
-  CP_Z,
-  CP_RBRACK,
-  CP_GRAVE,
-  CP_a,
-  CP_z,
-  REPLACEMENT,
-  SEQ_DASH_DASH,
-  SEQ_CDATA,
-  SEQ_DOCTYPE,
-  SEQ_SCRIPT,
-  SEQ_PUBLIC,
-  SEQ_SYSTEM,
-  fromCodePoint,
-  isSurrogate,
-  isUndefinedCodePoint,
-  isControlCodePoint
+  AMPERSAND, APOSTROPHE, CDATA_START, CARRIAGE_RETURN, DIGIT_0, DIGIT_9,
+  DOCTYPE, EOF, EQUALS_SIGN, EXCLAMATION_MARK, FORM_FEED, GRAVE_ACCENT,
+  GREATER_THAN_SIGN, HYPHEN_MINUS, LATIN_CAPITAL_A, LATIN_CAPITAL_Z,
+  LATIN_SMALL_A, LATIN_SMALL_Z, LESS_THAN_SIGN, LINE_FEED, NULL, PUBLIC,
+  QUESTION_MARK, QUOTATION_MARK, REPLACEMENT_CHARACTER, RIGHT_SQUARE_BRACKET,
+  SCRIPT, SEMICOLON, SOLIDUS, SPACE, SYSTEM, TABULATION, DASH_DASH,
+  fromCodePoint, isControlCodePoint, isSurrogate, isUndefinedCodePoint
 } from "../common/unicode.lil";
-import {
-  TOKEN_CHARACTER,
-  TOKEN_NULL,
-  TOKEN_WHITESPACE,
-  TOKEN_START_TAG,
-  TOKEN_END_TAG,
-  TOKEN_COMMENT,
-  TOKEN_DOCTYPE,
-  TOKEN_EOF,
-  tokenAttr
-} from "../common/token.lil";
-import { TAG_UNKNOWN, getTagID } from "../common/html.lil";
-import { EntityDecoder, DECODE_LEGACY, DECODE_ATTRIBUTE } from "../entities/decode.lil";
-import { htmlDecodeTree } from "../entities/decode-data-html.lil";
+import { DecodingMode, EntityDecoder } from "../entities/decode.lil";
+import { htmlDecodeData } from "../entities/generated/decode-data-html.lil";
 import { Preprocessor } from "./preprocessor.lil";
-import {
-  ERR_endTagWithAttributes,
-  ERR_endTagWithTrailingSolidus,
-  ERR_unexpectedSolidusInTag,
-  ERR_unexpectedNullCharacter,
-  ERR_unexpectedQuestionMarkInsteadOfTagName,
-  ERR_invalidFirstCharacterOfTagName,
-  ERR_unexpectedEqualsSignBeforeAttributeName,
-  ERR_missingEndTagName,
-  ERR_unexpectedCharacterInAttributeName,
-  ERR_unknownNamedCharacterReference,
-  ERR_missingSemicolonAfterCharacterReference,
-  ERR_unexpectedCharacterAfterDoctypeSystemIdentifier,
-  ERR_unexpectedCharacterInUnquotedAttributeValue,
-  ERR_eofBeforeTagName,
-  ERR_eofInTag,
-  ERR_missingAttributeValue,
-  ERR_missingWhitespaceBetweenAttributes,
-  ERR_missingWhitespaceAfterDoctypePublicKeyword,
-  ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers,
-  ERR_missingWhitespaceAfterDoctypeSystemKeyword,
-  ERR_missingQuoteBeforeDoctypePublicIdentifier,
-  ERR_missingQuoteBeforeDoctypeSystemIdentifier,
-  ERR_missingDoctypePublicIdentifier,
-  ERR_missingDoctypeSystemIdentifier,
-  ERR_abruptDoctypePublicIdentifier,
-  ERR_abruptDoctypeSystemIdentifier,
-  ERR_cdataInHtmlContent,
-  ERR_incorrectlyOpenedComment,
-  ERR_eofInScriptHtmlCommentLikeText,
-  ERR_eofInDoctype,
-  ERR_nestedComment,
-  ERR_abruptClosingOfEmptyComment,
-  ERR_eofInComment,
-  ERR_incorrectlyClosedComment,
-  ERR_eofInCdata,
-  ERR_absenceOfDigitsInNumericCharacterReference,
-  ERR_nullCharacterReference,
-  ERR_surrogateCharacterReference,
-  ERR_characterReferenceOutsideUnicodeRange,
-  ERR_controlCharacterReference,
-  ERR_noncharacterCharacterReference,
-  ERR_missingWhitespaceBeforeDoctypeName,
-  ERR_missingDoctypeName,
-  ERR_invalidCharacterSequenceAfterDoctypeName,
-  ERR_duplicateAttribute
-} from "../common/error-codes.lil";
 
-export int ST_DATA = 0;
-export int ST_RCDATA = 1;
-export int ST_RAWTEXT = 2;
-export int ST_SCRIPT_DATA = 3;
-export int ST_PLAINTEXT = 4;
-export int ST_TAG_OPEN = 5;
-export int ST_END_TAG_OPEN = 6;
-export int ST_TAG_NAME = 7;
-export int ST_RCDATA_LESS_THAN_SIGN = 8;
-export int ST_RCDATA_END_TAG_OPEN = 9;
-export int ST_RCDATA_END_TAG_NAME = 10;
-export int ST_RAWTEXT_LESS_THAN_SIGN = 11;
-export int ST_RAWTEXT_END_TAG_OPEN = 12;
-export int ST_RAWTEXT_END_TAG_NAME = 13;
-export int ST_SCRIPT_DATA_LESS_THAN_SIGN = 14;
-export int ST_SCRIPT_DATA_END_TAG_OPEN = 15;
-export int ST_SCRIPT_DATA_END_TAG_NAME = 16;
-export int ST_SCRIPT_DATA_ESCAPE_START = 17;
-export int ST_SCRIPT_DATA_ESCAPE_START_DASH = 18;
-export int ST_SCRIPT_DATA_ESCAPED = 19;
-export int ST_SCRIPT_DATA_ESCAPED_DASH = 20;
-export int ST_SCRIPT_DATA_ESCAPED_DASH_DASH = 21;
-export int ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN = 22;
-export int ST_SCRIPT_DATA_ESCAPED_END_TAG_OPEN = 23;
-export int ST_SCRIPT_DATA_ESCAPED_END_TAG_NAME = 24;
-export int ST_SCRIPT_DATA_DOUBLE_ESCAPE_START = 25;
-export int ST_SCRIPT_DATA_DOUBLE_ESCAPED = 26;
-export int ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH = 27;
-export int ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH = 28;
-export int ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN = 29;
-export int ST_SCRIPT_DATA_DOUBLE_ESCAPE_END = 30;
-export int ST_BEFORE_ATTRIBUTE_NAME = 31;
-export int ST_ATTRIBUTE_NAME = 32;
-export int ST_AFTER_ATTRIBUTE_NAME = 33;
-export int ST_BEFORE_ATTRIBUTE_VALUE = 34;
-export int ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED = 35;
-export int ST_ATTRIBUTE_VALUE_SINGLE_QUOTED = 36;
-export int ST_ATTRIBUTE_VALUE_UNQUOTED = 37;
-export int ST_AFTER_ATTRIBUTE_VALUE_QUOTED = 38;
-export int ST_SELF_CLOSING_START_TAG = 39;
-export int ST_BOGUS_COMMENT = 40;
-export int ST_MARKUP_DECLARATION_OPEN = 41;
-export int ST_COMMENT_START = 42;
-export int ST_COMMENT_START_DASH = 43;
-export int ST_COMMENT = 44;
-export int ST_COMMENT_LESS_THAN_SIGN = 45;
-export int ST_COMMENT_LESS_THAN_SIGN_BANG = 46;
-export int ST_COMMENT_LESS_THAN_SIGN_BANG_DASH = 47;
-export int ST_COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH = 48;
-export int ST_COMMENT_END_DASH = 49;
-export int ST_COMMENT_END = 50;
-export int ST_COMMENT_END_BANG = 51;
-export int ST_DOCTYPE = 52;
-export int ST_BEFORE_DOCTYPE_NAME = 53;
-export int ST_DOCTYPE_NAME = 54;
-export int ST_AFTER_DOCTYPE_NAME = 55;
-export int ST_AFTER_DOCTYPE_PUBLIC_KEYWORD = 56;
-export int ST_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER = 57;
-export int ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED = 58;
-export int ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED = 59;
-export int ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER = 60;
-export int ST_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS = 61;
-export int ST_AFTER_DOCTYPE_SYSTEM_KEYWORD = 62;
-export int ST_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER = 63;
-export int ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED = 64;
-export int ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED = 65;
-export int ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER = 66;
-export int ST_BOGUS_DOCTYPE = 67;
-export int ST_CDATA_SECTION = 68;
-export int ST_CDATA_SECTION_BRACKET = 69;
-export int ST_CDATA_SECTION_END = 70;
-export int ST_CHARACTER_REFERENCE = 71;
-export int ST_AMBIGUOUS_AMPERSAND = 72;
-
-export int MODE_DATA = ST_DATA;
-export int MODE_RCDATA = ST_RCDATA;
-export int MODE_RAWTEXT = ST_RAWTEXT;
-export int MODE_SCRIPT_DATA = ST_SCRIPT_DATA;
-export int MODE_PLAINTEXT = ST_PLAINTEXT;
-export int MODE_CDATA_SECTION = ST_CDATA_SECTION;
-
-bool isAsciiDigit(int cp) {
-  return cp >= CP_DIGIT_0 && cp <= CP_DIGIT_9;
+export enum State {
+  Data,
+  Rcdata,
+  Rawtext,
+  ScriptData,
+  Plaintext,
+  TagOpen,
+  EndTagOpen,
+  TagName,
+  RcdataLessThanSign,
+  RcdataEndTagOpen,
+  RcdataEndTagName,
+  RawtextLessThanSign,
+  RawtextEndTagOpen,
+  RawtextEndTagName,
+  ScriptDataLessThanSign,
+  ScriptDataEndTagOpen,
+  ScriptDataEndTagName,
+  ScriptDataEscapeStart,
+  ScriptDataEscapeStartDash,
+  ScriptDataEscaped,
+  ScriptDataEscapedDash,
+  ScriptDataEscapedDashDash,
+  ScriptDataEscapedLessThanSign,
+  ScriptDataEscapedEndTagOpen,
+  ScriptDataEscapedEndTagName,
+  ScriptDataDoubleEscapeStart,
+  ScriptDataDoubleEscaped,
+  ScriptDataDoubleEscapedDash,
+  ScriptDataDoubleEscapedDashDash,
+  ScriptDataDoubleEscapedLessThanSign,
+  ScriptDataDoubleEscapeEnd,
+  BeforeAttributeName,
+  AttributeName,
+  AfterAttributeName,
+  BeforeAttributeValue,
+  AttributeValueDoubleQuoted,
+  AttributeValueSingleQuoted,
+  AttributeValueUnquoted,
+  AfterAttributeValueQuoted,
+  SelfClosingStartTag,
+  BogusComment,
+  MarkupDeclarationOpen,
+  CommentStart,
+  CommentStartDash,
+  Comment,
+  CommentLessThanSign,
+  CommentLessThanSignBang,
+  CommentLessThanSignBangDash,
+  CommentLessThanSignBangDashDash,
+  CommentEndDash,
+  CommentEnd,
+  CommentEndBang,
+  Doctype,
+  BeforeDoctypeName,
+  DoctypeName,
+  AfterDoctypeName,
+  AfterDoctypePublicKeyword,
+  BeforeDoctypePublicIdentifier,
+  DoctypePublicIdentifierDoubleQuoted,
+  DoctypePublicIdentifierSingleQuoted,
+  AfterDoctypePublicIdentifier,
+  BetweenDoctypePublicAndSystemIdentifiers,
+  AfterDoctypeSystemKeyword,
+  BeforeDoctypeSystemIdentifier,
+  DoctypeSystemIdentifierDoubleQuoted,
+  DoctypeSystemIdentifierSingleQuoted,
+  AfterDoctypeSystemIdentifier,
+  BogusDoctype,
+  CdataSection,
+  CdataSectionBracket,
+  CdataSectionEnd,
+  CharacterReference,
+  AmbiguousAmpersand
 }
 
-bool isAsciiUpper(int cp) {
-  return cp >= CP_A && cp <= CP_Z;
+export int MODE_DATA = 0;
+export int MODE_RCDATA = 1;
+export int MODE_RAWTEXT = 2;
+export int MODE_SCRIPT_DATA = 3;
+export int MODE_PLAINTEXT = 4;
+export int MODE_CDATA_SECTION = 68;
+
+export struct TypedTokenHandler {
+  func(CommentToken)->void onComment;
+  func(DoctypeToken)->void onDoctype;
+  func(TagToken)->void onStartTag;
+  func(TagToken)->void onEndTag;
+  func(EofToken)->void onEof;
+  func(CharacterToken)->void onCharacter;
+  func(CharacterToken)->void onNullCharacter;
+  func(CharacterToken)->void onWhitespaceCharacter;
 }
 
-bool isAsciiLower(int cp) {
-  return cp >= CP_a && cp <= CP_z;
+pure bool isAsciiDigit(int cp) {
+  return cp >= DIGIT_0 && cp <= DIGIT_9;
 }
 
-bool isAsciiLetter(int cp) {
+pure bool isAsciiUpper(int cp) {
+  return cp >= LATIN_CAPITAL_A && cp <= LATIN_CAPITAL_Z;
+}
+
+pure bool isAsciiLower(int cp) {
+  return cp >= LATIN_SMALL_A && cp <= LATIN_SMALL_Z;
+}
+
+pure bool isAsciiLetter(int cp) {
   return isAsciiLower(cp) || isAsciiUpper(cp);
 }
 
-bool isAsciiAlphaNumeric(int cp) {
+pure bool isAsciiAlphaNumeric(int cp) {
   return isAsciiLetter(cp) || isAsciiDigit(cp);
 }
 
-int toAsciiLower(int cp) {
+pure int toAsciiLower(int cp) {
   return cp + 32;
 }
 
-bool isWs(int cp) {
-  return cp == CP_SPACE || cp == CP_LF || cp == CP_TAB || cp == CP_FF;
+pure bool isWhitespace(int cp) {
+  return cp == SPACE || cp == LINE_FEED || cp == TABULATION || cp == FORM_FEED;
 }
 
-bool isScriptDataDoubleEscapeEnd(int cp) {
-  return isWs(cp) || cp == CP_SLASH || cp == CP_GT;
+pure bool isScriptDataDoubleEscapeSequenceEnd(int cp) {
+  return isWhitespace(cp) || cp == SOLIDUS || cp == GREATER_THAN_SIGN;
 }
 
-string numericRefError(int code) {
-  if (code == CP_NULL) {
-    return ERR_nullCharacterReference;
-  }
-  if (code > 1114111) {
-    return ERR_characterReferenceOutsideUnicodeRange;
-  }
-  if (isSurrogate(code)) {
-    return ERR_surrogateCharacterReference;
-  }
-  if (isUndefinedCodePoint(code)) {
-    return ERR_noncharacterCharacterReference;
-  }
-  if (isControlCodePoint(code) || code == CP_CR) {
-    return ERR_controlCharacterReference;
-  }
-  return "";
+pure ErrorCode? getErrorForNumericCharacterReference(int code) {
+  if (code == NULL) return ErrorCode.NullCharacterReference;
+  if (code > 1114111) return ErrorCode.CharacterReferenceOutsideUnicodeRange;
+  if (isSurrogate(code)) return ErrorCode.SurrogateCharacterReference;
+  if (isUndefinedCodePoint(code)) return ErrorCode.NoncharacterCharacterReference;
+  if (isControlCodePoint(code) || code == CARRIAGE_RETURN) return ErrorCode.ControlCharacterReference;
+  return null;
 }
 
-int tokenTypeOf(JsValue token) {
-  return JS.number(JS.get(token, "type")).toInt();
+Location locationFromPreprocessor(Preprocessor preprocessor, int offset) {
+  Location location = new Location();
+  location.startLine = preprocessor.line;
+  location.startCol = preprocessor.col() - offset;
+  location.startOffset = preprocessor.offset() - offset;
+  location.endLine = -1;
+  location.endCol = -1;
+  location.endOffset = -1;
+  return location;
 }
 
-void appendKey(JsValue obj, string key, string extra) {
-  JS.set(obj, key, JS.string(JS.get(obj, key)) + extra);
+TagLocation tagLocationFromPreprocessor(Preprocessor preprocessor, int offset) {
+  TagLocation location = new TagLocation();
+  location.startLine = preprocessor.line;
+  location.startCol = preprocessor.col() - offset;
+  location.startOffset = preprocessor.offset() - offset;
+  location.endLine = -1;
+  location.endCol = -1;
+  location.endOffset = -1;
+  location.attrs = new Map<string, Location>();
+  return location;
+}
+
+// Token objects become plain JavaScript data only at the handler boundary.
+export JsValue locationValue(Location? location) {
+  if (location == null) return JS.invoke(JSON, "parse", "null");
+  return JS.object(
+    "startLine", location.startLine,
+    "startCol", location.startCol,
+    "startOffset", location.startOffset,
+    "endLine", location.endLine,
+    "endCol", location.endCol,
+    "endOffset", location.endOffset
+  );
+}
+
+export JsValue tagLocationValue(TagLocation? location, Attribute[] attrs) {
+  if (location == null) return JS.invoke(JSON, "parse", "null");
+  JsValue value = JS.object(
+    "startLine", location.startLine,
+    "startCol", location.startCol,
+    "startOffset", location.startOffset,
+    "endLine", location.endLine,
+    "endCol", location.endCol,
+    "endOffset", location.endOffset
+  );
+  if (attrs.length > 0) {
+    JsValue locations = JS.invoke(Object, "create", JS.invoke(JSON, "parse", "null"));
+    int i = 0;
+    while (i < attrs.length) {
+      Location? attrLocation = location.attrs.get(attrs[i].name);
+      if (attrLocation != null) JS.set(locations, attrs[i].name, locationValue(attrLocation));
+      i = i + 1;
+    }
+    JS.set(value, "attrs", locations);
+  }
+  return value;
+}
+
+export JsValue attrsValue(Attribute[] attrs) {
+  JsValue value = JS.array();
+  int i = 0;
+  while (i < attrs.length) {
+    Attribute attr = attrs[i];
+    JsValue item = JS.object("name", attr.name, "value", attr.value);
+    if (attr.namespace != null) JS.set(item, "namespace", attr.namespace);
+    if (attr.prefix != null) JS.set(item, "prefix", attr.prefix);
+    JS.push(value, item);
+    i = i + 1;
+  }
+  return value;
+}
+
+JsValue tagTokenValue(TagToken token) {
+  return JS.object(
+    "type", token.type,
+    "tagName", token.tagName,
+    "tagID", token.tagID,
+    "selfClosing", token.selfClosing,
+    "ackSelfClosing", token.ackSelfClosing,
+    "attrs", attrsValue(token.attrs),
+    "location", tagLocationValue(token.location, token.attrs)
+  );
+}
+
+JsValue commentTokenValue(CommentToken token) {
+  return JS.object("type", token.type, "data", token.data, "location", locationValue(token.location));
+}
+
+JsValue doctypeTokenValue(DoctypeToken token) {
+  return JS.object(
+    "type", token.type,
+    "name", token.name,
+    "forceQuirks", token.forceQuirks,
+    "publicId", token.publicId,
+    "systemId", token.systemId,
+    "location", locationValue(token.location)
+  );
+}
+
+JsValue characterTokenValue(CharacterToken token) {
+  return JS.object("type", token.type, "chars", token.chars, "location", locationValue(token.location));
+}
+
+JsValue eofTokenValue(EofToken token) {
+  return JS.object("type", token.type, "location", locationValue(token.location));
+}
+
+export TypedTokenHandler adaptTokenHandler(JsValue handler) {
+  return TypedTokenHandler{
+    (CommentToken token) => { JS.invoke(handler, "onComment", commentTokenValue(token)); },
+    (DoctypeToken token) => { JS.invoke(handler, "onDoctype", doctypeTokenValue(token)); },
+    (TagToken token) => { JS.invoke(handler, "onStartTag", tagTokenValue(token)); },
+    (TagToken token) => { JS.invoke(handler, "onEndTag", tagTokenValue(token)); },
+    (EofToken token) => { JS.invoke(handler, "onEof", eofTokenValue(token)); },
+    (CharacterToken token) => { JS.invoke(handler, "onCharacter", characterTokenValue(token)); },
+    (CharacterToken token) => { JS.invoke(handler, "onNullCharacter", characterTokenValue(token)); },
+    (CharacterToken token) => { JS.invoke(handler, "onWhitespaceCharacter", characterTokenValue(token)); }
+  };
 }
 
 export class Tokenizer {
-  JsValue options;
+  // Options and handler are the public JavaScript adapter boundary.
   JsValue handler;
-  bool sourceLoc;
+  TypedTokenHandler typedHandler;
+  bool sourceCodeLocationInfo;
   bool paused;
   bool inLoop;
   bool inForeignNode;
   string lastStartTagName;
   bool active;
-  int state;
-  int returnState;
+  State state;
+  State returnState;
   int entityStartPos;
   int consumedAfterSnapshot;
-  JsValue currentCharacterToken;
-  JsValue currentToken;
-  JsValue currentAttr;
-  JsValue currentLocation;
+  Location? currentLocation;
+  CharacterToken currentCharacterToken;
+  bool hasCharacterToken;
+  TagToken currentTagToken;
+  CommentToken currentCommentToken;
+  DoctypeToken currentDoctypeToken;
+  Attribute currentAttr;
   Preprocessor preprocessor;
   EntityDecoder entityDecoder;
 
-  init(JsValue options, JsValue handler) {
-    this.options = options;
+  init(JsValue options, JsValue handler, TypedTokenHandler typedHandler) {
     this.handler = handler;
-    this.sourceLoc = false;
-    if (!(isUndef(options) || isNullish(options))) {
-      this.sourceLoc = JS.get(options, "sourceCodeLocationInfo").truthy();
+    this.typedHandler = typedHandler;
+    this.sourceCodeLocationInfo = false;
+    if (!(JS.isUndefined(options) || JS.isNullish(options))) {
+      this.sourceCodeLocationInfo = JS.get(options, "sourceCodeLocationInfo").truthy();
     }
     this.paused = false;
     this.inLoop = false;
     this.inForeignNode = false;
     this.lastStartTagName = "";
     this.active = false;
-    this.state = ST_DATA;
-    this.returnState = ST_DATA;
+    this.state = State.Data;
+    this.returnState = State.Data;
     this.entityStartPos = 0;
     this.consumedAfterSnapshot = -1;
-    this.currentCharacterToken = NULL;
-    this.currentToken = NULL;
-    this.currentAttr = JS.object("name", "", "value", "");
+    this.currentLocation = null;
+    this.currentCharacterToken = CharacterToken{TokenType.Character, "", null};
+    this.hasCharacterToken = false;
+    this.currentTagToken = TagToken{TokenType.Character, "", TagId.Unknown, false, false, [], null, JS.undefined()};
+    this.currentCommentToken = CommentToken{TokenType.Comment, "", null};
+    this.currentDoctypeToken = DoctypeToken{TokenType.Doctype, null, false, null, null, null};
+    this.currentAttr = Attribute{"", "", null, null};
     this.preprocessor = new Preprocessor(handler);
     this.currentLocation = this.getCurrentLocation(-1);
-    Tokenizer tok = this;
+    Tokenizer tokenizer = this;
     JsValue onParseError = JS.get(handler, "onParseError");
-    JsValue entityErrors = NULL;
-    if (!(isUndef(onParseError) || isNullish(onParseError))) {
+    JsValue entityErrors = JS.undefined();
+    if (!(JS.isUndefined(onParseError) || JS.isNullish(onParseError))) {
       entityErrors = JS.object(
         "missingSemicolonAfterCharacterReference",
-        JS.method0((JsValue _s) => {
-          tok.err(ERR_missingSemicolonAfterCharacterReference, 1);
+        JS.method0((JsValue _self) => {
+          tokenizer.err(ErrorCode.MissingSemicolonAfterCharacterReference, 1);
           return JS.undefined();
         }),
         "absenceOfDigitsInNumericCharacterReference",
-        JS.method1((JsValue _s, JsValue consumed) => {
-          tok.err(ERR_absenceOfDigitsInNumericCharacterReference, tok.entityStartPos - tok.preprocessor.pos + JS.number(consumed).toInt());
+        JS.method1((JsValue _self, JsValue consumed) => {
+          tokenizer.err(ErrorCode.AbsenceOfDigitsInNumericCharacterReference, tokenizer.entityStartPos - tokenizer.preprocessor.pos + JS.number(consumed).toInt());
           return JS.undefined();
         }),
         "validateNumericCharacterReference",
-        JS.method1((JsValue _s, JsValue codev) => {
-          string error = numericRefError(JS.number(codev).toInt());
-          if (error.length > 0) {
-            tok.err(error, 1);
-          }
+        JS.method1((JsValue _self, JsValue codeValue) => {
+          ErrorCode? error = getErrorForNumericCharacterReference(JS.number(codeValue).toInt());
+          if (error != null) tokenizer.err(error, 1);
           return JS.undefined();
         })
       );
     }
-    this.entityDecoder = new EntityDecoder(htmlDecodeTree, (int cp, int consumed) => {
-      tok.onEntityEmit(cp, consumed);
+    this.entityDecoder = new EntityDecoder(htmlDecodeData, (int cp, int consumed) => {
+      tokenizer.onEntityEmit(cp, consumed);
     }, entityErrors);
   }
 
   void onEntityEmit(int cp, int consumed) {
+    // Flushing can drop the parsed chunk, so update the position first.
     this.preprocessor.pos = this.entityStartPos + consumed - 1;
     this.flushCodePointConsumedAsCharacterReference(cp);
   }
 
-  void err(string code, int cpOffset) {
+  void err(ErrorCode code, int cpOffset) {
     JsValue onParseError = JS.get(this.handler, "onParseError");
-    if (isUndef(onParseError) || isNullish(onParseError)) {
-      return;
-    }
-    JS.call(onParseError, this.handler, this.preprocessor.getError(code, cpOffset));
+    if (JS.isUndefined(onParseError) || JS.isNullish(onParseError)) return;
+    JS.call(onParseError, this.handler, parserErrorValue(this.preprocessor.getError(code, cpOffset)));
   }
 
-  JsValue getCurrentLocation(int offset) {
-    if (!this.sourceLoc) {
-      return NULL;
-    }
-    return JS.object(
-      "startLine", this.preprocessor.line,
-      "startCol", this.preprocessor.col() - offset,
-      "startOffset", this.preprocessor.offset() - offset,
-      "endLine", -1,
-      "endCol", -1,
-      "endOffset", -1
-    );
+  Location? getCurrentLocation(int offset) {
+    if (!this.sourceCodeLocationInfo) return null;
+    return locationFromPreprocessor(this.preprocessor, offset);
+  }
+
+  TagLocation? getCurrentTagLocation(int offset) {
+    if (!this.sourceCodeLocationInfo) return null;
+    return tagLocationFromPreprocessor(this.preprocessor, offset);
   }
 
   void runParsingLoop() {
-    if (this.inLoop) {
-      return;
-    }
+    if (this.inLoop) return;
     this.inLoop = true;
     while (this.active && !this.paused) {
       this.consumedAfterSnapshot = 0;
       int cp = this.consume();
-      if (!this.ensureHibernation()) {
-        this.callState(cp);
-      }
+      if (!this.ensureHibernation()) this.callState(cp);
     }
     this.inLoop = false;
   }
@@ -359,23 +386,22 @@ export class Tokenizer {
   }
 
   void resume(JsValue writeCallback) {
-    if (!this.paused) {
-      throwError("Parser was already resumed");
-    }
+    if (!this.paused) throwError("Parser was already resumed");
     this.paused = false;
-    if (this.inLoop) {
-      return;
-    }
+    if (this.inLoop) return;
     this.runParsingLoop();
-    if (!this.paused && isFn(writeCallback)) {
+    if (!this.paused && JS.typeOf(writeCallback) == "function") {
       JS.call(writeCallback, JS.undefined());
     }
   }
 
-  void write(string chunk, bool isLastChunk) {
+  void write(string chunk, bool isLastChunk, JsValue writeCallback) {
     this.active = true;
     this.preprocessor.write(chunk, isLastChunk);
     this.runParsingLoop();
+    if (!this.paused && JS.typeOf(writeCallback) == "function") {
+      JS.call(writeCallback, JS.undefined());
+    }
   }
 
   void insertHtmlAtCurrentPos(string chunk) {
@@ -385,13 +411,11 @@ export class Tokenizer {
   }
 
   bool ensureHibernation() {
-    if (this.preprocessor.endOfChunkHit) {
-      this.preprocessor.retreat(this.consumedAfterSnapshot);
-      this.consumedAfterSnapshot = 0;
-      this.active = false;
-      return true;
-    }
-    return false;
+    if (!this.preprocessor.endOfChunkHit) return false;
+    this.preprocessor.retreat(this.consumedAfterSnapshot);
+    this.consumedAfterSnapshot = 0;
+    this.active = false;
+    return true;
   }
 
   int consume() {
@@ -409,178 +433,175 @@ export class Tokenizer {
   }
 
   bool consumeSequenceIfMatch(string pattern, bool caseSensitive) {
-    if (this.preprocessor.startsWith(pattern, caseSensitive)) {
-      this.advanceBy(pattern.length - 1);
-      return true;
-    }
-    return false;
+    if (!this.preprocessor.startsWith(pattern, caseSensitive)) return false;
+    this.advanceBy(pattern.length - 1);
+    return true;
   }
 
   void createStartTagToken() {
-    this.currentToken = JS.object(
-      "type", TOKEN_START_TAG,
-      "tagName", "",
-      "tagID", TAG_UNKNOWN,
-      "selfClosing", false,
-      "ackSelfClosing", false,
-      "attrs", JS.array(),
-      "location", this.getCurrentLocation(1)
-    );
+    TagToken token = TagToken{TokenType.StartTag, "", TagId.Unknown, false, false, [], this.getCurrentTagLocation(1), JS.undefined()};
+    this.currentTagToken = token;
   }
 
   void createEndTagToken() {
-    this.currentToken = JS.object(
-      "type", TOKEN_END_TAG,
-      "tagName", "",
-      "tagID", TAG_UNKNOWN,
-      "selfClosing", false,
-      "ackSelfClosing", false,
-      "attrs", JS.array(),
-      "location", this.getCurrentLocation(2)
-    );
+    TagToken token = TagToken{TokenType.EndTag, "", TagId.Unknown, false, false, [], this.getCurrentTagLocation(2), JS.undefined()};
+    this.currentTagToken = token;
   }
 
   void createCommentToken(int offset) {
-    this.currentToken = JS.object(
-      "type", TOKEN_COMMENT,
-      "data", "",
-      "location", this.getCurrentLocation(offset)
-    );
+    CommentToken token = CommentToken{TokenType.Comment, "", this.getCurrentLocation(offset)};
+    this.currentCommentToken = token;
   }
 
-  void createDoctypeToken(JsValue initialName) {
-    this.currentToken = JS.object(
-      "type", TOKEN_DOCTYPE,
-      "name", initialName,
-      "forceQuirks", false,
-      "publicId", NULL,
-      "systemId", NULL,
-      "location", this.currentLocation
-    );
+  void createDoctypeToken(string? initialName) {
+    DoctypeToken token = DoctypeToken{TokenType.Doctype, initialName, false, null, null, this.currentLocation};
+    this.currentDoctypeToken = token;
   }
 
-  void createCharacterToken(int type, string chars) {
-    this.currentCharacterToken = JS.object(
-      "type", type,
-      "chars", chars,
-      "location", this.currentLocation
-    );
+  void createCharacterToken(TokenType type, string chars) {
+    CharacterToken token = CharacterToken{type, chars, this.currentLocation};
+    this.currentCharacterToken = token;
+    this.hasCharacterToken = true;
   }
 
-  void createAttr(string attrNameFirstCh) {
-    this.currentAttr = JS.object("name", attrNameFirstCh, "value", "");
+  void createAttr(string firstCharacter) {
+    this.currentAttr = Attribute{firstCharacter, "", null, null};
     this.currentLocation = this.getCurrentLocation(0);
   }
 
   void leaveAttrName() {
-    JsValue token = this.currentToken;
-    string attrName = JS.string(JS.get(this.currentAttr, "name"));
-    if (isNullish(tokenAttr(token, attrName))) {
-      JS.push(JS.get(token, "attrs"), this.currentAttr);
-      JsValue tokenLoc = JS.get(token, "location");
-      if (!(isNullish(tokenLoc) || isNullish(this.currentLocation))) {
-        JsValue attrLocations = JS.get(tokenLoc, "attrs");
-        if (isUndef(attrLocations) || isNullish(attrLocations)) {
-          attrLocations = JS.object();
-          JS.set(tokenLoc, "attrs", attrLocations);
-        }
-        JS.set(attrLocations, attrName, this.currentLocation);
+    TagToken token = this.currentTagToken;
+    if (getTokenAttr(token, this.currentAttr.name) == null) {
+      token.attrs.push(this.currentAttr);
+      TagLocation? tokenLocation = token.location;
+      Location? currentLocation = this.currentLocation;
+      if (tokenLocation != null && currentLocation != null) {
+        tokenLocation.attrs.set(this.currentAttr.name, currentLocation);
         this.leaveAttrValue();
       }
     } else {
-      this.err(ERR_duplicateAttribute, 0);
+      this.err(ErrorCode.DuplicateAttribute, 0);
     }
   }
 
   void leaveAttrValue() {
-    if (isNullish(this.currentLocation)) {
-      return;
-    }
-    JS.set(this.currentLocation, "endLine", this.preprocessor.line);
-    JS.set(this.currentLocation, "endCol", this.preprocessor.col());
-    JS.set(this.currentLocation, "endOffset", this.preprocessor.offset());
+    Location? location = this.currentLocation;
+    if (location == null) return;
+    location.endLine = this.preprocessor.line;
+    location.endCol = this.preprocessor.col();
+    location.endOffset = this.preprocessor.offset();
   }
 
-  void prepareToken(JsValue ct) {
-    this.emitCurrentCharacterToken(JS.get(ct, "location"));
-    this.currentToken = NULL;
-    JsValue loc = JS.get(ct, "location");
-    if (!isNullish(loc)) {
-      JS.set(loc, "endLine", this.preprocessor.line);
-      JS.set(loc, "endCol", this.preprocessor.col() + 1);
-      JS.set(loc, "endOffset", this.preprocessor.offset() + 1);
+  void emitCharacterBefore(int startLine, int startCol, int startOffset, bool hasNextLocation) {
+    if (!this.hasCharacterToken) return;
+    Location? location = this.currentCharacterToken.location;
+    if (hasNextLocation && location != null) {
+      location.endLine = startLine;
+      location.endCol = startCol;
+      location.endOffset = startOffset;
+    }
+    CharacterToken token = this.currentCharacterToken;
+    TypedTokenHandler typed = this.typedHandler;
+    if (token.type == TokenType.Character) {
+      typed.onCharacter(token);
+    } else if (token.type == TokenType.NullCharacter) {
+      typed.onNullCharacter(token);
+    } else if (token.type == TokenType.WhitespaceCharacter) {
+      typed.onWhitespaceCharacter(token);
+    }
+    this.hasCharacterToken = false;
+  }
+
+  void emitCurrentCharacterToken(Location? nextLocation) {
+    if (nextLocation == null) {
+      this.emitCharacterBefore(0, 0, 0, false);
+    } else {
+      this.emitCharacterBefore(nextLocation.startLine, nextLocation.startCol, nextLocation.startOffset, true);
+    }
+  }
+
+  void prepareTagToken(TagToken token) {
+    TagLocation? location = token.location;
+    if (location == null) {
+      this.emitCharacterBefore(0, 0, 0, false);
+    } else {
+      this.emitCharacterBefore(location.startLine, location.startCol, location.startOffset, true);
+      location.endLine = this.preprocessor.line;
+      location.endCol = this.preprocessor.col() + 1;
+      location.endOffset = this.preprocessor.offset() + 1;
+    }
+    this.currentLocation = this.getCurrentLocation(-1);
+  }
+
+  void prepareCommentToken(CommentToken token) {
+    this.emitCurrentCharacterToken(token.location);
+    Location? location = token.location;
+    if (location != null) {
+      location.endLine = this.preprocessor.line;
+      location.endCol = this.preprocessor.col() + 1;
+      location.endOffset = this.preprocessor.offset() + 1;
+    }
+    this.currentLocation = this.getCurrentLocation(-1);
+  }
+
+  void prepareDoctypeToken(DoctypeToken token) {
+    this.emitCurrentCharacterToken(token.location);
+    Location? location = token.location;
+    if (location != null) {
+      location.endLine = this.preprocessor.line;
+      location.endCol = this.preprocessor.col() + 1;
+      location.endOffset = this.preprocessor.offset() + 1;
     }
     this.currentLocation = this.getCurrentLocation(-1);
   }
 
   void emitCurrentTagToken() {
-    JsValue ct = this.currentToken;
-    this.prepareToken(ct);
-    JS.set(ct, "tagID", getTagID(JS.string(JS.get(ct, "tagName"))));
-    if (tokenTypeOf(ct) == TOKEN_START_TAG) {
-      this.lastStartTagName = JS.string(JS.get(ct, "tagName"));
-      JS.invoke(this.handler, "onStartTag", ct);
+    TagToken token = this.currentTagToken;
+    this.prepareTagToken(token);
+    token.tagID = getTagID(token.tagName);
+    TypedTokenHandler typed = this.typedHandler;
+    if (token.type == TokenType.StartTag) {
+      this.lastStartTagName = token.tagName;
+      typed.onStartTag(token);
     } else {
-      if (JS.number(JS.get(JS.get(ct, "attrs"), "length")).toInt() > 0) {
-        this.err(ERR_endTagWithAttributes, 0);
-      }
-      if (JS.get(ct, "selfClosing").truthy()) {
-        this.err(ERR_endTagWithTrailingSolidus, 0);
-      }
-      JS.invoke(this.handler, "onEndTag", ct);
+      if (token.attrs.length > 0) this.err(ErrorCode.EndTagWithAttributes, 0);
+      if (token.selfClosing) this.err(ErrorCode.EndTagWithTrailingSolidus, 0);
+      typed.onEndTag(token);
     }
     this.preprocessor.dropParsedChunk();
   }
 
-  void emitCurrentComment(JsValue ct) {
-    this.prepareToken(ct);
-    JS.invoke(this.handler, "onComment", ct);
+  void emitCurrentComment() {
+    CommentToken token = this.currentCommentToken;
+    this.prepareCommentToken(token);
+    this.typedHandler.onComment(token);
     this.preprocessor.dropParsedChunk();
   }
 
-  void emitCurrentDoctype(JsValue ct) {
-    this.prepareToken(ct);
-    JS.invoke(this.handler, "onDoctype", ct);
+  void emitCurrentDoctype() {
+    DoctypeToken token = this.currentDoctypeToken;
+    this.prepareDoctypeToken(token);
+    this.typedHandler.onDoctype(token);
     this.preprocessor.dropParsedChunk();
-  }
-
-  void emitCurrentCharacterToken(JsValue nextLocation) {
-    if (isNullish(this.currentCharacterToken)) {
-      return;
-    }
-    JsValue loc = JS.get(this.currentCharacterToken, "location");
-    if (!(isNullish(nextLocation) || isNullish(loc))) {
-      JS.set(loc, "endLine", JS.get(nextLocation, "startLine"));
-      JS.set(loc, "endCol", JS.get(nextLocation, "startCol"));
-      JS.set(loc, "endOffset", JS.get(nextLocation, "startOffset"));
-    }
-    int type = tokenTypeOf(this.currentCharacterToken);
-    if (type == TOKEN_CHARACTER) {
-      JS.invoke(this.handler, "onCharacter", this.currentCharacterToken);
-    } else if (type == TOKEN_NULL) {
-      JS.invoke(this.handler, "onNullCharacter", this.currentCharacterToken);
-    } else if (type == TOKEN_WHITESPACE) {
-      JS.invoke(this.handler, "onWhitespaceCharacter", this.currentCharacterToken);
-    }
-    this.currentCharacterToken = NULL;
   }
 
   void emitEOFToken() {
-    JsValue location = this.getCurrentLocation(0);
-    if (!isNullish(location)) {
-      JS.set(location, "endLine", JS.get(location, "startLine"));
-      JS.set(location, "endCol", JS.get(location, "startCol"));
-      JS.set(location, "endOffset", JS.get(location, "startOffset"));
+    Location? location = this.getCurrentLocation(0);
+    if (location != null) {
+      location.endLine = location.startLine;
+      location.endCol = location.startCol;
+      location.endOffset = location.startOffset;
     }
     this.emitCurrentCharacterToken(location);
-    JS.invoke(this.handler, "onEof", JS.object("type", TOKEN_EOF, "location", location));
+    EofToken token = EofToken{TokenType.Eof, location};
+    this.typedHandler.onEof(token);
     this.active = false;
   }
 
-  void appendCharToCurrentCharacterToken(int type, string ch) {
-    if (!isNullish(this.currentCharacterToken)) {
-      if (tokenTypeOf(this.currentCharacterToken) == type) {
-        appendKey(this.currentCharacterToken, "chars", ch);
+  void appendCharToCurrentCharacterToken(TokenType type, string ch) {
+    if (this.hasCharacterToken) {
+      if (this.currentCharacterToken.type == type) {
+        this.currentCharacterToken.chars = this.currentCharacterToken.chars + ch;
         return;
       }
       this.currentLocation = this.getCurrentLocation(0);
@@ -591,204 +612,129 @@ export class Tokenizer {
   }
 
   void emitCodePoint(int cp) {
-    int type = TOKEN_CHARACTER;
-    if (isWs(cp)) {
-      type = TOKEN_WHITESPACE;
-    } else if (cp == CP_NULL) {
-      type = TOKEN_NULL;
+    TokenType type = TokenType.Character;
+    if (isWhitespace(cp)) {
+      type = TokenType.WhitespaceCharacter;
+    } else if (cp == NULL) {
+      type = TokenType.NullCharacter;
     }
     this.appendCharToCurrentCharacterToken(type, fromCodePoint(cp));
   }
 
-  void emitChars(string ch) {
-    this.appendCharToCurrentCharacterToken(TOKEN_CHARACTER, ch);
+  void emitChars(string chars) {
+    this.appendCharToCurrentCharacterToken(TokenType.Character, chars);
   }
 
   void startCharacterReference() {
     this.returnState = this.state;
-    this.state = ST_CHARACTER_REFERENCE;
+    this.state = State.CharacterReference;
     this.entityStartPos = this.preprocessor.pos;
-    int mode = DECODE_LEGACY;
-    if (this.isCharacterReferenceInAttribute()) {
-      mode = DECODE_ATTRIBUTE;
-    }
+    DecodingMode mode = DecodingMode.Legacy;
+    if (this.isCharacterReferenceInAttribute()) mode = DecodingMode.Attribute;
     this.entityDecoder.startEntity(mode);
   }
 
   bool isCharacterReferenceInAttribute() {
-    return this.returnState == ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED || this.returnState == ST_ATTRIBUTE_VALUE_SINGLE_QUOTED || this.returnState == ST_ATTRIBUTE_VALUE_UNQUOTED;
+    return this.returnState == State.AttributeValueDoubleQuoted ||
+      this.returnState == State.AttributeValueSingleQuoted ||
+      this.returnState == State.AttributeValueUnquoted;
   }
 
   void flushCodePointConsumedAsCharacterReference(int cp) {
     if (this.isCharacterReferenceInAttribute()) {
-      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+      this.currentAttr.value = this.currentAttr.value + fromCodePoint(cp);
     } else {
       this.emitCodePoint(cp);
     }
   }
 
   void callState(int cp) {
-    int s = this.state;
-    if (s == ST_DATA) {
-      this.stateData(cp);
-    } else if (s == ST_RCDATA) {
-      this.stateRcdata(cp);
-    } else if (s == ST_RAWTEXT) {
-      this.stateRawtext(cp);
-    } else if (s == ST_SCRIPT_DATA) {
-      this.stateScriptData(cp);
-    } else if (s == ST_PLAINTEXT) {
-      this.statePlaintext(cp);
-    } else if (s == ST_TAG_OPEN) {
-      this.stateTagOpen(cp);
-    } else if (s == ST_END_TAG_OPEN) {
-      this.stateEndTagOpen(cp);
-    } else if (s == ST_TAG_NAME) {
-      this.stateTagName(cp);
-    } else if (s == ST_RCDATA_LESS_THAN_SIGN) {
-      this.stateRcdataLessThanSign(cp);
-    } else if (s == ST_RCDATA_END_TAG_OPEN) {
-      this.stateRcdataEndTagOpen(cp);
-    } else if (s == ST_RCDATA_END_TAG_NAME) {
-      this.stateRcdataEndTagName(cp);
-    } else if (s == ST_RAWTEXT_LESS_THAN_SIGN) {
-      this.stateRawtextLessThanSign(cp);
-    } else if (s == ST_RAWTEXT_END_TAG_OPEN) {
-      this.stateRawtextEndTagOpen(cp);
-    } else if (s == ST_RAWTEXT_END_TAG_NAME) {
-      this.stateRawtextEndTagName(cp);
-    } else if (s == ST_SCRIPT_DATA_LESS_THAN_SIGN) {
-      this.stateScriptDataLessThanSign(cp);
-    } else if (s == ST_SCRIPT_DATA_END_TAG_OPEN) {
-      this.stateScriptDataEndTagOpen(cp);
-    } else if (s == ST_SCRIPT_DATA_END_TAG_NAME) {
-      this.stateScriptDataEndTagName(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPE_START) {
-      this.stateScriptDataEscapeStart(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPE_START_DASH) {
-      this.stateScriptDataEscapeStartDash(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPED) {
-      this.stateScriptDataEscaped(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPED_DASH) {
-      this.stateScriptDataEscapedDash(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPED_DASH_DASH) {
-      this.stateScriptDataEscapedDashDash(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN) {
-      this.stateScriptDataEscapedLessThanSign(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPED_END_TAG_OPEN) {
-      this.stateScriptDataEscapedEndTagOpen(cp);
-    } else if (s == ST_SCRIPT_DATA_ESCAPED_END_TAG_NAME) {
-      this.stateScriptDataEscapedEndTagName(cp);
-    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPE_START) {
-      this.stateScriptDataDoubleEscapeStart(cp);
-    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED) {
-      this.stateScriptDataDoubleEscaped(cp);
-    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH) {
-      this.stateScriptDataDoubleEscapedDash(cp);
-    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH) {
-      this.stateScriptDataDoubleEscapedDashDash(cp);
-    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN) {
-      this.stateScriptDataDoubleEscapedLessThanSign(cp);
-    } else if (s == ST_SCRIPT_DATA_DOUBLE_ESCAPE_END) {
-      this.stateScriptDataDoubleEscapeEnd(cp);
-    } else if (s == ST_BEFORE_ATTRIBUTE_NAME) {
-      this.stateBeforeAttributeName(cp);
-    } else if (s == ST_ATTRIBUTE_NAME) {
-      this.stateAttributeName(cp);
-    } else if (s == ST_AFTER_ATTRIBUTE_NAME) {
-      this.stateAfterAttributeName(cp);
-    } else if (s == ST_BEFORE_ATTRIBUTE_VALUE) {
-      this.stateBeforeAttributeValue(cp);
-    } else if (s == ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED) {
-      this.stateAttributeValueDoubleQuoted(cp);
-    } else if (s == ST_ATTRIBUTE_VALUE_SINGLE_QUOTED) {
-      this.stateAttributeValueSingleQuoted(cp);
-    } else if (s == ST_ATTRIBUTE_VALUE_UNQUOTED) {
-      this.stateAttributeValueUnquoted(cp);
-    } else if (s == ST_AFTER_ATTRIBUTE_VALUE_QUOTED) {
-      this.stateAfterAttributeValueQuoted(cp);
-    } else if (s == ST_SELF_CLOSING_START_TAG) {
-      this.stateSelfClosingStartTag(cp);
-    } else if (s == ST_BOGUS_COMMENT) {
-      this.stateBogusComment(cp);
-    } else if (s == ST_MARKUP_DECLARATION_OPEN) {
-      this.stateMarkupDeclarationOpen(cp);
-    } else if (s == ST_COMMENT_START) {
-      this.stateCommentStart(cp);
-    } else if (s == ST_COMMENT_START_DASH) {
-      this.stateCommentStartDash(cp);
-    } else if (s == ST_COMMENT) {
-      this.stateComment(cp);
-    } else if (s == ST_COMMENT_LESS_THAN_SIGN) {
-      this.stateCommentLessThanSign(cp);
-    } else if (s == ST_COMMENT_LESS_THAN_SIGN_BANG) {
-      this.stateCommentLessThanSignBang(cp);
-    } else if (s == ST_COMMENT_LESS_THAN_SIGN_BANG_DASH) {
-      this.stateCommentLessThanSignBangDash(cp);
-    } else if (s == ST_COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH) {
-      this.stateCommentLessThanSignBangDashDash(cp);
-    } else if (s == ST_COMMENT_END_DASH) {
-      this.stateCommentEndDash(cp);
-    } else if (s == ST_COMMENT_END) {
-      this.stateCommentEnd(cp);
-    } else if (s == ST_COMMENT_END_BANG) {
-      this.stateCommentEndBang(cp);
-    } else if (s == ST_DOCTYPE) {
-      this.stateDoctype(cp);
-    } else if (s == ST_BEFORE_DOCTYPE_NAME) {
-      this.stateBeforeDoctypeName(cp);
-    } else if (s == ST_DOCTYPE_NAME) {
-      this.stateDoctypeName(cp);
-    } else if (s == ST_AFTER_DOCTYPE_NAME) {
-      this.stateAfterDoctypeName(cp);
-    } else if (s == ST_AFTER_DOCTYPE_PUBLIC_KEYWORD) {
-      this.stateAfterDoctypePublicKeyword(cp);
-    } else if (s == ST_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER) {
-      this.stateBeforeDoctypePublicIdentifier(cp);
-    } else if (s == ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED) {
-      this.stateDoctypePublicIdentifierDoubleQuoted(cp);
-    } else if (s == ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED) {
-      this.stateDoctypePublicIdentifierSingleQuoted(cp);
-    } else if (s == ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER) {
-      this.stateAfterDoctypePublicIdentifier(cp);
-    } else if (s == ST_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS) {
-      this.stateBetweenDoctypePublicAndSystemIdentifiers(cp);
-    } else if (s == ST_AFTER_DOCTYPE_SYSTEM_KEYWORD) {
-      this.stateAfterDoctypeSystemKeyword(cp);
-    } else if (s == ST_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER) {
-      this.stateBeforeDoctypeSystemIdentifier(cp);
-    } else if (s == ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED) {
-      this.stateDoctypeSystemIdentifierDoubleQuoted(cp);
-    } else if (s == ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED) {
-      this.stateDoctypeSystemIdentifierSingleQuoted(cp);
-    } else if (s == ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER) {
-      this.stateAfterDoctypeSystemIdentifier(cp);
-    } else if (s == ST_BOGUS_DOCTYPE) {
-      this.stateBogusDoctype(cp);
-    } else if (s == ST_CDATA_SECTION) {
-      this.stateCdataSection(cp);
-    } else if (s == ST_CDATA_SECTION_BRACKET) {
-      this.stateCdataSectionBracket(cp);
-    } else if (s == ST_CDATA_SECTION_END) {
-      this.stateCdataSectionEnd(cp);
-    } else if (s == ST_CHARACTER_REFERENCE) {
-      this.stateCharacterReference();
-    } else if (s == ST_AMBIGUOUS_AMPERSAND) {
-      this.stateAmbiguousAmpersand(cp);
-    } else {
-      throwError("Unknown state");
-    }
+    State current = this.state;
+    if (current == State.Data) this.stateData(cp);
+    else if (current == State.Rcdata) this.stateRcdata(cp);
+    else if (current == State.Rawtext) this.stateRawtext(cp);
+    else if (current == State.ScriptData) this.stateScriptData(cp);
+    else if (current == State.Plaintext) this.statePlaintext(cp);
+    else if (current == State.TagOpen) this.stateTagOpen(cp);
+    else if (current == State.EndTagOpen) this.stateEndTagOpen(cp);
+    else if (current == State.TagName) this.stateTagName(cp);
+    else if (current == State.RcdataLessThanSign) this.stateRcdataLessThanSign(cp);
+    else if (current == State.RcdataEndTagOpen) this.stateRcdataEndTagOpen(cp);
+    else if (current == State.RcdataEndTagName) this.stateRcdataEndTagName(cp);
+    else if (current == State.RawtextLessThanSign) this.stateRawtextLessThanSign(cp);
+    else if (current == State.RawtextEndTagOpen) this.stateRawtextEndTagOpen(cp);
+    else if (current == State.RawtextEndTagName) this.stateRawtextEndTagName(cp);
+    else if (current == State.ScriptDataLessThanSign) this.stateScriptDataLessThanSign(cp);
+    else if (current == State.ScriptDataEndTagOpen) this.stateScriptDataEndTagOpen(cp);
+    else if (current == State.ScriptDataEndTagName) this.stateScriptDataEndTagName(cp);
+    else if (current == State.ScriptDataEscapeStart) this.stateScriptDataEscapeStart(cp);
+    else if (current == State.ScriptDataEscapeStartDash) this.stateScriptDataEscapeStartDash(cp);
+    else if (current == State.ScriptDataEscaped) this.stateScriptDataEscaped(cp);
+    else if (current == State.ScriptDataEscapedDash) this.stateScriptDataEscapedDash(cp);
+    else if (current == State.ScriptDataEscapedDashDash) this.stateScriptDataEscapedDashDash(cp);
+    else if (current == State.ScriptDataEscapedLessThanSign) this.stateScriptDataEscapedLessThanSign(cp);
+    else if (current == State.ScriptDataEscapedEndTagOpen) this.stateScriptDataEscapedEndTagOpen(cp);
+    else if (current == State.ScriptDataEscapedEndTagName) this.stateScriptDataEscapedEndTagName(cp);
+    else if (current == State.ScriptDataDoubleEscapeStart) this.stateScriptDataDoubleEscapeStart(cp);
+    else if (current == State.ScriptDataDoubleEscaped) this.stateScriptDataDoubleEscaped(cp);
+    else if (current == State.ScriptDataDoubleEscapedDash) this.stateScriptDataDoubleEscapedDash(cp);
+    else if (current == State.ScriptDataDoubleEscapedDashDash) this.stateScriptDataDoubleEscapedDashDash(cp);
+    else if (current == State.ScriptDataDoubleEscapedLessThanSign) this.stateScriptDataDoubleEscapedLessThanSign(cp);
+    else if (current == State.ScriptDataDoubleEscapeEnd) this.stateScriptDataDoubleEscapeEnd(cp);
+    else if (current == State.BeforeAttributeName) this.stateBeforeAttributeName(cp);
+    else if (current == State.AttributeName) this.stateAttributeName(cp);
+    else if (current == State.AfterAttributeName) this.stateAfterAttributeName(cp);
+    else if (current == State.BeforeAttributeValue) this.stateBeforeAttributeValue(cp);
+    else if (current == State.AttributeValueDoubleQuoted) this.stateAttributeValueDoubleQuoted(cp);
+    else if (current == State.AttributeValueSingleQuoted) this.stateAttributeValueSingleQuoted(cp);
+    else if (current == State.AttributeValueUnquoted) this.stateAttributeValueUnquoted(cp);
+    else if (current == State.AfterAttributeValueQuoted) this.stateAfterAttributeValueQuoted(cp);
+    else if (current == State.SelfClosingStartTag) this.stateSelfClosingStartTag(cp);
+    else if (current == State.BogusComment) this.stateBogusComment(cp);
+    else if (current == State.MarkupDeclarationOpen) this.stateMarkupDeclarationOpen(cp);
+    else if (current == State.CommentStart) this.stateCommentStart(cp);
+    else if (current == State.CommentStartDash) this.stateCommentStartDash(cp);
+    else if (current == State.Comment) this.stateComment(cp);
+    else if (current == State.CommentLessThanSign) this.stateCommentLessThanSign(cp);
+    else if (current == State.CommentLessThanSignBang) this.stateCommentLessThanSignBang(cp);
+    else if (current == State.CommentLessThanSignBangDash) this.stateCommentLessThanSignBangDash(cp);
+    else if (current == State.CommentLessThanSignBangDashDash) this.stateCommentLessThanSignBangDashDash(cp);
+    else if (current == State.CommentEndDash) this.stateCommentEndDash(cp);
+    else if (current == State.CommentEnd) this.stateCommentEnd(cp);
+    else if (current == State.CommentEndBang) this.stateCommentEndBang(cp);
+    else if (current == State.Doctype) this.stateDoctype(cp);
+    else if (current == State.BeforeDoctypeName) this.stateBeforeDoctypeName(cp);
+    else if (current == State.DoctypeName) this.stateDoctypeName(cp);
+    else if (current == State.AfterDoctypeName) this.stateAfterDoctypeName(cp);
+    else if (current == State.AfterDoctypePublicKeyword) this.stateAfterDoctypePublicKeyword(cp);
+    else if (current == State.BeforeDoctypePublicIdentifier) this.stateBeforeDoctypePublicIdentifier(cp);
+    else if (current == State.DoctypePublicIdentifierDoubleQuoted) this.stateDoctypePublicIdentifierDoubleQuoted(cp);
+    else if (current == State.DoctypePublicIdentifierSingleQuoted) this.stateDoctypePublicIdentifierSingleQuoted(cp);
+    else if (current == State.AfterDoctypePublicIdentifier) this.stateAfterDoctypePublicIdentifier(cp);
+    else if (current == State.BetweenDoctypePublicAndSystemIdentifiers) this.stateBetweenDoctypePublicAndSystemIdentifiers(cp);
+    else if (current == State.AfterDoctypeSystemKeyword) this.stateAfterDoctypeSystemKeyword(cp);
+    else if (current == State.BeforeDoctypeSystemIdentifier) this.stateBeforeDoctypeSystemIdentifier(cp);
+    else if (current == State.DoctypeSystemIdentifierDoubleQuoted) this.stateDoctypeSystemIdentifierDoubleQuoted(cp);
+    else if (current == State.DoctypeSystemIdentifierSingleQuoted) this.stateDoctypeSystemIdentifierSingleQuoted(cp);
+    else if (current == State.AfterDoctypeSystemIdentifier) this.stateAfterDoctypeSystemIdentifier(cp);
+    else if (current == State.BogusDoctype) this.stateBogusDoctype(cp);
+    else if (current == State.CdataSection) this.stateCdataSection(cp);
+    else if (current == State.CdataSectionBracket) this.stateCdataSectionBracket(cp);
+    else if (current == State.CdataSectionEnd) this.stateCdataSectionEnd(cp);
+    else if (current == State.CharacterReference) this.stateCharacterReference();
+    else if (current == State.AmbiguousAmpersand) this.stateAmbiguousAmpersand(cp);
+    else throwError("Unknown state");
   }
 
   void stateData(int cp) {
-    if (cp == CP_LT) {
-      this.state = ST_TAG_OPEN;
-    } else if (cp == CP_AMP) {
+    if (cp == LESS_THAN_SIGN) {
+      this.state = State.TagOpen;
+    } else if (cp == AMPERSAND) {
       this.startCharacterReference();
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
       this.emitCodePoint(cp);
-    } else if (cp == CP_EOF) {
+    } else if (cp == EOF) {
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -796,14 +742,14 @@ export class Tokenizer {
   }
 
   void stateRcdata(int cp) {
-    if (cp == CP_AMP) {
+    if (cp == AMPERSAND) {
       this.startCharacterReference();
-    } else if (cp == CP_LT) {
-      this.state = ST_RCDATA_LESS_THAN_SIGN;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.RcdataLessThanSign;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -811,12 +757,12 @@ export class Tokenizer {
   }
 
   void stateRawtext(int cp) {
-    if (cp == CP_LT) {
-      this.state = ST_RAWTEXT_LESS_THAN_SIGN;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
+    if (cp == LESS_THAN_SIGN) {
+      this.state = State.RawtextLessThanSign;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -824,12 +770,12 @@ export class Tokenizer {
   }
 
   void stateScriptData(int cp) {
-    if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_LESS_THAN_SIGN;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
+    if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataLessThanSign;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -837,10 +783,10 @@ export class Tokenizer {
   }
 
   void statePlaintext(int cp) {
-    if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
+    if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -850,27 +796,27 @@ export class Tokenizer {
   void stateTagOpen(int cp) {
     if (isAsciiLetter(cp)) {
       this.createStartTagToken();
-      this.state = ST_TAG_NAME;
+      this.state = State.TagName;
       this.stateTagName(cp);
       return;
     }
-    if (cp == CP_BANG) {
-      this.state = ST_MARKUP_DECLARATION_OPEN;
-    } else if (cp == CP_SLASH) {
-      this.state = ST_END_TAG_OPEN;
-    } else if (cp == CP_QMARK) {
-      this.err(ERR_unexpectedQuestionMarkInsteadOfTagName, 0);
+    if (cp == EXCLAMATION_MARK) {
+      this.state = State.MarkupDeclarationOpen;
+    } else if (cp == SOLIDUS) {
+      this.state = State.EndTagOpen;
+    } else if (cp == QUESTION_MARK) {
+      this.err(ErrorCode.UnexpectedQuestionMarkInsteadOfTagName, 0);
       this.createCommentToken(1);
-      this.state = ST_BOGUS_COMMENT;
+      this.state = State.BogusComment;
       this.stateBogusComment(cp);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofBeforeTagName, 0);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofBeforeTagName, 0);
       this.emitChars("<");
       this.emitEOFToken();
     } else {
-      this.err(ERR_invalidFirstCharacterOfTagName, 0);
+      this.err(ErrorCode.InvalidFirstCharacterOfTagName, 0);
       this.emitChars("<");
-      this.state = ST_DATA;
+      this.state = State.Data;
       this.stateData(cp);
     }
   }
@@ -878,65 +824,63 @@ export class Tokenizer {
   void stateEndTagOpen(int cp) {
     if (isAsciiLetter(cp)) {
       this.createEndTagToken();
-      this.state = ST_TAG_NAME;
+      this.state = State.TagName;
       this.stateTagName(cp);
       return;
     }
-    if (cp == CP_GT) {
-      this.err(ERR_missingEndTagName, 0);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofBeforeTagName, 0);
+    if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingEndTagName, 0);
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofBeforeTagName, 0);
       this.emitChars("</");
       this.emitEOFToken();
     } else {
-      this.err(ERR_invalidFirstCharacterOfTagName, 0);
+      this.err(ErrorCode.InvalidFirstCharacterOfTagName, 0);
       this.createCommentToken(2);
-      this.state = ST_BOGUS_COMMENT;
+      this.state = State.BogusComment;
       this.stateBogusComment(cp);
     }
   }
 
   void stateTagName(int cp) {
-    if (isWs(cp)) {
-      this.state = ST_BEFORE_ATTRIBUTE_NAME;
-    } else if (cp == CP_SLASH) {
-      this.state = ST_SELF_CLOSING_START_TAG;
-    } else if (cp == CP_GT) {
-      this.state = ST_DATA;
+    if (isWhitespace(cp)) {
+      this.state = State.BeforeAttributeName;
+    } else if (cp == SOLIDUS) {
+      this.state = State.SelfClosingStartTag;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
       this.emitCurrentTagToken();
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "tagName", REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentTagToken.tagName = this.currentTagToken.tagName + REPLACEMENT_CHARACTER;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
-      int out = cp;
-      if (isAsciiUpper(cp)) {
-        out = toAsciiLower(cp);
-      }
-      appendKey(this.currentToken, "tagName", fromCodePoint(out));
+      int output = cp;
+      if (isAsciiUpper(cp)) output = toAsciiLower(cp);
+      this.currentTagToken.tagName = this.currentTagToken.tagName + fromCodePoint(output);
     }
   }
 
   void stateRcdataLessThanSign(int cp) {
-    if (cp == CP_SLASH) {
-      this.state = ST_RCDATA_END_TAG_OPEN;
+    if (cp == SOLIDUS) {
+      this.state = State.RcdataEndTagOpen;
     } else {
       this.emitChars("<");
-      this.state = ST_RCDATA;
+      this.state = State.Rcdata;
       this.stateRcdata(cp);
     }
   }
 
   void stateRcdataEndTagOpen(int cp) {
     if (isAsciiLetter(cp)) {
-      this.state = ST_RCDATA_END_TAG_NAME;
+      this.state = State.RcdataEndTagName;
       this.stateRcdataEndTagName(cp);
     } else {
       this.emitChars("</");
-      this.state = ST_RCDATA;
+      this.state = State.Rcdata;
       this.stateRcdata(cp);
     }
   }
@@ -946,22 +890,22 @@ export class Tokenizer {
       return !this.ensureHibernation();
     }
     this.createEndTagToken();
-    JS.set(this.currentToken, "tagName", this.lastStartTagName);
+    this.currentTagToken.tagName = this.lastStartTagName;
     int cp = this.preprocessor.peek(this.lastStartTagName.length);
-    if (isWs(cp)) {
+    if (isWhitespace(cp)) {
       this.advanceBy(this.lastStartTagName.length);
-      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+      this.state = State.BeforeAttributeName;
       return false;
     }
-    if (cp == CP_SLASH) {
+    if (cp == SOLIDUS) {
       this.advanceBy(this.lastStartTagName.length);
-      this.state = ST_SELF_CLOSING_START_TAG;
+      this.state = State.SelfClosingStartTag;
       return false;
     }
-    if (cp == CP_GT) {
+    if (cp == GREATER_THAN_SIGN) {
       this.advanceBy(this.lastStartTagName.length);
       this.emitCurrentTagToken();
-      this.state = ST_DATA;
+      this.state = State.Data;
       return false;
     }
     return !this.ensureHibernation();
@@ -970,28 +914,28 @@ export class Tokenizer {
   void stateRcdataEndTagName(int cp) {
     if (this.handleSpecialEndTag(cp)) {
       this.emitChars("</");
-      this.state = ST_RCDATA;
+      this.state = State.Rcdata;
       this.stateRcdata(cp);
     }
   }
 
   void stateRawtextLessThanSign(int cp) {
-    if (cp == CP_SLASH) {
-      this.state = ST_RAWTEXT_END_TAG_OPEN;
+    if (cp == SOLIDUS) {
+      this.state = State.RawtextEndTagOpen;
     } else {
       this.emitChars("<");
-      this.state = ST_RAWTEXT;
+      this.state = State.Rawtext;
       this.stateRawtext(cp);
     }
   }
 
   void stateRawtextEndTagOpen(int cp) {
     if (isAsciiLetter(cp)) {
-      this.state = ST_RAWTEXT_END_TAG_NAME;
+      this.state = State.RawtextEndTagName;
       this.stateRawtextEndTagName(cp);
     } else {
       this.emitChars("</");
-      this.state = ST_RAWTEXT;
+      this.state = State.Rawtext;
       this.stateRawtext(cp);
     }
   }
@@ -999,31 +943,31 @@ export class Tokenizer {
   void stateRawtextEndTagName(int cp) {
     if (this.handleSpecialEndTag(cp)) {
       this.emitChars("</");
-      this.state = ST_RAWTEXT;
+      this.state = State.Rawtext;
       this.stateRawtext(cp);
     }
   }
 
   void stateScriptDataLessThanSign(int cp) {
-    if (cp == CP_SLASH) {
-      this.state = ST_SCRIPT_DATA_END_TAG_OPEN;
-    } else if (cp == CP_BANG) {
-      this.state = ST_SCRIPT_DATA_ESCAPE_START;
+    if (cp == SOLIDUS) {
+      this.state = State.ScriptDataEndTagOpen;
+    } else if (cp == EXCLAMATION_MARK) {
+      this.state = State.ScriptDataEscapeStart;
       this.emitChars("<!");
     } else {
       this.emitChars("<");
-      this.state = ST_SCRIPT_DATA;
+      this.state = State.ScriptData;
       this.stateScriptData(cp);
     }
   }
 
   void stateScriptDataEndTagOpen(int cp) {
     if (isAsciiLetter(cp)) {
-      this.state = ST_SCRIPT_DATA_END_TAG_NAME;
+      this.state = State.ScriptDataEndTagName;
       this.stateScriptDataEndTagName(cp);
     } else {
       this.emitChars("</");
-      this.state = ST_SCRIPT_DATA;
+      this.state = State.ScriptData;
       this.stateScriptData(cp);
     }
   }
@@ -1031,42 +975,42 @@ export class Tokenizer {
   void stateScriptDataEndTagName(int cp) {
     if (this.handleSpecialEndTag(cp)) {
       this.emitChars("</");
-      this.state = ST_SCRIPT_DATA;
+      this.state = State.ScriptData;
       this.stateScriptData(cp);
     }
   }
 
   void stateScriptDataEscapeStart(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_SCRIPT_DATA_ESCAPE_START_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.ScriptDataEscapeStartDash;
       this.emitChars("-");
     } else {
-      this.state = ST_SCRIPT_DATA;
+      this.state = State.ScriptData;
       this.stateScriptData(cp);
     }
   }
 
   void stateScriptDataEscapeStartDash(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_DASH_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.ScriptDataEscapedDashDash;
       this.emitChars("-");
     } else {
-      this.state = ST_SCRIPT_DATA;
+      this.state = State.ScriptData;
       this.stateScriptData(cp);
     }
   }
 
   void stateScriptDataEscaped(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.ScriptDataEscapedDash;
       this.emitChars("-");
-    } else if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataEscapedLessThanSign;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInScriptHtmlCommentLikeText, 0);
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -1074,66 +1018,66 @@ export class Tokenizer {
   }
 
   void stateScriptDataEscapedDash(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_DASH_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.ScriptDataEscapedDashDash;
       this.emitChars("-");
-    } else if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.state = ST_SCRIPT_DATA_ESCAPED;
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataEscapedLessThanSign;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.state = State.ScriptDataEscaped;
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInScriptHtmlCommentLikeText, 0);
       this.emitEOFToken();
     } else {
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
       this.emitCodePoint(cp);
     }
   }
 
   void stateScriptDataEscapedDashDash(int cp) {
-    if (cp == CP_DASH) {
+    if (cp == HYPHEN_MINUS) {
       this.emitChars("-");
-    } else if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN;
-    } else if (cp == CP_GT) {
-      this.state = ST_SCRIPT_DATA;
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataEscapedLessThanSign;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.ScriptData;
       this.emitChars(">");
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.state = ST_SCRIPT_DATA_ESCAPED;
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.state = State.ScriptDataEscaped;
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInScriptHtmlCommentLikeText, 0);
       this.emitEOFToken();
     } else {
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
       this.emitCodePoint(cp);
     }
   }
 
   void stateScriptDataEscapedLessThanSign(int cp) {
-    if (cp == CP_SLASH) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_END_TAG_OPEN;
+    if (cp == SOLIDUS) {
+      this.state = State.ScriptDataEscapedEndTagOpen;
     } else if (isAsciiLetter(cp)) {
       this.emitChars("<");
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPE_START;
+      this.state = State.ScriptDataDoubleEscapeStart;
       this.stateScriptDataDoubleEscapeStart(cp);
     } else {
       this.emitChars("<");
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
       this.stateScriptDataEscaped(cp);
     }
   }
 
   void stateScriptDataEscapedEndTagOpen(int cp) {
     if (isAsciiLetter(cp)) {
-      this.state = ST_SCRIPT_DATA_ESCAPED_END_TAG_NAME;
+      this.state = State.ScriptDataEscapedEndTagName;
       this.stateScriptDataEscapedEndTagName(cp);
     } else {
       this.emitChars("</");
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
       this.stateScriptDataEscaped(cp);
     }
   }
@@ -1141,38 +1085,38 @@ export class Tokenizer {
   void stateScriptDataEscapedEndTagName(int cp) {
     if (this.handleSpecialEndTag(cp)) {
       this.emitChars("</");
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
       this.stateScriptDataEscaped(cp);
     }
   }
 
   void stateScriptDataDoubleEscapeStart(int cp) {
-    if (this.preprocessor.startsWith(SEQ_SCRIPT, false) && isScriptDataDoubleEscapeEnd(this.preprocessor.peek(SEQ_SCRIPT.length))) {
+    if (this.preprocessor.startsWith(SCRIPT, false) && isScriptDataDoubleEscapeSequenceEnd(this.preprocessor.peek(SCRIPT.length))) {
       this.emitCodePoint(cp);
       int i = 0;
-      while (i < SEQ_SCRIPT.length) {
+      while (i < SCRIPT.length) {
         this.emitCodePoint(this.consume());
         i = i + 1;
       }
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.state = State.ScriptDataDoubleEscaped;
     } else if (!this.ensureHibernation()) {
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
       this.stateScriptDataEscaped(cp);
     }
   }
 
   void stateScriptDataDoubleEscaped(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.ScriptDataDoubleEscapedDash;
       this.emitChars("-");
-    } else if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataDoubleEscapedLessThanSign;
       this.emitChars("<");
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInScriptHtmlCommentLikeText, 0);
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -1180,437 +1124,454 @@ export class Tokenizer {
   }
 
   void stateScriptDataDoubleEscapedDash(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_DASH_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.ScriptDataDoubleEscapedDashDash;
       this.emitChars("-");
-    } else if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataDoubleEscapedLessThanSign;
       this.emitChars("<");
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.state = State.ScriptDataDoubleEscaped;
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInScriptHtmlCommentLikeText, 0);
       this.emitEOFToken();
     } else {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.state = State.ScriptDataDoubleEscaped;
       this.emitCodePoint(cp);
     }
   }
 
   void stateScriptDataDoubleEscapedDashDash(int cp) {
-    if (cp == CP_DASH) {
+    if (cp == HYPHEN_MINUS) {
       this.emitChars("-");
-    } else if (cp == CP_LT) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED_LESS_THAN_SIGN;
+    } else if (cp == LESS_THAN_SIGN) {
+      this.state = State.ScriptDataDoubleEscapedLessThanSign;
       this.emitChars("<");
-    } else if (cp == CP_GT) {
-      this.state = ST_SCRIPT_DATA;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.ScriptData;
       this.emitChars(">");
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
-      this.emitChars(REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInScriptHtmlCommentLikeText, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.state = State.ScriptDataDoubleEscaped;
+      this.emitChars(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInScriptHtmlCommentLikeText, 0);
       this.emitEOFToken();
     } else {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.state = State.ScriptDataDoubleEscaped;
       this.emitCodePoint(cp);
     }
   }
 
   void stateScriptDataDoubleEscapedLessThanSign(int cp) {
-    if (cp == CP_SLASH) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPE_END;
+    if (cp == SOLIDUS) {
+      this.state = State.ScriptDataDoubleEscapeEnd;
       this.emitChars("/");
     } else {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.state = State.ScriptDataDoubleEscaped;
       this.stateScriptDataDoubleEscaped(cp);
     }
   }
 
   void stateScriptDataDoubleEscapeEnd(int cp) {
-    if (this.preprocessor.startsWith(SEQ_SCRIPT, false) && isScriptDataDoubleEscapeEnd(this.preprocessor.peek(SEQ_SCRIPT.length))) {
+    if (this.preprocessor.startsWith(SCRIPT, false) && isScriptDataDoubleEscapeSequenceEnd(this.preprocessor.peek(SCRIPT.length))) {
       this.emitCodePoint(cp);
       int i = 0;
-      while (i < SEQ_SCRIPT.length) {
+      while (i < SCRIPT.length) {
         this.emitCodePoint(this.consume());
         i = i + 1;
       }
-      this.state = ST_SCRIPT_DATA_ESCAPED;
+      this.state = State.ScriptDataEscaped;
     } else if (!this.ensureHibernation()) {
-      this.state = ST_SCRIPT_DATA_DOUBLE_ESCAPED;
+      this.state = State.ScriptDataDoubleEscaped;
       this.stateScriptDataDoubleEscaped(cp);
     }
   }
 
   void stateBeforeAttributeName(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_SLASH || cp == CP_GT || cp == CP_EOF) {
-      this.state = ST_AFTER_ATTRIBUTE_NAME;
+    if (isWhitespace(cp)) return;
+    if (cp == SOLIDUS || cp == GREATER_THAN_SIGN || cp == EOF) {
+      this.state = State.AfterAttributeName;
       this.stateAfterAttributeName(cp);
-    } else if (cp == CP_EQ) {
-      this.err(ERR_unexpectedEqualsSignBeforeAttributeName, 0);
+    } else if (cp == EQUALS_SIGN) {
+      this.err(ErrorCode.UnexpectedEqualsSignBeforeAttributeName, 0);
       this.createAttr("=");
-      this.state = ST_ATTRIBUTE_NAME;
+      this.state = State.AttributeName;
     } else {
       this.createAttr("");
-      this.state = ST_ATTRIBUTE_NAME;
+      this.state = State.AttributeName;
       this.stateAttributeName(cp);
     }
   }
 
   void stateAttributeName(int cp) {
-    if (isWs(cp) || cp == CP_SLASH || cp == CP_GT || cp == CP_EOF) {
+    if (isWhitespace(cp) || cp == SOLIDUS || cp == GREATER_THAN_SIGN || cp == EOF) {
       this.leaveAttrName();
-      this.state = ST_AFTER_ATTRIBUTE_NAME;
+      this.state = State.AfterAttributeName;
       this.stateAfterAttributeName(cp);
-    } else if (cp == CP_EQ) {
+    } else if (cp == EQUALS_SIGN) {
       this.leaveAttrName();
-      this.state = ST_BEFORE_ATTRIBUTE_VALUE;
-    } else if (cp == CP_QUOTE || cp == CP_APOS || cp == CP_LT) {
-      this.err(ERR_unexpectedCharacterInAttributeName, 0);
-      appendKey(this.currentAttr, "name", fromCodePoint(cp));
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentAttr, "name", REPLACEMENT);
+      this.state = State.BeforeAttributeValue;
+    } else if (cp == QUOTATION_MARK || cp == APOSTROPHE || cp == LESS_THAN_SIGN) {
+      this.err(ErrorCode.UnexpectedCharacterInAttributeName, 0);
+      this.currentAttr.name = this.currentAttr.name + fromCodePoint(cp);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentAttr.name = this.currentAttr.name + REPLACEMENT_CHARACTER;
     } else {
-      int out = cp;
-      if (isAsciiUpper(cp)) {
-        out = toAsciiLower(cp);
-      }
-      appendKey(this.currentAttr, "name", fromCodePoint(out));
+      int output = cp;
+      if (isAsciiUpper(cp)) output = toAsciiLower(cp);
+      this.currentAttr.name = this.currentAttr.name + fromCodePoint(output);
     }
   }
 
   void stateAfterAttributeName(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_SLASH) {
-      this.state = ST_SELF_CLOSING_START_TAG;
-    } else if (cp == CP_EQ) {
-      this.state = ST_BEFORE_ATTRIBUTE_VALUE;
-    } else if (cp == CP_GT) {
-      this.state = ST_DATA;
+    if (isWhitespace(cp)) return;
+    if (cp == SOLIDUS) {
+      this.state = State.SelfClosingStartTag;
+    } else if (cp == EQUALS_SIGN) {
+      this.state = State.BeforeAttributeValue;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
       this.emitCurrentTagToken();
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
       this.createAttr("");
-      this.state = ST_ATTRIBUTE_NAME;
+      this.state = State.AttributeName;
       this.stateAttributeName(cp);
     }
   }
 
   void stateBeforeAttributeValue(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_QUOTE) {
-      this.state = ST_ATTRIBUTE_VALUE_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      this.state = ST_ATTRIBUTE_VALUE_SINGLE_QUOTED;
-    } else if (cp == CP_GT) {
-      this.err(ERR_missingAttributeValue, 0);
-      this.state = ST_DATA;
+    if (isWhitespace(cp)) return;
+    if (cp == QUOTATION_MARK) {
+      this.state = State.AttributeValueDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.state = State.AttributeValueSingleQuoted;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingAttributeValue, 0);
+      this.state = State.Data;
       this.emitCurrentTagToken();
     } else {
-      this.state = ST_ATTRIBUTE_VALUE_UNQUOTED;
+      this.state = State.AttributeValueUnquoted;
       this.stateAttributeValueUnquoted(cp);
     }
   }
 
   void stateAttributeValueDoubleQuoted(int cp) {
-    if (cp == CP_QUOTE) {
-      this.state = ST_AFTER_ATTRIBUTE_VALUE_QUOTED;
-    } else if (cp == CP_AMP) {
+    if (cp == QUOTATION_MARK) {
+      this.state = State.AfterAttributeValueQuoted;
+    } else if (cp == AMPERSAND) {
       this.startCharacterReference();
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentAttr, "value", REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentAttr.value = this.currentAttr.value + REPLACEMENT_CHARACTER;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
-      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+      this.currentAttr.value = this.currentAttr.value + fromCodePoint(cp);
     }
   }
 
   void stateAttributeValueSingleQuoted(int cp) {
-    if (cp == CP_APOS) {
-      this.state = ST_AFTER_ATTRIBUTE_VALUE_QUOTED;
-    } else if (cp == CP_AMP) {
+    if (cp == APOSTROPHE) {
+      this.state = State.AfterAttributeValueQuoted;
+    } else if (cp == AMPERSAND) {
       this.startCharacterReference();
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentAttr, "value", REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentAttr.value = this.currentAttr.value + REPLACEMENT_CHARACTER;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
-      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+      this.currentAttr.value = this.currentAttr.value + fromCodePoint(cp);
     }
   }
 
   void stateAttributeValueUnquoted(int cp) {
-    if (isWs(cp)) {
+    if (isWhitespace(cp)) {
       this.leaveAttrValue();
-      this.state = ST_BEFORE_ATTRIBUTE_NAME;
-    } else if (cp == CP_AMP) {
+      this.state = State.BeforeAttributeName;
+    } else if (cp == AMPERSAND) {
       this.startCharacterReference();
-    } else if (cp == CP_GT) {
+    } else if (cp == GREATER_THAN_SIGN) {
       this.leaveAttrValue();
-      this.state = ST_DATA;
+      this.state = State.Data;
       this.emitCurrentTagToken();
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentAttr, "value", REPLACEMENT);
-    } else if (cp == CP_QUOTE || cp == CP_APOS || cp == CP_LT || cp == CP_EQ || cp == CP_GRAVE) {
-      this.err(ERR_unexpectedCharacterInUnquotedAttributeValue, 0);
-      appendKey(this.currentAttr, "value", fromCodePoint(cp));
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentAttr.value = this.currentAttr.value + REPLACEMENT_CHARACTER;
+    } else if (cp == QUOTATION_MARK || cp == APOSTROPHE || cp == LESS_THAN_SIGN || cp == EQUALS_SIGN || cp == GRAVE_ACCENT) {
+      this.err(ErrorCode.UnexpectedCharacterInUnquotedAttributeValue, 0);
+      this.currentAttr.value = this.currentAttr.value + fromCodePoint(cp);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
-      appendKey(this.currentAttr, "value", fromCodePoint(cp));
+      this.currentAttr.value = this.currentAttr.value + fromCodePoint(cp);
     }
   }
 
   void stateAfterAttributeValueQuoted(int cp) {
-    if (isWs(cp)) {
+    if (isWhitespace(cp)) {
       this.leaveAttrValue();
-      this.state = ST_BEFORE_ATTRIBUTE_NAME;
-    } else if (cp == CP_SLASH) {
+      this.state = State.BeforeAttributeName;
+    } else if (cp == SOLIDUS) {
       this.leaveAttrValue();
-      this.state = ST_SELF_CLOSING_START_TAG;
-    } else if (cp == CP_GT) {
+      this.state = State.SelfClosingStartTag;
+    } else if (cp == GREATER_THAN_SIGN) {
       this.leaveAttrValue();
-      this.state = ST_DATA;
+      this.state = State.Data;
       this.emitCurrentTagToken();
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingWhitespaceBetweenAttributes, 0);
-      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+      this.err(ErrorCode.MissingWhitespaceBetweenAttributes, 0);
+      this.state = State.BeforeAttributeName;
       this.stateBeforeAttributeName(cp);
     }
   }
 
   void stateSelfClosingStartTag(int cp) {
-    if (cp == CP_GT) {
-      JS.set(this.currentToken, "selfClosing", true);
-      this.state = ST_DATA;
+    if (cp == GREATER_THAN_SIGN) {
+      this.currentTagToken.selfClosing = true;
+      this.state = State.Data;
       this.emitCurrentTagToken();
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInTag, 0);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInTag, 0);
       this.emitEOFToken();
     } else {
-      this.err(ERR_unexpectedSolidusInTag, 0);
-      this.state = ST_BEFORE_ATTRIBUTE_NAME;
+      this.err(ErrorCode.UnexpectedSolidusInTag, 0);
+      this.state = State.BeforeAttributeName;
       this.stateBeforeAttributeName(cp);
     }
   }
 
   void stateBogusComment(int cp) {
-    if (cp == CP_GT) {
-      this.state = ST_DATA;
-      this.emitCurrentComment(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.emitCurrentComment(this.currentToken);
+    if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
+      this.emitCurrentComment();
+    } else if (cp == EOF) {
+      this.emitCurrentComment();
       this.emitEOFToken();
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "data", REPLACEMENT);
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentCommentToken.data = this.currentCommentToken.data + REPLACEMENT_CHARACTER;
     } else {
-      appendKey(this.currentToken, "data", fromCodePoint(cp));
+      this.currentCommentToken.data = this.currentCommentToken.data + fromCodePoint(cp);
     }
   }
 
   void stateMarkupDeclarationOpen(int cp) {
-    if (this.consumeSequenceIfMatch(SEQ_DASH_DASH, true)) {
-      this.createCommentToken(SEQ_DASH_DASH.length + 1);
-      this.state = ST_COMMENT_START;
-    } else if (this.consumeSequenceIfMatch(SEQ_DOCTYPE, false)) {
-      this.currentLocation = this.getCurrentLocation(SEQ_DOCTYPE.length + 1);
-      this.state = ST_DOCTYPE;
-    } else if (this.consumeSequenceIfMatch(SEQ_CDATA, true)) {
+    if (this.consumeSequenceIfMatch(DASH_DASH, true)) {
+      this.createCommentToken(DASH_DASH.length + 1);
+      this.state = State.CommentStart;
+    } else if (this.consumeSequenceIfMatch(DOCTYPE, false)) {
+      this.currentLocation = this.getCurrentLocation(DOCTYPE.length + 1);
+      this.state = State.Doctype;
+    } else if (this.consumeSequenceIfMatch(CDATA_START, true)) {
       if (this.inForeignNode) {
-        this.state = ST_CDATA_SECTION;
+        this.state = State.CdataSection;
       } else {
-        this.err(ERR_cdataInHtmlContent, 0);
-        this.createCommentToken(SEQ_CDATA.length + 1);
-        JS.set(this.currentToken, "data", "[CDATA[");
-        this.state = ST_BOGUS_COMMENT;
+        this.err(ErrorCode.CdataInHtmlContent, 0);
+        this.createCommentToken(CDATA_START.length + 1);
+        this.currentCommentToken.data = "[CDATA[";
+        this.state = State.BogusComment;
       }
     } else if (!this.ensureHibernation()) {
-      this.err(ERR_incorrectlyOpenedComment, 0);
+      this.err(ErrorCode.IncorrectlyOpenedComment, 0);
       this.createCommentToken(2);
-      this.state = ST_BOGUS_COMMENT;
+      this.state = State.BogusComment;
       this.stateBogusComment(cp);
     }
   }
 
   void stateCommentStart(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_COMMENT_START_DASH;
-    } else if (cp == CP_GT) {
-      this.err(ERR_abruptClosingOfEmptyComment, 0);
-      this.state = ST_DATA;
-      this.emitCurrentComment(this.currentToken);
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.CommentStartDash;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.AbruptClosingOfEmptyComment, 0);
+      this.state = State.Data;
+      this.emitCurrentComment();
     } else {
-      this.state = ST_COMMENT;
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
   void stateCommentStartDash(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_COMMENT_END;
-    } else if (cp == CP_GT) {
-      this.err(ERR_abruptClosingOfEmptyComment, 0);
-      this.state = ST_DATA;
-      this.emitCurrentComment(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInComment, 0);
-      this.emitCurrentComment(this.currentToken);
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.CommentEnd;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.AbruptClosingOfEmptyComment, 0);
+      this.state = State.Data;
+      this.emitCurrentComment();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInComment, 0);
+      this.emitCurrentComment();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "data", "-");
-      this.state = ST_COMMENT;
+      this.currentCommentToken.data = this.currentCommentToken.data + "-";
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
   void stateComment(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_COMMENT_END_DASH;
-    } else if (cp == CP_LT) {
-      appendKey(this.currentToken, "data", "<");
-      this.state = ST_COMMENT_LESS_THAN_SIGN;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "data", REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInComment, 0);
-      this.emitCurrentComment(this.currentToken);
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.CommentEndDash;
+    } else if (cp == LESS_THAN_SIGN) {
+      this.currentCommentToken.data = this.currentCommentToken.data + "<";
+      this.state = State.CommentLessThanSign;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.currentCommentToken.data = this.currentCommentToken.data + REPLACEMENT_CHARACTER;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInComment, 0);
+      this.emitCurrentComment();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "data", fromCodePoint(cp));
+      this.currentCommentToken.data = this.currentCommentToken.data + fromCodePoint(cp);
     }
   }
 
   void stateCommentLessThanSign(int cp) {
-    if (cp == CP_BANG) {
-      appendKey(this.currentToken, "data", "!");
-      this.state = ST_COMMENT_LESS_THAN_SIGN_BANG;
-    } else if (cp == CP_LT) {
-      appendKey(this.currentToken, "data", "<");
+    if (cp == EXCLAMATION_MARK) {
+      this.currentCommentToken.data = this.currentCommentToken.data + "!";
+      this.state = State.CommentLessThanSignBang;
+    } else if (cp == LESS_THAN_SIGN) {
+      this.currentCommentToken.data = this.currentCommentToken.data + "<";
     } else {
-      this.state = ST_COMMENT;
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
   void stateCommentLessThanSignBang(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_COMMENT_LESS_THAN_SIGN_BANG_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.CommentLessThanSignBangDash;
     } else {
-      this.state = ST_COMMENT;
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
   void stateCommentLessThanSignBangDash(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_COMMENT_LESS_THAN_SIGN_BANG_DASH_DASH;
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.CommentLessThanSignBangDashDash;
     } else {
-      this.state = ST_COMMENT_END_DASH;
+      this.state = State.CommentEndDash;
       this.stateCommentEndDash(cp);
     }
   }
 
   void stateCommentLessThanSignBangDashDash(int cp) {
-    if (cp != CP_GT && cp != CP_EOF) {
-      this.err(ERR_nestedComment, 0);
-    }
-    this.state = ST_COMMENT_END;
+    if (cp != GREATER_THAN_SIGN && cp != EOF) this.err(ErrorCode.NestedComment, 0);
+    this.state = State.CommentEnd;
     this.stateCommentEnd(cp);
   }
 
   void stateCommentEndDash(int cp) {
-    if (cp == CP_DASH) {
-      this.state = ST_COMMENT_END;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInComment, 0);
-      this.emitCurrentComment(this.currentToken);
+    if (cp == HYPHEN_MINUS) {
+      this.state = State.CommentEnd;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInComment, 0);
+      this.emitCurrentComment();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "data", "-");
-      this.state = ST_COMMENT;
+      this.currentCommentToken.data = this.currentCommentToken.data + "-";
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
   void stateCommentEnd(int cp) {
-    if (cp == CP_GT) {
-      this.state = ST_DATA;
-      this.emitCurrentComment(this.currentToken);
-    } else if (cp == CP_BANG) {
-      this.state = ST_COMMENT_END_BANG;
-    } else if (cp == CP_DASH) {
-      appendKey(this.currentToken, "data", "-");
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInComment, 0);
-      this.emitCurrentComment(this.currentToken);
+    if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
+      this.emitCurrentComment();
+    } else if (cp == EXCLAMATION_MARK) {
+      this.state = State.CommentEndBang;
+    } else if (cp == HYPHEN_MINUS) {
+      this.currentCommentToken.data = this.currentCommentToken.data + "-";
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInComment, 0);
+      this.emitCurrentComment();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "data", "--");
-      this.state = ST_COMMENT;
+      this.currentCommentToken.data = this.currentCommentToken.data + "--";
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
   void stateCommentEndBang(int cp) {
-    if (cp == CP_DASH) {
-      appendKey(this.currentToken, "data", "--!");
-      this.state = ST_COMMENT_END_DASH;
-    } else if (cp == CP_GT) {
-      this.err(ERR_incorrectlyClosedComment, 0);
-      this.state = ST_DATA;
-      this.emitCurrentComment(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInComment, 0);
-      this.emitCurrentComment(this.currentToken);
+    if (cp == HYPHEN_MINUS) {
+      this.currentCommentToken.data = this.currentCommentToken.data + "--!";
+      this.state = State.CommentEndDash;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.IncorrectlyClosedComment, 0);
+      this.state = State.Data;
+      this.emitCurrentComment();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInComment, 0);
+      this.emitCurrentComment();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "data", "--!");
-      this.state = ST_COMMENT;
+      this.currentCommentToken.data = this.currentCommentToken.data + "--!";
+      this.state = State.Comment;
       this.stateComment(cp);
     }
   }
 
+  void appendDoctypeName(string value) {
+    string? current = this.currentDoctypeToken.name;
+    if (current == null) {
+      this.currentDoctypeToken.name = value;
+    } else {
+      this.currentDoctypeToken.name = current + value;
+    }
+  }
+
+  void appendDoctypePublicId(string value) {
+    string? current = this.currentDoctypeToken.publicId;
+    if (current == null) {
+      this.currentDoctypeToken.publicId = value;
+    } else {
+      this.currentDoctypeToken.publicId = current + value;
+    }
+  }
+
+  void appendDoctypeSystemId(string value) {
+    string? current = this.currentDoctypeToken.systemId;
+    if (current == null) {
+      this.currentDoctypeToken.systemId = value;
+    } else {
+      this.currentDoctypeToken.systemId = current + value;
+    }
+  }
+
   void stateDoctype(int cp) {
-    if (isWs(cp)) {
-      this.state = ST_BEFORE_DOCTYPE_NAME;
-    } else if (cp == CP_GT) {
-      this.state = ST_BEFORE_DOCTYPE_NAME;
+    if (isWhitespace(cp)) {
+      this.state = State.BeforeDoctypeName;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.BeforeDoctypeName;
       this.stateBeforeDoctypeName(cp);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      this.createDoctypeToken(NULL);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.createDoctypeToken(null);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingWhitespaceBeforeDoctypeName, 0);
-      this.state = ST_BEFORE_DOCTYPE_NAME;
+      this.err(ErrorCode.MissingWhitespaceBeforeDoctypeName, 0);
+      this.state = State.BeforeDoctypeName;
       this.stateBeforeDoctypeName(cp);
     }
   }
@@ -1618,368 +1579,354 @@ export class Tokenizer {
   void stateBeforeDoctypeName(int cp) {
     if (isAsciiUpper(cp)) {
       this.createDoctypeToken(fromCodePoint(toAsciiLower(cp)));
-      this.state = ST_DOCTYPE_NAME;
+      this.state = State.DoctypeName;
       return;
     }
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      this.createDoctypeToken(REPLACEMENT);
-      this.state = ST_DOCTYPE_NAME;
-    } else if (cp == CP_GT) {
-      this.err(ERR_missingDoctypeName, 0);
-      this.createDoctypeToken(NULL);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      this.createDoctypeToken(NULL);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) return;
+    if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.createDoctypeToken(REPLACEMENT_CHARACTER);
+      this.state = State.DoctypeName;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingDoctypeName, 0);
+      this.createDoctypeToken(null);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.createDoctypeToken(null);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
       this.createDoctypeToken(fromCodePoint(cp));
-      this.state = ST_DOCTYPE_NAME;
+      this.state = State.DoctypeName;
     }
   }
 
   void stateDoctypeName(int cp) {
-    if (isWs(cp)) {
-      this.state = ST_AFTER_DOCTYPE_NAME;
-    } else if (cp == CP_GT) {
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "name", REPLACEMENT);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) {
+      this.state = State.AfterDoctypeName;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.appendDoctypeName(REPLACEMENT_CHARACTER);
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      int out = cp;
-      if (isAsciiUpper(cp)) {
-        out = toAsciiLower(cp);
-      }
-      appendKey(this.currentToken, "name", fromCodePoint(out));
+      int output = cp;
+      if (isAsciiUpper(cp)) output = toAsciiLower(cp);
+      this.appendDoctypeName(fromCodePoint(output));
     }
   }
 
   void stateAfterDoctypeName(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_GT) {
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) return;
+    if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
-    } else if (this.consumeSequenceIfMatch(SEQ_PUBLIC, false)) {
-      this.state = ST_AFTER_DOCTYPE_PUBLIC_KEYWORD;
-    } else if (this.consumeSequenceIfMatch(SEQ_SYSTEM, false)) {
-      this.state = ST_AFTER_DOCTYPE_SYSTEM_KEYWORD;
+    } else if (this.consumeSequenceIfMatch(PUBLIC, false)) {
+      this.state = State.AfterDoctypePublicKeyword;
+    } else if (this.consumeSequenceIfMatch(SYSTEM, false)) {
+      this.state = State.AfterDoctypeSystemKeyword;
     } else if (!this.ensureHibernation()) {
-      this.err(ERR_invalidCharacterSequenceAfterDoctypeName, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.InvalidCharacterSequenceAfterDoctypeName, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateAfterDoctypePublicKeyword(int cp) {
-    if (isWs(cp)) {
-      this.state = ST_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER;
-    } else if (cp == CP_QUOTE) {
-      this.err(ERR_missingWhitespaceAfterDoctypePublicKeyword, 0);
-      JS.set(this.currentToken, "publicId", "");
-      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      this.err(ERR_missingWhitespaceAfterDoctypePublicKeyword, 0);
-      JS.set(this.currentToken, "publicId", "");
-      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED;
-    } else if (cp == CP_GT) {
-      this.err(ERR_missingDoctypePublicIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) {
+      this.state = State.BeforeDoctypePublicIdentifier;
+    } else if (cp == QUOTATION_MARK) {
+      this.err(ErrorCode.MissingWhitespaceAfterDoctypePublicKeyword, 0);
+      this.currentDoctypeToken.publicId = "";
+      this.state = State.DoctypePublicIdentifierDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.err(ErrorCode.MissingWhitespaceAfterDoctypePublicKeyword, 0);
+      this.currentDoctypeToken.publicId = "";
+      this.state = State.DoctypePublicIdentifierSingleQuoted;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingDoctypePublicIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingQuoteBeforeDoctypePublicIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.MissingQuoteBeforeDoctypePublicIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateBeforeDoctypePublicIdentifier(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_QUOTE) {
-      JS.set(this.currentToken, "publicId", "");
-      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      JS.set(this.currentToken, "publicId", "");
-      this.state = ST_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED;
-    } else if (cp == CP_GT) {
-      this.err(ERR_missingDoctypePublicIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) return;
+    if (cp == QUOTATION_MARK) {
+      this.currentDoctypeToken.publicId = "";
+      this.state = State.DoctypePublicIdentifierDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.currentDoctypeToken.publicId = "";
+      this.state = State.DoctypePublicIdentifierSingleQuoted;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingDoctypePublicIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingQuoteBeforeDoctypePublicIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.MissingQuoteBeforeDoctypePublicIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateDoctypePublicIdentifierDoubleQuoted(int cp) {
-    if (cp == CP_QUOTE) {
-      this.state = ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "publicId", REPLACEMENT);
-    } else if (cp == CP_GT) {
-      this.err(ERR_abruptDoctypePublicIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (cp == QUOTATION_MARK) {
+      this.state = State.AfterDoctypePublicIdentifier;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.appendDoctypePublicId(REPLACEMENT_CHARACTER);
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.AbruptDoctypePublicIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "publicId", fromCodePoint(cp));
+      this.appendDoctypePublicId(fromCodePoint(cp));
     }
   }
 
   void stateDoctypePublicIdentifierSingleQuoted(int cp) {
-    if (cp == CP_APOS) {
-      this.state = ST_AFTER_DOCTYPE_PUBLIC_IDENTIFIER;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "publicId", REPLACEMENT);
-    } else if (cp == CP_GT) {
-      this.err(ERR_abruptDoctypePublicIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (cp == APOSTROPHE) {
+      this.state = State.AfterDoctypePublicIdentifier;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.appendDoctypePublicId(REPLACEMENT_CHARACTER);
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.AbruptDoctypePublicIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "publicId", fromCodePoint(cp));
+      this.appendDoctypePublicId(fromCodePoint(cp));
     }
   }
 
   void stateAfterDoctypePublicIdentifier(int cp) {
-    if (isWs(cp)) {
-      this.state = ST_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS;
-    } else if (cp == CP_GT) {
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_QUOTE) {
-      this.err(ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers, 0);
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      this.err(ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers, 0);
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) {
+      this.state = State.BetweenDoctypePublicAndSystemIdentifiers;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == QUOTATION_MARK) {
+      this.err(ErrorCode.MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers, 0);
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.err(ErrorCode.MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers, 0);
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierSingleQuoted;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.MissingQuoteBeforeDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateBetweenDoctypePublicAndSystemIdentifiers(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_GT) {
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_QUOTE) {
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) return;
+    if (cp == GREATER_THAN_SIGN) {
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == QUOTATION_MARK) {
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierSingleQuoted;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.MissingQuoteBeforeDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateAfterDoctypeSystemKeyword(int cp) {
-    if (isWs(cp)) {
-      this.state = ST_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER;
-    } else if (cp == CP_QUOTE) {
-      this.err(ERR_missingWhitespaceAfterDoctypeSystemKeyword, 0);
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      this.err(ERR_missingWhitespaceAfterDoctypeSystemKeyword, 0);
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
-    } else if (cp == CP_GT) {
-      this.err(ERR_missingDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) {
+      this.state = State.BeforeDoctypeSystemIdentifier;
+    } else if (cp == QUOTATION_MARK) {
+      this.err(ErrorCode.MissingWhitespaceAfterDoctypeSystemKeyword, 0);
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.err(ErrorCode.MissingWhitespaceAfterDoctypeSystemKeyword, 0);
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierSingleQuoted;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.MissingQuoteBeforeDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateBeforeDoctypeSystemIdentifier(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_QUOTE) {
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED;
-    } else if (cp == CP_APOS) {
-      JS.set(this.currentToken, "systemId", "");
-      this.state = ST_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED;
-    } else if (cp == CP_GT) {
-      this.err(ERR_missingDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_DATA;
-      this.emitCurrentDoctype(this.currentToken);
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) return;
+    if (cp == QUOTATION_MARK) {
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierDoubleQuoted;
+    } else if (cp == APOSTROPHE) {
+      this.currentDoctypeToken.systemId = "";
+      this.state = State.DoctypeSystemIdentifierSingleQuoted;
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.MissingDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.Data;
+      this.emitCurrentDoctype();
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_missingQuoteBeforeDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.MissingQuoteBeforeDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateDoctypeSystemIdentifierDoubleQuoted(int cp) {
-    if (cp == CP_QUOTE) {
-      this.state = ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "systemId", REPLACEMENT);
-    } else if (cp == CP_GT) {
-      this.err(ERR_abruptDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (cp == QUOTATION_MARK) {
+      this.state = State.AfterDoctypeSystemIdentifier;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.appendDoctypeSystemId(REPLACEMENT_CHARACTER);
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.AbruptDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "systemId", fromCodePoint(cp));
+      this.appendDoctypeSystemId(fromCodePoint(cp));
     }
   }
 
   void stateDoctypeSystemIdentifierSingleQuoted(int cp) {
-    if (cp == CP_APOS) {
-      this.state = ST_AFTER_DOCTYPE_SYSTEM_IDENTIFIER;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-      appendKey(this.currentToken, "systemId", REPLACEMENT);
-    } else if (cp == CP_GT) {
-      this.err(ERR_abruptDoctypeSystemIdentifier, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (cp == APOSTROPHE) {
+      this.state = State.AfterDoctypeSystemIdentifier;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+      this.appendDoctypeSystemId(REPLACEMENT_CHARACTER);
+    } else if (cp == GREATER_THAN_SIGN) {
+      this.err(ErrorCode.AbruptDoctypeSystemIdentifier, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      appendKey(this.currentToken, "systemId", fromCodePoint(cp));
+      this.appendDoctypeSystemId(fromCodePoint(cp));
     }
   }
 
   void stateAfterDoctypeSystemIdentifier(int cp) {
-    if (isWs(cp)) {
-      return;
-    }
-    if (cp == CP_GT) {
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInDoctype, 0);
-      JS.set(this.currentToken, "forceQuirks", true);
-      this.emitCurrentDoctype(this.currentToken);
+    if (isWhitespace(cp)) return;
+    if (cp == GREATER_THAN_SIGN) {
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInDoctype, 0);
+      this.currentDoctypeToken.forceQuirks = true;
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     } else {
-      this.err(ERR_unexpectedCharacterAfterDoctypeSystemIdentifier, 0);
-      this.state = ST_BOGUS_DOCTYPE;
+      this.err(ErrorCode.UnexpectedCharacterAfterDoctypeSystemIdentifier, 0);
+      this.state = State.BogusDoctype;
       this.stateBogusDoctype(cp);
     }
   }
 
   void stateBogusDoctype(int cp) {
-    if (cp == CP_GT) {
-      this.emitCurrentDoctype(this.currentToken);
-      this.state = ST_DATA;
-    } else if (cp == CP_NULL) {
-      this.err(ERR_unexpectedNullCharacter, 0);
-    } else if (cp == CP_EOF) {
-      this.emitCurrentDoctype(this.currentToken);
+    if (cp == GREATER_THAN_SIGN) {
+      this.emitCurrentDoctype();
+      this.state = State.Data;
+    } else if (cp == NULL) {
+      this.err(ErrorCode.UnexpectedNullCharacter, 0);
+    } else if (cp == EOF) {
+      this.emitCurrentDoctype();
       this.emitEOFToken();
     }
   }
 
   void stateCdataSection(int cp) {
-    if (cp == CP_RBRACK) {
-      this.state = ST_CDATA_SECTION_BRACKET;
-    } else if (cp == CP_EOF) {
-      this.err(ERR_eofInCdata, 0);
+    if (cp == RIGHT_SQUARE_BRACKET) {
+      this.state = State.CdataSectionBracket;
+    } else if (cp == EOF) {
+      this.err(ErrorCode.EofInCdata, 0);
       this.emitEOFToken();
     } else {
       this.emitCodePoint(cp);
@@ -1987,23 +1934,23 @@ export class Tokenizer {
   }
 
   void stateCdataSectionBracket(int cp) {
-    if (cp == CP_RBRACK) {
-      this.state = ST_CDATA_SECTION_END;
+    if (cp == RIGHT_SQUARE_BRACKET) {
+      this.state = State.CdataSectionEnd;
     } else {
       this.emitChars("]");
-      this.state = ST_CDATA_SECTION;
+      this.state = State.CdataSection;
       this.stateCdataSection(cp);
     }
   }
 
   void stateCdataSectionEnd(int cp) {
-    if (cp == CP_GT) {
-      this.state = ST_DATA;
-    } else if (cp == CP_RBRACK) {
+    if (cp == GREATER_THAN_SIGN) {
+      this.state = State.Data;
+    } else if (cp == RIGHT_SQUARE_BRACKET) {
       this.emitChars("]");
     } else {
       this.emitChars("]]");
-      this.state = ST_CDATA_SECTION;
+      this.state = State.CdataSection;
       this.stateCdataSection(cp);
     }
   }
@@ -2023,9 +1970,9 @@ export class Tokenizer {
     }
     if (length == 0) {
       this.preprocessor.pos = this.entityStartPos;
-      this.flushCodePointConsumedAsCharacterReference(CP_AMP);
+      this.flushCodePointConsumedAsCharacterReference(AMPERSAND);
       if (!this.isCharacterReferenceInAttribute() && isAsciiAlphaNumeric(this.preprocessor.peek(1))) {
-        this.state = ST_AMBIGUOUS_AMPERSAND;
+        this.state = State.AmbiguousAmpersand;
       } else {
         this.state = this.returnState;
       }
@@ -2038,9 +1985,7 @@ export class Tokenizer {
     if (isAsciiAlphaNumeric(cp)) {
       this.flushCodePointConsumedAsCharacterReference(cp);
     } else {
-      if (cp == CP_SEMI) {
-        this.err(ERR_unknownNamedCharacterReference, 0);
-      }
+      if (cp == SEMICOLON) this.err(ErrorCode.UnknownNamedCharacterReference, 0);
       this.state = this.returnState;
       this.callState(cp);
     }

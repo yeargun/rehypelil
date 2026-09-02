@@ -1,0 +1,401 @@
+import { Namespace, TagId, isNumberedHeader, namespaceUri } from "../common/html.lil";
+import { getNamespaceURI, getTemplateContent } from "../tree-adapters/default.lil";
+import { NULL } from "../../unified/host.lil";
+
+pure bool implicitEndTagRequired(TagId id) {
+  return id == TagId.Dd || id == TagId.Dt || id == TagId.Li || id == TagId.Optgroup || id == TagId.Option || id == TagId.P || id == TagId.Rb || id == TagId.Rp || id == TagId.Rt || id == TagId.Rtc;
+}
+
+pure bool implicitEndTagRequiredThoroughly(TagId id) {
+  return implicitEndTagRequired(id) || id == TagId.Caption || id == TagId.Colgroup || id == TagId.Tbody || id == TagId.Td || id == TagId.Tfoot || id == TagId.Th || id == TagId.Thead || id == TagId.Tr;
+}
+
+pure bool htmlScopingElement(TagId id) {
+  return id == TagId.Applet || id == TagId.Caption || id == TagId.Html || id == TagId.Marquee || id == TagId.Object || id == TagId.Table || id == TagId.Td || id == TagId.Template || id == TagId.Th;
+}
+
+pure bool mathScopingElement(TagId id) {
+  return id == TagId.AnnotationXml || id == TagId.Mi || id == TagId.Mn || id == TagId.Mo || id == TagId.Ms || id == TagId.Mtext;
+}
+
+pure bool svgScopingElement(TagId id) {
+  return id == TagId.Desc || id == TagId.ForeignObject || id == TagId.Title;
+}
+
+enum StackContext { TableCell, Table, TableBody, TableRow }
+
+pure bool contextElement(TagId id, StackContext context) {
+  if (context == StackContext.TableCell) return id == TagId.Td || id == TagId.Th;
+  if (context == StackContext.Table) return id == TagId.Table || id == TagId.Template || id == TagId.Html;
+  if (context == StackContext.TableBody) return id == TagId.Tbody || id == TagId.Tfoot || id == TagId.Thead || id == TagId.Template || id == TagId.Html;
+  return id == TagId.Tr || id == TagId.Template || id == TagId.Html;
+}
+
+void insertNode(JsValue[] items, int index, JsValue item) {
+  items.push(item);
+  int i = items.length - 1;
+  while (i > index) {
+    items[i] = items[i - 1];
+    i = i - 1;
+  }
+  items[index] = item;
+}
+
+void insertTag(TagId[] items, int index, TagId item) {
+  items.push(item);
+  int i = items.length - 1;
+  while (i > index) {
+    items[i] = items[i - 1];
+    i = i - 1;
+  }
+  items[index] = item;
+}
+
+void removeNode(JsValue[] items, int index) {
+  int i = index;
+  while (i + 1 < items.length) {
+    items[i] = items[i + 1];
+    i = i + 1;
+  }
+  items.pop();
+}
+
+void removeTag(TagId[] items, int index) {
+  int i = index;
+  while (i + 1 < items.length) {
+    items[i] = items[i + 1];
+    i = i + 1;
+  }
+  items.pop();
+}
+
+void setNode(JsValue[] items, int index, JsValue item) {
+  if (index < items.length) {
+    items[index] = item;
+  } else {
+    items.push(item);
+  }
+}
+
+void setTag(TagId[] items, int index, TagId item) {
+  if (index < items.length) {
+    items[index] = item;
+  } else {
+    items.push(item);
+  }
+}
+
+export class OpenElementStack {
+  JsValue[] items;
+  TagId[] tagIDs;
+  int stackTop;
+  int tmplCount;
+  TagId currentTagId;
+  JsValue current;
+  bool hasCurrent;
+  func(JsValue, TagId, bool)->void onItemPush;
+  func(JsValue, bool)->void onItemPop;
+
+  init(JsValue document, func(JsValue, TagId, bool)->void onItemPush, func(JsValue, bool)->void onItemPop) {
+    this.items = [];
+    this.tagIDs = [];
+    this.stackTop = -1;
+    this.tmplCount = 0;
+    this.currentTagId = TagId.Unknown;
+    this.current = document;
+    this.hasCurrent = false;
+    this.onItemPush = onItemPush;
+    this.onItemPop = onItemPop;
+  }
+
+  JsValue currentTmplContentOrNode() {
+    if (this.isInTemplate()) return getTemplateContent(this.current);
+    return this.current;
+  }
+
+  int indexOf(JsValue element) {
+    int i = this.stackTop;
+    while (i >= 0) {
+      if (JS.strictEqual(this.items[i], element)) return i;
+      i = i - 1;
+    }
+    return -1;
+  }
+
+  bool isInTemplate() {
+    return this.hasCurrent && this.currentTagId == TagId.Template && getNamespaceURI(this.current) == namespaceUri(Namespace.Html);
+  }
+
+  void updateCurrentElement() {
+    if (this.stackTop < 0) {
+      this.current = JS.undefined();
+      this.currentTagId = TagId.Unknown;
+      this.hasCurrent = false;
+      return;
+    }
+    this.current = this.items[this.stackTop];
+    this.currentTagId = this.tagIDs[this.stackTop];
+    this.hasCurrent = true;
+  }
+
+  void push(JsValue element, TagId tagID) {
+    this.stackTop = this.stackTop + 1;
+    setNode(this.items, this.stackTop, element);
+    setTag(this.tagIDs, this.stackTop, tagID);
+    this.current = element;
+    this.currentTagId = tagID;
+    this.hasCurrent = true;
+    if (this.isInTemplate()) this.tmplCount = this.tmplCount + 1;
+    this.onItemPush(element, tagID, true);
+  }
+
+  void pop() {
+    JsValue popped = this.current;
+    if (this.tmplCount > 0 && this.isInTemplate()) this.tmplCount = this.tmplCount - 1;
+    this.stackTop = this.stackTop - 1;
+    this.updateCurrentElement();
+    this.onItemPop(popped, true);
+  }
+
+  void replace(JsValue oldElement, JsValue newElement) {
+    int index = this.indexOf(oldElement);
+    this.items[index] = newElement;
+    if (index == this.stackTop) this.current = newElement;
+  }
+
+  void insertAfter(JsValue referenceElement, JsValue newElement, TagId newElementID) {
+    int index = this.indexOf(referenceElement) + 1;
+    insertNode(this.items, index, newElement);
+    insertTag(this.tagIDs, index, newElementID);
+    this.stackTop = this.stackTop + 1;
+    if (index == this.stackTop) this.updateCurrentElement();
+    if (this.hasCurrent) this.onItemPush(this.current, this.currentTagId, index == this.stackTop);
+  }
+
+  void popUntilTagNamePopped(TagId tagName) {
+    int target = this.stackTop + 1;
+    bool repeat = true;
+    while (repeat) {
+      target = target - 1;
+      while (target >= 0 && this.tagIDs[target] != tagName) target = target - 1;
+      repeat = target > 0 && getNamespaceURI(this.items[target]) != namespaceUri(Namespace.Html);
+    }
+    if (target < 0) target = 0;
+    this.shortenToLength(target);
+  }
+
+  void shortenToLength(int index) {
+    while (this.stackTop >= index) {
+      JsValue popped = this.current;
+      if (this.tmplCount > 0 && this.isInTemplate()) this.tmplCount = this.tmplCount - 1;
+      this.stackTop = this.stackTop - 1;
+      this.updateCurrentElement();
+      this.onItemPop(popped, this.stackTop < index);
+    }
+  }
+
+  void popUntilElementPopped(JsValue element) {
+    int index = this.indexOf(element);
+    if (index < 0) index = 0;
+    this.shortenToLength(index);
+  }
+
+  void popUntilPopped(TagId[] tagNames, string targetNamespace) {
+    int index = this.indexOfTagNames(tagNames, targetNamespace);
+    if (index < 0) index = 0;
+    this.shortenToLength(index);
+  }
+
+  void popUntilNumberedHeaderPopped() {
+    int index = this.stackTop;
+    while (index >= 0) {
+      if (isNumberedHeader(this.tagIDs[index]) && getNamespaceURI(this.items[index]) == namespaceUri(Namespace.Html)) {
+        this.shortenToLength(index);
+        return;
+      }
+      index = index - 1;
+    }
+    this.shortenToLength(0);
+  }
+
+  void popUntilTableCellPopped() {
+    int index = this.indexOfContext(StackContext.TableCell, namespaceUri(Namespace.Html));
+    if (index < 0) index = 0;
+    this.shortenToLength(index);
+  }
+
+  void popAllUpToHtmlElement() {
+    this.tmplCount = 0;
+    this.shortenToLength(1);
+  }
+
+  int indexOfTagNames(TagId[] tagNames, string targetNamespace) {
+    int i = this.stackTop;
+    while (i >= 0) {
+      int j = 0;
+      while (j < tagNames.length) {
+        if (this.tagIDs[i] == tagNames[j] && getNamespaceURI(this.items[i]) == targetNamespace) return i;
+        j = j + 1;
+      }
+      i = i - 1;
+    }
+    return -1;
+  }
+
+  int indexOfContext(StackContext context, string targetNamespace) {
+    int i = this.stackTop;
+    while (i >= 0) {
+      if (contextElement(this.tagIDs[i], context) && getNamespaceURI(this.items[i]) == targetNamespace) return i;
+      i = i - 1;
+    }
+    return -1;
+  }
+
+  void clearBackTo(TagId[] tagNames, string targetNamespace) {
+    this.shortenToLength(this.indexOfTagNames(tagNames, targetNamespace) + 1);
+  }
+
+  void clearBackToTableContext() {
+    this.shortenToLength(this.indexOfContext(StackContext.Table, namespaceUri(Namespace.Html)) + 1);
+  }
+
+  void clearBackToTableBodyContext() {
+    this.shortenToLength(this.indexOfContext(StackContext.TableBody, namespaceUri(Namespace.Html)) + 1);
+  }
+
+  void clearBackToTableRowContext() {
+    this.shortenToLength(this.indexOfContext(StackContext.TableRow, namespaceUri(Namespace.Html)) + 1);
+  }
+
+  void remove(JsValue element) {
+    int index = this.indexOf(element);
+    if (index < 0) return;
+    if (index == this.stackTop) {
+      this.pop();
+      return;
+    }
+    removeNode(this.items, index);
+    removeTag(this.tagIDs, index);
+    this.stackTop = this.stackTop - 1;
+    this.updateCurrentElement();
+    this.onItemPop(element, false);
+  }
+
+  JsValue tryPeekProperlyNestedBodyElement() {
+    if (this.stackTop >= 1 && this.tagIDs[1] == TagId.Body) return this.items[1];
+    return NULL;
+  }
+
+  bool contains(JsValue element) {
+    return this.indexOf(element) > -1;
+  }
+
+  JsValue getCommonAncestor(JsValue element) {
+    int index = this.indexOf(element) - 1;
+    if (index >= 0) return this.items[index];
+    return NULL;
+  }
+
+  bool isRootHtmlElementCurrent() {
+    return this.stackTop == 0 && this.tagIDs[0] == TagId.Html;
+  }
+
+  bool hasInDynamicScope(TagId tagName, int htmlScope) {
+    int i = this.stackTop;
+    while (i >= 0) {
+      TagId id = this.tagIDs[i];
+      string ns = getNamespaceURI(this.items[i]);
+      if (ns == namespaceUri(Namespace.Html)) {
+        if (id == tagName) return true;
+        if (htmlScopingElement(id) || (htmlScope == 1 && (id == TagId.Ol || id == TagId.Ul)) || (htmlScope == 2 && id == TagId.Button)) return false;
+      } else if (ns == namespaceUri(Namespace.Svg)) {
+        if (svgScopingElement(id)) return false;
+      } else if (ns == namespaceUri(Namespace.MathMl)) {
+        if (mathScopingElement(id)) return false;
+      }
+      i = i - 1;
+    }
+    return true;
+  }
+
+  bool hasInScope(TagId tagName) {
+    return this.hasInDynamicScope(tagName, 0);
+  }
+
+  bool hasInListItemScope(TagId tagName) {
+    return this.hasInDynamicScope(tagName, 1);
+  }
+
+  bool hasInButtonScope(TagId tagName) {
+    return this.hasInDynamicScope(tagName, 2);
+  }
+
+  bool hasNumberedHeaderInScope() {
+    int i = this.stackTop;
+    while (i >= 0) {
+      TagId id = this.tagIDs[i];
+      string ns = getNamespaceURI(this.items[i]);
+      if (ns == namespaceUri(Namespace.Html)) {
+        if (isNumberedHeader(id)) return true;
+        if (htmlScopingElement(id)) return false;
+      } else if (ns == namespaceUri(Namespace.Svg)) {
+        if (svgScopingElement(id)) return false;
+      } else if (ns == namespaceUri(Namespace.MathMl)) {
+        if (mathScopingElement(id)) return false;
+      }
+      i = i - 1;
+    }
+    return true;
+  }
+
+  bool hasInTableScope(TagId tagName) {
+    int i = this.stackTop;
+    while (i >= 0) {
+      if (getNamespaceURI(this.items[i]) == namespaceUri(Namespace.Html)) {
+        TagId id = this.tagIDs[i];
+        if (id == tagName) return true;
+        if (id == TagId.Table || id == TagId.Html) return false;
+      }
+      i = i - 1;
+    }
+    return true;
+  }
+
+  bool hasTableBodyContextInTableScope() {
+    int i = this.stackTop;
+    while (i >= 0) {
+      if (getNamespaceURI(this.items[i]) == namespaceUri(Namespace.Html)) {
+        TagId id = this.tagIDs[i];
+        if (id == TagId.Tbody || id == TagId.Thead || id == TagId.Tfoot) return true;
+        if (id == TagId.Table || id == TagId.Html) return false;
+      }
+      i = i - 1;
+    }
+    return true;
+  }
+
+  bool hasInSelectScope(TagId tagName) {
+    int i = this.stackTop;
+    while (i >= 0) {
+      if (getNamespaceURI(this.items[i]) == namespaceUri(Namespace.Html)) {
+        TagId id = this.tagIDs[i];
+        if (id == tagName) return true;
+        if (id != TagId.Option && id != TagId.Optgroup) return false;
+      }
+      i = i - 1;
+    }
+    return true;
+  }
+
+  void generateImpliedEndTags() {
+    while (this.hasCurrent && implicitEndTagRequired(this.currentTagId)) this.pop();
+  }
+
+  void generateImpliedEndTagsThoroughly() {
+    while (this.hasCurrent && implicitEndTagRequiredThoroughly(this.currentTagId)) this.pop();
+  }
+
+  void generateImpliedEndTagsWithExclusion(TagId exclusion) {
+    while (this.hasCurrent && this.currentTagId != exclusion && implicitEndTagRequiredThoroughly(this.currentTagId)) this.pop();
+  }
+}

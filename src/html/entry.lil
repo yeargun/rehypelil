@@ -1,5 +1,0 @@
-import { serializeTree } from "./serialize.lil";
-
-export string toHtml(JsValue tree, JsValue opt = JS.undefined()) {
-  return serializeTree(tree, opt);
-}

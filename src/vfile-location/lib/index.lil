@@ -1,0 +1,35 @@
+export pure JsValue toPoint(string doc, int offset) {
+  int n = doc.length;
+  int pos = offset;
+  if (pos < 0) {
+    pos = 0;
+  }
+  if (pos > n) {
+    pos = n;
+  }
+  int lineStart = 0;
+  int line = 1;
+  int i = 0;
+  while (i < pos) {
+    int c = doc.charCodeAt(i);
+    if (c == 13) {
+      i = i + 1;
+      if (i < n && doc.charCodeAt(i) == 10) {
+        i = i + 1;
+      }
+      if (i <= pos) {
+        lineStart = i;
+        line = line + 1;
+      }
+    } else if (c == 10) {
+      i = i + 1;
+      if (i <= pos) {
+        lineStart = i;
+        line = line + 1;
+      }
+    } else {
+      i = i + 1;
+    }
+  }
+  return JS.object("line", line, "column", pos - lineStart + 1, "offset", pos);
+}

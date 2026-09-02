@@ -1,0 +1,139 @@
+import { MODE_CDATA_SECTION, MODE_PLAINTEXT, MODE_RAWTEXT, MODE_RCDATA, MODE_SCRIPT_DATA, State, Tokenizer, adaptTokenHandler } from "../src/parse5/tokenizer/index.lil";
+
+State tokenizerState(int mode) {
+  if (mode == MODE_RCDATA) return State.Rcdata;
+  if (mode == MODE_RAWTEXT) return State.Rawtext;
+  if (mode == MODE_SCRIPT_DATA) return State.ScriptData;
+  if (mode == MODE_PLAINTEXT) return State.Plaintext;
+  if (mode == MODE_CDATA_SECTION) return State.CdataSection;
+  return State.Data;
+}
+
+export JsValue tokenizerTrace(JsValue chunks, int mode, string lastStartTag, bool inForeignNode, bool locations) {
+  JsValue tokens = JS.array();
+  JsValue errors = JS.array();
+  JsValue events = JS.array();
+  JsValue handler = JS.object(
+    "onComment", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "comment", "value", token));
+      return JS.undefined();
+    }),
+    "onDoctype", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "doctype", "value", token));
+      return JS.undefined();
+    }),
+    "onStartTag", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "startTag", "value", token));
+      return JS.undefined();
+    }),
+    "onEndTag", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "endTag", "value", token));
+      return JS.undefined();
+    }),
+    "onEof", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "eof", "value", token));
+      return JS.undefined();
+    }),
+    "onCharacter", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "character", "value", token));
+      return JS.undefined();
+    }),
+    "onNullCharacter", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "null", "value", token));
+      return JS.undefined();
+    }),
+    "onWhitespaceCharacter", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "whitespace", "value", token));
+      return JS.undefined();
+    }),
+    "onParseError", JS.method1((JsValue _self, JsValue error) => {
+      JS.push(errors, error);
+      JS.push(events, JS.object("kind", "error", "value", error));
+      return JS.undefined();
+    })
+  );
+  Tokenizer tokenizer = new Tokenizer(JS.object("sourceCodeLocationInfo", locations), handler, adaptTokenHandler(handler));
+  tokenizer.preprocessor.bufferWaterline = 8;
+  tokenizer.state = tokenizerState(mode);
+  tokenizer.lastStartTagName = lastStartTag;
+  tokenizer.inForeignNode = inForeignNode;
+  int length = JS.number(JS.get(chunks, "length")).toInt();
+  int i = 0;
+  while (i < length) {
+    int chunkIndex = i;
+    tokenizer.write(JS.string(chunks[i]), i == length - 1, JS.method0((JsValue _self) => {
+      JS.push(events, JS.object("kind", "write", "value", chunkIndex));
+      return JS.undefined();
+    }));
+    i = i + 1;
+  }
+  return JS.object(
+    "tokens", tokens,
+    "errors", errors,
+    "events", events,
+    "active", tokenizer.active,
+    "state", tokenizer.state,
+    "line", tokenizer.preprocessor.line,
+    "col", tokenizer.preprocessor.col(),
+    "offset", tokenizer.preprocessor.offset()
+  );
+}
+
+class TokenizerHolder {
+  Tokenizer tokenizer;
+}
+
+export JsValue tokenizerControlTrace() {
+  JsValue events = JS.array();
+  TokenizerHolder holder = new TokenizerHolder();
+  JsValue handler = JS.object(
+    "onComment", JS.method1((JsValue _self, JsValue _token) => {
+      JS.push(events, "comment");
+      holder.tokenizer.pause();
+      return JS.undefined();
+    }),
+    "onDoctype", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "doctype"); return JS.undefined(); }),
+    "onStartTag", JS.method1((JsValue _self, JsValue token) => { JS.push(events, "start:" + JS.string(JS.get(token, "tagName"))); return JS.undefined(); }),
+    "onEndTag", JS.method1((JsValue _self, JsValue token) => { JS.push(events, "end:" + JS.string(JS.get(token, "tagName"))); return JS.undefined(); }),
+    "onEof", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "eof"); return JS.undefined(); }),
+    "onCharacter", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "character"); return JS.undefined(); }),
+    "onNullCharacter", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "null"); return JS.undefined(); }),
+    "onWhitespaceCharacter", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "whitespace"); return JS.undefined(); })
+  );
+  holder.tokenizer = new Tokenizer(JS.object("sourceCodeLocationInfo", true), handler, adaptTokenHandler(handler));
+  holder.tokenizer.write("<!--x-->", false, JS.method0((JsValue _self) => { JS.push(events, "first-write"); return JS.undefined(); }));
+  JS.push(events, "after-paused-write");
+  holder.tokenizer.resume(JS.method0((JsValue _self) => { JS.push(events, "resume"); return JS.undefined(); }));
+  holder.tokenizer.write("<a>", true, JS.method0((JsValue _self) => { JS.push(events, "second-write"); return JS.undefined(); }));
+  return events;
+}
+
+export JsValue tokenizerInsertionTrace() {
+  JsValue events = JS.array();
+  TokenizerHolder holder = new TokenizerHolder();
+  JsValue handler = JS.object(
+    "onComment", JS.method1((JsValue _self, JsValue _token) => {
+      JS.push(events, "comment");
+      holder.tokenizer.insertHtmlAtCurrentPos("<b>");
+      return JS.undefined();
+    }),
+    "onDoctype", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "doctype"); return JS.undefined(); }),
+    "onStartTag", JS.method1((JsValue _self, JsValue token) => { JS.push(events, "start:" + JS.string(JS.get(token, "tagName"))); return JS.undefined(); }),
+    "onEndTag", JS.method1((JsValue _self, JsValue token) => { JS.push(events, "end:" + JS.string(JS.get(token, "tagName"))); return JS.undefined(); }),
+    "onEof", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "eof"); return JS.undefined(); }),
+    "onCharacter", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "character"); return JS.undefined(); }),
+    "onNullCharacter", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "null"); return JS.undefined(); }),
+    "onWhitespaceCharacter", JS.method1((JsValue _self, JsValue _token) => { JS.push(events, "whitespace"); return JS.undefined(); })
+  );
+  holder.tokenizer = new Tokenizer(JS.object("sourceCodeLocationInfo", true), handler, adaptTokenHandler(handler));
+  holder.tokenizer.write("<!--x--><a>", true, JS.method0((JsValue _self) => { JS.push(events, "write"); return JS.undefined(); }));
+  return events;
+}

@@ -1,0 +1,15 @@
+import { unified } from "./unified/lib/index.lil";
+import { rehypeParse as parsePlugin } from "./rehype-parse/lib/index.lil";
+import { rehypeStringify as stringifyPlugin } from "./rehype-stringify/lib/index.lil";
+
+JsValue buildRehype() {
+  JsValue proc = JS.call(unified, JS.undefined());
+  proc = JS.call(JS.get(proc, "use"), proc, parsePlugin);
+  proc = JS.call(JS.get(proc, "use"), proc, stringifyPlugin);
+  proc = JS.call(JS.get(proc, "freeze"), proc);
+  return proc;
+}
+
+JsValue rehypeValue = buildRehype();
+
+export JsValue rehype = rehypeValue;

@@ -1,0 +1,427 @@
+import {
+  childrenOf,
+  childCount,
+  CharacterReferences,
+  countChar,
+  fail,
+  isJsNumber,
+  isNaNNumber,
+  jsString,
+  Settings,
+  Space,
+  stringField,
+  ToHtmlOptions,
+  voidsIncludes
+} from "./types.lil";
+import {
+  doubleSubset,
+  encodeCommentValue,
+  nameSubset,
+  singleSubset,
+  stringifyEntities,
+  textSubset,
+  unquotedSubset
+} from "./entities.lil";
+import { Info, findInfo, flagHas } from "./schema.lil";
+import { canOmitClosing, canOmitOpening } from "./omission.lil";
+
+class SerializerState {
+  Settings settings;
+  Space schema;
+  string quote;
+  string alternative;
+
+  init(Settings settings, Space schema, string quote, string alternative) {
+    this.settings = settings;
+    this.schema = schema;
+    this.quote = quote;
+    this.alternative = alternative;
+  }
+}
+
+bool jsBoolean(JsValue value) {
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return false;
+  }
+  if (value is bool) {
+    return value;
+  }
+  if (value is string) {
+    return value.length > 0;
+  }
+  if (isJsNumber(value)) {
+    if (isNaNNumber(value)) {
+      return false;
+    }
+    return value.truthy();
+  }
+  return value.truthy();
+}
+
+string joinValues(JsValue list, string sep) {
+  string out = "";
+  int n = childCount(list);
+  int i = 0;
+  while (i < n) {
+    JsValue item = list[i];
+    if (i > 0) {
+      out = out + sep;
+    }
+    if (!(JS.isUndefined(item) || JS.isNullish(item))) {
+      out = out + jsString(item);
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+string settingsQuote(SerializerState state) {
+  return state.quote;
+}
+
+string settingsAlternative(SerializerState state) {
+  return state.alternative;
+}
+
+Space schemaSpace(SerializerState state) {
+  return state.schema;
+}
+
+string serializeAttribute(SerializerState state, string key, JsValue value) {
+  Settings settings = state.settings;
+  Space space = schemaSpace(state);
+  bool parseErrors = settings.allowParseErrors && space == Space.Html;
+  bool dangerous = settings.allowDangerousCharacters;
+  CharacterReferences characterReferences = settings.characterReferences;
+  Info info = findInfo(space, key);
+  string attribute = info.attribute;
+  string flags = info.flags;
+  bool isBoolean = flagHas(flags, "b");
+  bool isOverloaded = flagHas(flags, "o");
+  bool commaSep = flagHas(flags, "c");
+  JsValue working = value;
+  if (isOverloaded) {
+    if (working is string) {
+      if (working == attribute || working == "") {
+        working = true;
+      }
+    }
+  }
+  if ((isBoolean || isOverloaded) && (!(working is string) || (working is string && (working == attribute || working == "")))) {
+    if (jsBoolean(working)) {
+      working = true;
+    } else {
+      working = false;
+    }
+  }
+  if (JS.isUndefined(working) || JS.isNullish(working)) {
+    return "";
+  }
+  if (working is bool && !working) {
+    return "";
+  }
+  if (isJsNumber(working) && isNaNNumber(working)) {
+    return "";
+  }
+  string name = stringifyEntities(attribute, nameSubset(parseErrors, dangerous), characterReferences, false);
+  if (working is bool && working) {
+    return name;
+  }
+  string raw = "";
+  if (JS.isArray(working)) {
+    string sep = " ";
+    if (commaSep) {
+      if (settings.tightCommaSeparatedLists) {
+        sep = ",";
+      } else {
+        sep = ", ";
+      }
+    }
+    raw = joinValues(working, sep);
+  } else {
+    raw = jsString(working);
+  }
+  if (settings.collapseEmptyAttributes && raw.length == 0) {
+    return name;
+  }
+  string quote = settingsQuote(state);
+  string encoded = "";
+  bool usedUnquoted = false;
+  if (settings.preferUnquoted) {
+    encoded = stringifyEntities(raw, unquotedSubset(parseErrors, dangerous), characterReferences, true);
+    if (encoded == raw) {
+      usedUnquoted = true;
+    }
+  }
+  if (!usedUnquoted) {
+    if (settings.quoteSmart) {
+      string alt = settingsAlternative(state);
+      if (countChar(raw, quote) > countChar(raw, alt)) {
+        quote = alt;
+      }
+    }
+    string subset = doubleSubset(parseErrors, dangerous);
+    if (quote == "'") {
+      subset = singleSubset(parseErrors, dangerous);
+    }
+    encoded = quote + stringifyEntities(raw, subset, characterReferences, true) + quote;
+  }
+  if (encoded.length == 0) {
+    return name;
+  }
+  return name + "=" + encoded;
+}
+
+string serializeAttributes(SerializerState state, JsValue properties) {
+  if (JS.isUndefined(properties) || JS.isNullish(properties) || JS.typeOf(properties) != "object") {
+    return "";
+  }
+  Settings settings = state.settings;
+  bool tight = settings.tightAttributes;
+  string out = "";
+  bool first = true;
+  for (string key in properties) {
+    JsValue value = JS.get(properties, key);
+    if (JS.isUndefined(value) || JS.isNullish(value)) {
+    } else {
+      string part = serializeAttribute(state, key, value);
+      if (part.length > 0) {
+        if (!first) {
+          string last = "";
+          if (tight && out.length > 0) {
+            last = out.charAt(out.length - 1);
+          }
+          if (!tight || (last != "\"" && last != "'")) {
+            out = out + " ";
+          }
+        }
+        out = out + part;
+        first = false;
+      }
+    }
+  }
+  return out;
+}
+
+string serializeText(JsValue node, JsValue parent, SerializerState state) {
+  string value = jsString(JS.get(node, "value"));
+  if (!(JS.isUndefined(parent) || JS.isNullish(parent))) {
+    if (stringField(parent, "type") == "element") {
+      string tag = stringField(parent, "tagName");
+      if (tag == "script" || tag == "style") {
+        return value;
+      }
+    }
+  }
+  return stringifyEntities(value, textSubset(), state.settings.characterReferences, false);
+}
+
+string serializeComment(JsValue node, SerializerState state) {
+  string value = jsString(JS.get(node, "value"));
+  CharacterReferences characterReferences = state.settings.characterReferences;
+  if (state.settings.bogusComments) {
+    return "<?" + stringifyEntities(value, ">", characterReferences, false) + ">";
+  }
+  return "<!--" + encodeCommentValue(value, characterReferences) + "-->";
+}
+
+string serializeDoctype(SerializerState state) {
+  Settings settings = state.settings;
+  string keyword = "doctype";
+  if (settings.upperDoctype) {
+    keyword = "DOCTYPE";
+  }
+  string gap = " ";
+  if (settings.tightDoctype) {
+    gap = "";
+  }
+  return "<!" + keyword + gap + "html>";
+}
+
+string serializeOne(JsValue node, int index, JsValue parent, SerializerState state) {
+  if (JS.isUndefined(node) || JS.isNullish(node) || JS.typeOf(node) != "object" || JS.isArray(node)) {
+    fail("Expected node, not `" + jsString(node) + "`");
+  }
+  JsValue typeVal = JS.get(node, "type");
+  if (!(typeVal is string)) {
+    fail("Expected node, not `" + jsString(node) + "`");
+  }
+  string type = "";
+  if (typeVal is string) {
+    type = typeVal;
+  }
+  if (type == "text") {
+    return serializeText(node, parent, state);
+  }
+  if (type == "comment") {
+    return serializeComment(node, state);
+  }
+  if (type == "doctype") {
+    return serializeDoctype(state);
+  }
+  if (type == "raw") {
+    if (state.settings.allowDangerousHtml) {
+      return jsString(JS.get(node, "value"));
+    }
+    return serializeText(node, parent, state);
+  }
+  if (type == "root") {
+    JsValue rootKids = childrenOf(node);
+    string rootOut = "";
+    int rootN = childCount(rootKids);
+    int rootI = 0;
+    while (rootI < rootN) {
+      rootOut = rootOut + serializeOne(rootKids[rootI], rootI, node, state);
+      rootI = rootI + 1;
+    }
+    return rootOut;
+  }
+  if (type == "element") {
+    Settings settings = state.settings;
+    Space space = schemaSpace(state);
+    string tag = stringField(node, "tagName");
+    bool omit = false;
+    if (space == Space.Html && settings.omitOptionalTags) {
+      omit = true;
+    }
+    bool selfClosing = false;
+    if (space == Space.Svg) {
+      selfClosing = settings.closeEmptyElements;
+    } else {
+      selfClosing = voidsIncludes(settings.voids, tag.toLowerCase());
+    }
+    Space previousSchema = space;
+    if (space == Space.Html && tag == "svg") {
+      state.schema = Space.Svg;
+    }
+    string attributes = serializeAttributes(state, JS.get(node, "properties"));
+    JsValue contentParent = node;
+    if (previousSchema == Space.Html && tag == "template") {
+      contentParent = JS.get(node, "content");
+    }
+    JsValue kids = childrenOf(contentParent);
+    string content = "";
+    int childN = childCount(kids);
+    int childI = 0;
+    while (childI < childN) {
+      content = content + serializeOne(kids[childI], childI, contentParent, state);
+      childI = childI + 1;
+    }
+    state.schema = previousSchema;
+    if (content.length > 0) {
+      selfClosing = false;
+    }
+    string out = "";
+    bool showOpen = true;
+    if (attributes.length == 0 && omit && canOmitOpening(node, index, parent)) {
+      showOpen = false;
+    }
+    if (showOpen) {
+      out = "<" + tag;
+      if (attributes.length > 0) {
+        out = out + " " + attributes;
+      }
+      if (selfClosing && (previousSchema == Space.Svg || settings.closeSelfClosing)) {
+        string last = "";
+        if (attributes.length > 0) {
+          last = attributes.charAt(attributes.length - 1);
+        }
+        bool needSpace = true;
+        if (settings.tightSelfClosing) {
+          if (last == "/") {
+            needSpace = true;
+          } else if (last.length > 0 && last != "\"" && last != "'") {
+            needSpace = true;
+          } else {
+            needSpace = false;
+          }
+        }
+        if (needSpace) {
+          out = out + " ";
+        }
+        out = out + "/";
+      }
+      out = out + ">";
+    }
+    out = out + content;
+    if (!selfClosing) {
+      bool showClose = true;
+      if (omit && canOmitClosing(node, index, parent)) {
+        showClose = false;
+      }
+      if (showClose) {
+        out = out + "</" + tag + ">";
+      }
+    }
+    return out;
+  }
+  fail("Cannot compile unknown node `" + type + "`");
+  return "";
+}
+
+CharacterReferences readCharacterReferences(JsValue value) {
+  if (JS.isUndefined(value) || JS.isNullish(value) || !value.truthy()) {
+    return CharacterReferences{false, false, false};
+  }
+  return CharacterReferences{
+    JS.get(value, "omitOptionalSemicolons").truthy(),
+    JS.get(value, "useNamedReferences").truthy(),
+    JS.get(value, "useShortestReferences").truthy()
+  };
+}
+
+Settings readSettings(ToHtmlOptions options) {
+  return Settings{
+    options.omitOptionalTags.truthy(),
+    options.allowParseErrors.truthy(),
+    options.allowDangerousCharacters.truthy(),
+    options.quoteSmart.truthy(),
+    options.preferUnquoted.truthy(),
+    options.tightAttributes.truthy(),
+    options.upperDoctype.truthy(),
+    options.tightDoctype.truthy(),
+    options.bogusComments.truthy(),
+    options.tightCommaSeparatedLists.truthy(),
+    options.tightSelfClosing.truthy(),
+    options.collapseEmptyAttributes.truthy(),
+    options.allowDangerousHtml.truthy(),
+    options.voids,
+    readCharacterReferences(options.characterReferences),
+    options.closeSelfClosing.truthy(),
+    options.closeEmptyElements.truthy()
+  };
+}
+
+export string serializeTree(JsValue tree, JsValue opt) {
+  JsValue incoming = opt;
+  if (JS.isUndefined(opt) || JS.isNullish(opt)) {
+    incoming = JS.object();
+  }
+  ToHtmlOptions options = JS.assume(incoming);
+  string quote = "\"";
+  JsValue quoteVal = options.quote;
+  if (!(JS.isUndefined(quoteVal) || JS.isNullish(quoteVal))) {
+    if (quoteVal is string) {
+      quote = quoteVal;
+    } else {
+      quote = jsString(quoteVal);
+    }
+  }
+  if (quote != "\"" && quote != "'") {
+    fail("Invalid quote `" + quote + "`, expected `'` or `\"`");
+  }
+  string alternative = "'";
+  if (quote == "'") {
+    alternative = "\"";
+  }
+  Space space = Space.Html;
+  if (options.space is string && options.space == "svg") {
+    space = Space.Svg;
+  }
+  SerializerState state = new SerializerState(readSettings(options), space, quote, alternative);
+  JsValue root = tree;
+  if (JS.isArray(tree)) {
+    root = JS.object("type", "root", "children", tree);
+  }
+  return serializeOne(root, -1, JS.undefined(), state);
+}

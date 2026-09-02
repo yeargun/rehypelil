@@ -1,0 +1,221 @@
+import { Error, Object, TextDecoder, copyArray, globalThis, isUint8Array, throwType } from "../../unified/host.lil";
+
+string defaultCwd() {
+  JsValue process = JS.get(globalThis, "process");
+  if (!(JS.isUndefined(process) || JS.isNullish(process))) {
+    JsValue cwd = JS.get(process, "cwd");
+    if (JS.typeOf(cwd) == "function") {
+      JsValue value = JS.call(cwd, process);
+      if (value is string) {
+        return value;
+      }
+    }
+  }
+  return "/";
+}
+
+int lastSeparator(string path) {
+  int result = -1;
+  int i = 0;
+  while (i < path.length) {
+    string ch = path.charAt(i);
+    if (ch == "/" || ch == "\\") {
+      result = i;
+    }
+    i = i + 1;
+  }
+  return result;
+}
+
+string basenameOf(string path) {
+  return path.slice(lastSeparator(path) + 1);
+}
+
+string extnameOf(string path) {
+  string basename = basenameOf(path);
+  int dot = -1;
+  int i = 1;
+  while (i < basename.length) {
+    if (basename.charAt(i) == ".") {
+      dot = i;
+    }
+    i = i + 1;
+  }
+  if (dot < 0) {
+    return "";
+  }
+  return basename.slice(dot);
+}
+
+JsValue vfileConstruct(JsValue self, JsValue value) {
+  JS.set(self, "data", JS.object());
+  JS.set(self, "history", JS.array());
+  JS.set(self, "messages", JS.array());
+  JS.set(self, "cwd", defaultCwd());
+  if (!value.truthy()) {
+    return self;
+  }
+  if (JS.typeOf(value) == "string" || isUint8Array(value)) {
+    JS.set(self, "value", value);
+    return self;
+  }
+  if (JS.typeOf(value) == "object") {
+    for (string field in value) {
+      if (field == "history" && JS.isArray(value[field])) {
+        JS.set(self, field, copyArray(value[field]));
+      } else {
+        JS.set(self, field, value[field]);
+      }
+    }
+  }
+  return self;
+}
+
+JsValue vfileGetPath(JsValue self) {
+  JsValue history = JS.get(self, "history");
+  int n = history.length.toInt();
+  if (n == 0) {
+    return JS.undefined();
+  }
+  return history[n - 1];
+}
+
+JsValue vfileSetPath(JsValue self, JsValue value) {
+  string path = "";
+  if (value is string) {
+    path = value;
+  } else {
+    throwType("`path` cannot be empty");
+    return JS.undefined();
+  }
+  if (path.length == 0) {
+    throwType("`path` cannot be empty");
+  }
+  JsValue history = JS.get(self, "history");
+  int n = history.length.toInt();
+  if (n == 0 || !JS.strictEqual(history[n - 1], path)) {
+    JS.push(history, path);
+  }
+  return JS.undefined();
+}
+
+JsValue vfileGetBasename(JsValue self) {
+  JsValue path = vfileGetPath(self);
+  if (!(path is string)) {
+    return JS.undefined();
+  }
+  return basenameOf(path);
+}
+
+JsValue vfileGetDirname(JsValue self) {
+  JsValue path = vfileGetPath(self);
+  if (!(path is string)) {
+    return JS.undefined();
+  }
+  int separator = lastSeparator(path);
+  if (separator < 0) {
+    return ".";
+  }
+  if (separator == 0) {
+    return path.slice(0, 1);
+  }
+  return path.slice(0, separator);
+}
+
+JsValue vfileGetExtname(JsValue self) {
+  JsValue path = vfileGetPath(self);
+  if (!(path is string)) {
+    return JS.undefined();
+  }
+  return extnameOf(path);
+}
+
+JsValue vfileGetStem(JsValue self) {
+  JsValue path = vfileGetPath(self);
+  if (!(path is string)) {
+    return JS.undefined();
+  }
+  string basename = basenameOf(path);
+  string extname = extnameOf(path);
+  return basename.slice(0, basename.length - extname.length);
+}
+
+JsValue vfileToString(JsValue self, JsValue _encoding) {
+  JsValue value = JS.get(self, "value");
+  if (JS.isUndefined(value)) {
+    return "";
+  }
+  if (value is string) {
+    return value;
+  }
+  if (isUint8Array(value)) {
+    JsValue encoding = _encoding;
+    if (!encoding.truthy()) {
+      encoding = JS.undefined();
+    }
+    JsValue decoder = JS.construct(TextDecoder, encoding);
+    return JS.call(JS.get(decoder, "decode"), decoder, value);
+  }
+  return JS.string(value);
+}
+
+JsValue vfileMessage(JsValue self, JsValue args) {
+  JsValue reason = JS.undefined();
+  if (args.length.toInt() > 0) {
+    reason = args[0];
+  }
+  JsValue msg = JS.construct(Error, JS.string(reason));
+  JS.set(msg, "fatal", false);
+  JS.set(msg, "reason", JS.string(reason));
+  JS.push(JS.get(self, "messages"), msg);
+  return msg;
+}
+
+JsValue vfileFail(JsValue self, JsValue args) {
+  JsValue messageFn = JS.get(self, "message");
+  JsValue msg = JS.apply(messageFn, self, args);
+  JS.set(msg, "fatal", true);
+  throw msg;
+}
+
+JsValue vfileInfo(JsValue self, JsValue args) {
+  JsValue messageFn = JS.get(self, "message");
+  JsValue msg = JS.apply(messageFn, self, args);
+  JS.set(msg, "fatal", JS.undefined());
+  return msg;
+}
+
+export JsValue VFile = JS.method1(vfileConstruct);
+JS.invoke(Object, "defineProperty", VFile, "name", JS.object("configurable", true, "value", "VFile"));
+JS.set(JS.get(VFile, "prototype"), "message", JS.methodRest(vfileMessage));
+JS.set(JS.get(VFile, "prototype"), "toString", JS.method1(vfileToString));
+JS.set(JS.get(VFile, "prototype"), "fail", JS.methodRest(vfileFail));
+JS.set(JS.get(VFile, "prototype"), "info", JS.methodRest(vfileInfo));
+JS.invoke(
+  Object,
+  "defineProperty",
+  JS.get(VFile, "prototype"),
+  "path",
+  JS.object("configurable", true, "get", JS.method0(vfileGetPath), "set", JS.method1(vfileSetPath))
+);
+JS.invoke(Object, "defineProperty", JS.get(VFile, "prototype"), "basename", JS.object("configurable", true, "get", JS.method0(vfileGetBasename)));
+JS.invoke(Object, "defineProperty", JS.get(VFile, "prototype"), "dirname", JS.object("configurable", true, "get", JS.method0(vfileGetDirname)));
+JS.invoke(Object, "defineProperty", JS.get(VFile, "prototype"), "extname", JS.object("configurable", true, "get", JS.method0(vfileGetExtname)));
+JS.invoke(Object, "defineProperty", JS.get(VFile, "prototype"), "stem", JS.object("configurable", true, "get", JS.method0(vfileGetStem)));
+
+export bool looksLikeAVFile(JsValue value) {
+  if (!value.truthy()) {
+    return false;
+  }
+  if (JS.typeOf(value) != "object") {
+    return false;
+  }
+  return JS.in("message", value) && JS.in("messages", value);
+}
+
+export JsValue asVFile(JsValue value) {
+  if (looksLikeAVFile(value)) {
+    return value;
+  }
+  return JS.construct(VFile, value);
+}

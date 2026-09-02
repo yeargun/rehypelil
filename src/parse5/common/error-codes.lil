@@ -1,60 +1,148 @@
-export string ERR_controlCharacterInInputStream = "control-character-in-input-stream";
-export string ERR_noncharacterInInputStream = "noncharacter-in-input-stream";
-export string ERR_surrogateInInputStream = "surrogate-in-input-stream";
-export string ERR_nonVoidHtmlElementStartTagWithTrailingSolidus = "non-void-html-element-start-tag-with-trailing-solidus";
-export string ERR_endTagWithAttributes = "end-tag-with-attributes";
-export string ERR_endTagWithTrailingSolidus = "end-tag-with-trailing-solidus";
-export string ERR_unexpectedSolidusInTag = "unexpected-solidus-in-tag";
-export string ERR_unexpectedNullCharacter = "unexpected-null-character";
-export string ERR_unexpectedQuestionMarkInsteadOfTagName = "unexpected-question-mark-instead-of-tag-name";
-export string ERR_invalidFirstCharacterOfTagName = "invalid-first-character-of-tag-name";
-export string ERR_unexpectedEqualsSignBeforeAttributeName = "unexpected-equals-sign-before-attribute-name";
-export string ERR_missingEndTagName = "missing-end-tag-name";
-export string ERR_unexpectedCharacterInAttributeName = "unexpected-character-in-attribute-name";
-export string ERR_unknownNamedCharacterReference = "unknown-named-character-reference";
-export string ERR_missingSemicolonAfterCharacterReference = "missing-semicolon-after-character-reference";
-export string ERR_unexpectedCharacterAfterDoctypeSystemIdentifier = "unexpected-character-after-doctype-system-identifier";
-export string ERR_unexpectedCharacterInUnquotedAttributeValue = "unexpected-character-in-unquoted-attribute-value";
-export string ERR_eofBeforeTagName = "eof-before-tag-name";
-export string ERR_eofInTag = "eof-in-tag";
-export string ERR_missingAttributeValue = "missing-attribute-value";
-export string ERR_missingWhitespaceBetweenAttributes = "missing-whitespace-between-attributes";
-export string ERR_missingWhitespaceAfterDoctypePublicKeyword = "missing-whitespace-after-doctype-public-keyword";
-export string ERR_missingWhitespaceBetweenDoctypePublicAndSystemIdentifiers = "missing-whitespace-between-doctype-public-and-system-identifiers";
-export string ERR_missingWhitespaceAfterDoctypeSystemKeyword = "missing-whitespace-after-doctype-system-keyword";
-export string ERR_missingQuoteBeforeDoctypePublicIdentifier = "missing-quote-before-doctype-public-identifier";
-export string ERR_missingQuoteBeforeDoctypeSystemIdentifier = "missing-quote-before-doctype-system-identifier";
-export string ERR_missingDoctypePublicIdentifier = "missing-doctype-public-identifier";
-export string ERR_missingDoctypeSystemIdentifier = "missing-doctype-system-identifier";
-export string ERR_abruptDoctypePublicIdentifier = "abrupt-doctype-public-identifier";
-export string ERR_abruptDoctypeSystemIdentifier = "abrupt-doctype-system-identifier";
-export string ERR_cdataInHtmlContent = "cdata-in-html-content";
-export string ERR_incorrectlyOpenedComment = "incorrectly-opened-comment";
-export string ERR_eofInScriptHtmlCommentLikeText = "eof-in-script-html-comment-like-text";
-export string ERR_eofInDoctype = "eof-in-doctype";
-export string ERR_nestedComment = "nested-comment";
-export string ERR_abruptClosingOfEmptyComment = "abrupt-closing-of-empty-comment";
-export string ERR_eofInComment = "eof-in-comment";
-export string ERR_incorrectlyClosedComment = "incorrectly-closed-comment";
-export string ERR_eofInCdata = "eof-in-cdata";
-export string ERR_absenceOfDigitsInNumericCharacterReference = "absence-of-digits-in-numeric-character-reference";
-export string ERR_nullCharacterReference = "null-character-reference";
-export string ERR_surrogateCharacterReference = "surrogate-character-reference";
-export string ERR_characterReferenceOutsideUnicodeRange = "character-reference-outside-unicode-range";
-export string ERR_controlCharacterReference = "control-character-reference";
-export string ERR_noncharacterCharacterReference = "noncharacter-character-reference";
-export string ERR_missingWhitespaceBeforeDoctypeName = "missing-whitespace-before-doctype-name";
-export string ERR_missingDoctypeName = "missing-doctype-name";
-export string ERR_invalidCharacterSequenceAfterDoctypeName = "invalid-character-sequence-after-doctype-name";
-export string ERR_duplicateAttribute = "duplicate-attribute";
-export string ERR_nonConformingDoctype = "non-conforming-doctype";
-export string ERR_missingDoctype = "missing-doctype";
-export string ERR_misplacedDoctype = "misplaced-doctype";
-export string ERR_endTagWithoutMatchingOpenElement = "end-tag-without-matching-open-element";
-export string ERR_closingOfElementWithOpenChildElements = "closing-of-element-with-open-child-elements";
-export string ERR_disallowedContentInNoscriptInHead = "disallowed-content-in-noscript-in-head";
-export string ERR_openElementsLeftAfterEof = "open-elements-left-after-eof";
-export string ERR_abandonedHeadElementChild = "abandoned-head-element-child";
-export string ERR_misplacedStartTagForHeadElement = "misplaced-start-tag-for-head-element";
-export string ERR_nestedNoscriptInHead = "nested-noscript-in-head";
-export string ERR_eofInElementThatCanContainOnlyText = "eof-in-element-that-can-contain-only-text";
+export enum ErrorCode {
+  ControlCharacterInInputStream,
+  NoncharacterInInputStream,
+  SurrogateInInputStream,
+  NonVoidHtmlElementStartTagWithTrailingSolidus,
+  EndTagWithAttributes,
+  EndTagWithTrailingSolidus,
+  UnexpectedSolidusInTag,
+  UnexpectedNullCharacter,
+  UnexpectedQuestionMarkInsteadOfTagName,
+  InvalidFirstCharacterOfTagName,
+  UnexpectedEqualsSignBeforeAttributeName,
+  MissingEndTagName,
+  UnexpectedCharacterInAttributeName,
+  UnknownNamedCharacterReference,
+  MissingSemicolonAfterCharacterReference,
+  UnexpectedCharacterAfterDoctypeSystemIdentifier,
+  UnexpectedCharacterInUnquotedAttributeValue,
+  EofBeforeTagName,
+  EofInTag,
+  MissingAttributeValue,
+  MissingWhitespaceBetweenAttributes,
+  MissingWhitespaceAfterDoctypePublicKeyword,
+  MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers,
+  MissingWhitespaceAfterDoctypeSystemKeyword,
+  MissingQuoteBeforeDoctypePublicIdentifier,
+  MissingQuoteBeforeDoctypeSystemIdentifier,
+  MissingDoctypePublicIdentifier,
+  MissingDoctypeSystemIdentifier,
+  AbruptDoctypePublicIdentifier,
+  AbruptDoctypeSystemIdentifier,
+  CdataInHtmlContent,
+  IncorrectlyOpenedComment,
+  EofInScriptHtmlCommentLikeText,
+  EofInDoctype,
+  NestedComment,
+  AbruptClosingOfEmptyComment,
+  EofInComment,
+  IncorrectlyClosedComment,
+  EofInCdata,
+  AbsenceOfDigitsInNumericCharacterReference,
+  NullCharacterReference,
+  SurrogateCharacterReference,
+  CharacterReferenceOutsideUnicodeRange,
+  ControlCharacterReference,
+  NoncharacterCharacterReference,
+  MissingWhitespaceBeforeDoctypeName,
+  MissingDoctypeName,
+  InvalidCharacterSequenceAfterDoctypeName,
+  DuplicateAttribute,
+  NonConformingDoctype,
+  MissingDoctype,
+  MisplacedDoctype,
+  EndTagWithoutMatchingOpenElement,
+  ClosingOfElementWithOpenChildElements,
+  DisallowedContentInNoscriptInHead,
+  OpenElementsLeftAfterEof,
+  AbandonedHeadElementChild,
+  MisplacedStartTagForHeadElement,
+  NestedNoscriptInHead,
+  EofInElementThatCanContainOnlyText
+}
+
+export pure string errorCodeName(ErrorCode code) {
+  if (code == ErrorCode.ControlCharacterInInputStream) return "control-character-in-input-stream";
+  if (code == ErrorCode.NoncharacterInInputStream) return "noncharacter-in-input-stream";
+  if (code == ErrorCode.SurrogateInInputStream) return "surrogate-in-input-stream";
+  if (code == ErrorCode.NonVoidHtmlElementStartTagWithTrailingSolidus) return "non-void-html-element-start-tag-with-trailing-solidus";
+  if (code == ErrorCode.EndTagWithAttributes) return "end-tag-with-attributes";
+  if (code == ErrorCode.EndTagWithTrailingSolidus) return "end-tag-with-trailing-solidus";
+  if (code == ErrorCode.UnexpectedSolidusInTag) return "unexpected-solidus-in-tag";
+  if (code == ErrorCode.UnexpectedNullCharacter) return "unexpected-null-character";
+  if (code == ErrorCode.UnexpectedQuestionMarkInsteadOfTagName) return "unexpected-question-mark-instead-of-tag-name";
+  if (code == ErrorCode.InvalidFirstCharacterOfTagName) return "invalid-first-character-of-tag-name";
+  if (code == ErrorCode.UnexpectedEqualsSignBeforeAttributeName) return "unexpected-equals-sign-before-attribute-name";
+  if (code == ErrorCode.MissingEndTagName) return "missing-end-tag-name";
+  if (code == ErrorCode.UnexpectedCharacterInAttributeName) return "unexpected-character-in-attribute-name";
+  if (code == ErrorCode.UnknownNamedCharacterReference) return "unknown-named-character-reference";
+  if (code == ErrorCode.MissingSemicolonAfterCharacterReference) return "missing-semicolon-after-character-reference";
+  if (code == ErrorCode.UnexpectedCharacterAfterDoctypeSystemIdentifier) return "unexpected-character-after-doctype-system-identifier";
+  if (code == ErrorCode.UnexpectedCharacterInUnquotedAttributeValue) return "unexpected-character-in-unquoted-attribute-value";
+  if (code == ErrorCode.EofBeforeTagName) return "eof-before-tag-name";
+  if (code == ErrorCode.EofInTag) return "eof-in-tag";
+  if (code == ErrorCode.MissingAttributeValue) return "missing-attribute-value";
+  if (code == ErrorCode.MissingWhitespaceBetweenAttributes) return "missing-whitespace-between-attributes";
+  if (code == ErrorCode.MissingWhitespaceAfterDoctypePublicKeyword) return "missing-whitespace-after-doctype-public-keyword";
+  if (code == ErrorCode.MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers) return "missing-whitespace-between-doctype-public-and-system-identifiers";
+  if (code == ErrorCode.MissingWhitespaceAfterDoctypeSystemKeyword) return "missing-whitespace-after-doctype-system-keyword";
+  if (code == ErrorCode.MissingQuoteBeforeDoctypePublicIdentifier) return "missing-quote-before-doctype-public-identifier";
+  if (code == ErrorCode.MissingQuoteBeforeDoctypeSystemIdentifier) return "missing-quote-before-doctype-system-identifier";
+  if (code == ErrorCode.MissingDoctypePublicIdentifier) return "missing-doctype-public-identifier";
+  if (code == ErrorCode.MissingDoctypeSystemIdentifier) return "missing-doctype-system-identifier";
+  if (code == ErrorCode.AbruptDoctypePublicIdentifier) return "abrupt-doctype-public-identifier";
+  if (code == ErrorCode.AbruptDoctypeSystemIdentifier) return "abrupt-doctype-system-identifier";
+  if (code == ErrorCode.CdataInHtmlContent) return "cdata-in-html-content";
+  if (code == ErrorCode.IncorrectlyOpenedComment) return "incorrectly-opened-comment";
+  if (code == ErrorCode.EofInScriptHtmlCommentLikeText) return "eof-in-script-html-comment-like-text";
+  if (code == ErrorCode.EofInDoctype) return "eof-in-doctype";
+  if (code == ErrorCode.NestedComment) return "nested-comment";
+  if (code == ErrorCode.AbruptClosingOfEmptyComment) return "abrupt-closing-of-empty-comment";
+  if (code == ErrorCode.EofInComment) return "eof-in-comment";
+  if (code == ErrorCode.IncorrectlyClosedComment) return "incorrectly-closed-comment";
+  if (code == ErrorCode.EofInCdata) return "eof-in-cdata";
+  if (code == ErrorCode.AbsenceOfDigitsInNumericCharacterReference) return "absence-of-digits-in-numeric-character-reference";
+  if (code == ErrorCode.NullCharacterReference) return "null-character-reference";
+  if (code == ErrorCode.SurrogateCharacterReference) return "surrogate-character-reference";
+  if (code == ErrorCode.CharacterReferenceOutsideUnicodeRange) return "character-reference-outside-unicode-range";
+  if (code == ErrorCode.ControlCharacterReference) return "control-character-reference";
+  if (code == ErrorCode.NoncharacterCharacterReference) return "noncharacter-character-reference";
+  if (code == ErrorCode.MissingWhitespaceBeforeDoctypeName) return "missing-whitespace-before-doctype-name";
+  if (code == ErrorCode.MissingDoctypeName) return "missing-doctype-name";
+  if (code == ErrorCode.InvalidCharacterSequenceAfterDoctypeName) return "invalid-character-sequence-after-doctype-name";
+  if (code == ErrorCode.DuplicateAttribute) return "duplicate-attribute";
+  if (code == ErrorCode.NonConformingDoctype) return "non-conforming-doctype";
+  if (code == ErrorCode.MissingDoctype) return "missing-doctype";
+  if (code == ErrorCode.MisplacedDoctype) return "misplaced-doctype";
+  if (code == ErrorCode.EndTagWithoutMatchingOpenElement) return "end-tag-without-matching-open-element";
+  if (code == ErrorCode.ClosingOfElementWithOpenChildElements) return "closing-of-element-with-open-child-elements";
+  if (code == ErrorCode.DisallowedContentInNoscriptInHead) return "disallowed-content-in-noscript-in-head";
+  if (code == ErrorCode.OpenElementsLeftAfterEof) return "open-elements-left-after-eof";
+  if (code == ErrorCode.AbandonedHeadElementChild) return "abandoned-head-element-child";
+  if (code == ErrorCode.MisplacedStartTagForHeadElement) return "misplaced-start-tag-for-head-element";
+  if (code == ErrorCode.NestedNoscriptInHead) return "nested-noscript-in-head";
+  return "eof-in-element-that-can-contain-only-text";
+}
+
+export struct ParserError {
+  ErrorCode code;
+  int startLine;
+  int endLine;
+  int startCol;
+  int endCol;
+  int startOffset;
+  int endOffset;
+}
+
+// Error objects are one of the two intentional dynamic boundaries of the port.
+export JsValue parserErrorValue(ParserError error) {
+  return JS.object(
+    "code", errorCodeName(error.code),
+    "startLine", error.startLine,
+    "endLine", error.endLine,
+    "startCol", error.startCol,
+    "endCol", error.endCol,
+    "startOffset", error.startOffset,
+    "endOffset", error.endOffset
+  );
+}

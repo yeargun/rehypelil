@@ -1,0 +1,14 @@
+import { State, Tokenizer, adaptTokenHandler } from "../src/parse5/tokenizer/index.lil";
+
+export void tokenize(string html, int state, string lastStartTagName, bool inForeignNode, JsValue options, JsValue handler) {
+  Tokenizer tokenizer = new Tokenizer(options, handler, adaptTokenHandler(handler));
+  tokenizer.state = State.Data;
+  if (state == 1) tokenizer.state = State.Rcdata;
+  if (state == 2) tokenizer.state = State.Rawtext;
+  if (state == 3) tokenizer.state = State.ScriptData;
+  if (state == 4) tokenizer.state = State.Plaintext;
+  if (state == 68) tokenizer.state = State.CdataSection;
+  tokenizer.lastStartTagName = lastStartTagName;
+  tokenizer.inForeignNode = inForeignNode;
+  tokenizer.write(html, true, JS.undefined());
+}

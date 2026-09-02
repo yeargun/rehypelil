@@ -1,0 +1,14 @@
+// Generated from entities' decode trie. Do not edit by hand.
+string packed = "Ȁaglq\t\u0015\u0018\u001bɭ\u000f\u0000\u0000\u0012p;䀦os;䀧t;䀾t;䀼uot;䀢";
+
+int[] buildDecodeTree(string data) {
+  int[] tree = [];
+  int i = 0;
+  while (i < data.length) {
+    tree.push(data.charCodeAt(i));
+    i = i + 1;
+  }
+  return tree;
+}
+
+export int[] xmlDecodeData = buildDecodeTree(packed);

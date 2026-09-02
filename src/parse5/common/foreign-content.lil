@@ -1,0 +1,138 @@
+import { Namespace, TagId, getTagID } from "./html.lil";
+import { Attribute, TagToken } from "./token.lil";
+
+string[] SVG_ATTRIBUTE_NAMES = [
+  "attributeName", "attributeType", "baseFrequency", "baseProfile", "calcMode",
+  "clipPathUnits", "diffuseConstant", "edgeMode", "filterUnits", "glyphRef",
+  "gradientTransform", "gradientUnits", "kernelMatrix", "kernelUnitLength", "keyPoints",
+  "keySplines", "keyTimes", "lengthAdjust", "limitingConeAngle", "markerHeight",
+  "markerUnits", "markerWidth", "maskContentUnits", "maskUnits", "numOctaves",
+  "pathLength", "patternContentUnits", "patternTransform", "patternUnits", "pointsAtX",
+  "pointsAtY", "pointsAtZ", "preserveAlpha", "preserveAspectRatio", "primitiveUnits",
+  "refX", "refY", "repeatCount", "repeatDur", "requiredExtensions", "requiredFeatures",
+  "specularConstant", "specularExponent", "spreadMethod", "startOffset", "stdDeviation",
+  "stitchTiles", "surfaceScale", "systemLanguage", "tableValues", "targetX", "targetY",
+  "textLength", "viewBox", "viewTarget", "xChannelSelector", "yChannelSelector", "zoomAndPan"
+];
+
+string[] SVG_TAG_NAMES = [
+  "altGlyph", "altGlyphDef", "altGlyphItem", "animateColor", "animateMotion",
+  "animateTransform", "clipPath", "feBlend", "feColorMatrix", "feComponentTransfer",
+  "feComposite", "feConvolveMatrix", "feDiffuseLighting", "feDisplacementMap",
+  "feDistantLight", "feFlood", "feFuncA", "feFuncB", "feFuncG", "feFuncR",
+  "feGaussianBlur", "feImage", "feMerge", "feMergeNode", "feMorphology", "feOffset",
+  "fePointLight", "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence",
+  "foreignObject", "glyphRef", "linearGradient", "radialGradient", "textPath"
+];
+
+pure string adjustedName(string name, string[] names) {
+  int i = 0;
+  while (i < names.length) {
+    if (names[i].toLowerCase() == name) {
+      return names[i];
+    }
+    i = i + 1;
+  }
+  return "";
+}
+
+export pure bool causesExit(TagToken token) {
+  TagId id = token.tagID;
+  if (id == TagId.Font) {
+    int i = 0;
+    while (i < token.attrs.length) {
+      string name = token.attrs[i].name;
+      if (name == "color" || name == "size" || name == "face") return true;
+      i = i + 1;
+    }
+  }
+  return id == TagId.B || id == TagId.Big || id == TagId.Blockquote || id == TagId.Body || id == TagId.Br || id == TagId.Center || id == TagId.Code || id == TagId.Dd || id == TagId.Div || id == TagId.Dl || id == TagId.Dt || id == TagId.Em || id == TagId.Embed || id == TagId.H1 || id == TagId.H2 || id == TagId.H3 || id == TagId.H4 || id == TagId.H5 || id == TagId.H6 || id == TagId.Head || id == TagId.Hr || id == TagId.I || id == TagId.Img || id == TagId.Li || id == TagId.Listing || id == TagId.Menu || id == TagId.Meta || id == TagId.Nobr || id == TagId.Ol || id == TagId.P || id == TagId.Pre || id == TagId.Ruby || id == TagId.S || id == TagId.Small || id == TagId.Span || id == TagId.Strong || id == TagId.Strike || id == TagId.Sub || id == TagId.Sup || id == TagId.Table || id == TagId.Tt || id == TagId.U || id == TagId.Ul || id == TagId.Var;
+}
+
+export void adjustTokenMathMLAttrs(TagToken token) {
+  int i = 0;
+  while (i < token.attrs.length) {
+    if (token.attrs[i].name == "definitionurl") {
+      Attribute attr = token.attrs[i];
+      attr.name = "definitionURL";
+      token.attrs[i] = attr;
+      return;
+    }
+    i = i + 1;
+  }
+}
+
+export void adjustTokenSVGAttrs(TagToken token) {
+  int i = 0;
+  while (i < token.attrs.length) {
+    string name = adjustedName(token.attrs[i].name, SVG_ATTRIBUTE_NAMES);
+    if (name.length > 0) {
+      Attribute attr = token.attrs[i];
+      attr.name = name;
+      token.attrs[i] = attr;
+    }
+    i = i + 1;
+  }
+}
+
+export void adjustTokenXMLAttrs(TagToken token) {
+  int i = 0;
+  while (i < token.attrs.length) {
+    Attribute attr = token.attrs[i];
+    if (attr.name == "xlink:actuate") {
+      attr.prefix = "xlink"; attr.name = "actuate"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xlink:arcrole") {
+      attr.prefix = "xlink"; attr.name = "arcrole"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xlink:href") {
+      attr.prefix = "xlink"; attr.name = "href"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xlink:role") {
+      attr.prefix = "xlink"; attr.name = "role"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xlink:show") {
+      attr.prefix = "xlink"; attr.name = "show"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xlink:title") {
+      attr.prefix = "xlink"; attr.name = "title"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xlink:type") {
+      attr.prefix = "xlink"; attr.name = "type"; attr.namespace = "http://www.w3.org/1999/xlink";
+    } else if (attr.name == "xml:lang") {
+      attr.prefix = "xml"; attr.name = "lang"; attr.namespace = "http://www.w3.org/XML/1998/namespace";
+    } else if (attr.name == "xml:space") {
+      attr.prefix = "xml"; attr.name = "space"; attr.namespace = "http://www.w3.org/XML/1998/namespace";
+    } else if (attr.name == "xmlns") {
+      attr.prefix = ""; attr.name = "xmlns"; attr.namespace = "http://www.w3.org/2000/xmlns/";
+    } else if (attr.name == "xmlns:xlink") {
+      attr.prefix = "xmlns"; attr.name = "xlink"; attr.namespace = "http://www.w3.org/2000/xmlns/";
+    }
+    token.attrs[i] = attr;
+    i = i + 1;
+  }
+}
+
+export void adjustTokenSVGTagName(TagToken token) {
+  string adjusted = adjustedName(token.tagName, SVG_TAG_NAMES);
+  if (adjusted.length > 0) {
+    token.tagName = adjusted;
+    token.tagID = getTagID(adjusted);
+  }
+}
+
+pure bool isMathMLTextIntegrationPoint(TagId id, Namespace ns) {
+  return ns == Namespace.MathMl && (id == TagId.Mi || id == TagId.Mo || id == TagId.Mn || id == TagId.Ms || id == TagId.Mtext);
+}
+
+pure bool isHtmlIntegrationPoint(TagId id, Namespace ns, Attribute[] attrs) {
+  if (ns == Namespace.MathMl && id == TagId.AnnotationXml) {
+    int i = 0;
+    while (i < attrs.length) {
+      if (attrs[i].name == "encoding") {
+        string value = attrs[i].value.toLowerCase();
+        return value == "text/html" || value == "application/xhtml+xml";
+      }
+      i = i + 1;
+    }
+  }
+  return ns == Namespace.Svg && (id == TagId.ForeignObject || id == TagId.Desc || id == TagId.Title);
+}
+
+export pure bool isIntegrationPoint(TagId id, Namespace ns, Attribute[] attrs, Namespace? foreignNS) {
+  return ((foreignNS == null || foreignNS == Namespace.Html) && isHtmlIntegrationPoint(id, ns, attrs)) || ((foreignNS == null || foreignNS == Namespace.MathMl) && isMathMLTextIntegrationPoint(id, ns));
+}

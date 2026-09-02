@@ -1,0 +1,234 @@
+import { Object, HAS_OWN } from "../../unified/host.lil";
+import { createElement } from "../../hastscript/lib/create-h.lil";
+import { toPoint } from "../../vfile-location/lib/index.lil";
+import { Info, findInfo } from "../../hast-util-to-html/lib/schema.lil";
+import { Space } from "../../hast-util-to-html/lib/types.lil";
+
+string SVG_NS = "http://www.w3.org/2000/svg";
+
+class ConversionState {
+  JsValue file;
+  bool location;
+  Space space;
+  bool verbose;
+}
+
+string asStr(JsValue value) {
+  if (value is string) {
+    return value;
+  }
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return "";
+  }
+  return JS.string(value);
+}
+
+int asInt(JsValue value) {
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return 0;
+  }
+  return JS.number(value).toInt();
+}
+
+string fileText(JsValue file) {
+  if (file is string) {
+    return file;
+  }
+  if (JS.isUndefined(file) || JS.isNullish(file)) {
+    return "";
+  }
+  JsValue toStringFn = JS.get(file, "toString");
+  if (JS.typeOf(toStringFn) == "function") {
+    JsValue text = JS.call(toStringFn, file);
+    if (text is string) {
+      return text;
+    }
+    return JS.string(text);
+  }
+  return JS.string(file);
+}
+
+JsValue pointOf(JsValue line, JsValue column, JsValue offset) {
+  int ln = asInt(line);
+  int col = asInt(column);
+  if (ln == 0 || col == 0) {
+    return JS.undefined();
+  }
+  return JS.object("line", ln, "column", col, "offset", asInt(offset));
+}
+
+JsValue positionOf(JsValue loc) {
+  if (JS.isUndefined(loc) || JS.isNullish(loc)) {
+    return JS.undefined();
+  }
+  JsValue start = pointOf(JS.get(loc, "startLine"), JS.get(loc, "startCol"), JS.get(loc, "startOffset"));
+  JsValue end = pointOf(JS.get(loc, "endLine"), JS.get(loc, "endCol"), JS.get(loc, "endOffset"));
+  if (JS.isUndefined(start) && JS.isUndefined(end)) {
+    return JS.undefined();
+  }
+  return JS.object("start", start, "end", end);
+}
+
+void patchNode(ConversionState state, JsValue from, JsValue to) {
+  if (!JS.in("sourceCodeLocation", from)) {
+    return;
+  }
+  JsValue loc = JS.get(from, "sourceCodeLocation");
+  if (JS.isUndefined(loc) || JS.isNullish(loc)) {
+    return;
+  }
+  if (!state.file.truthy()) {
+    return;
+  }
+  JsValue pos = createLocation(state, to, loc);
+  if (!(JS.isUndefined(pos) || JS.isNullish(pos))) {
+    state.location = true;
+    JS.set(to, "position", pos);
+  }
+}
+
+JsValue createLocation(ConversionState state, JsValue node, JsValue loc) {
+  JsValue result = positionOf(loc);
+  if (asStr(JS.get(node, "type")) != "element") {
+    return result;
+  }
+  JsValue kids = JS.get(node, "children");
+  if (!(JS.isUndefined(result) || JS.isNullish(result)) && !JS.get(loc, "endTag").truthy()) {
+    if (JS.isArray(kids) && kids.length.toInt() > 0) {
+      JsValue tail = kids[kids.length.toInt() - 1];
+      JsValue tailPos = JS.get(tail, "position");
+      if (!(JS.isUndefined(tailPos) || JS.isNullish(tailPos))) {
+        JsValue tailEnd = JS.get(tailPos, "end");
+        if (!(JS.isUndefined(tailEnd) || JS.isNullish(tailEnd))) {
+          JS.set(result, "end", JS.invoke(Object, "assign", JS.object(), tailEnd));
+        }
+      }
+    }
+  }
+  if (state.verbose) {
+    JsValue properties = JS.object();
+    JsValue attrs = JS.get(loc, "attrs");
+    if (!(JS.isUndefined(attrs) || JS.isNullish(attrs)) && JS.typeOf(attrs) == "object") {
+      for (string key in attrs) {
+        Info info = findInfo(state.space, key);
+        JS.set(properties, info.property, positionOf(JS.get(attrs, key)));
+      }
+    }
+    JsValue opening = positionOf(JS.get(loc, "startTag"));
+    JsValue data = JS.object("opening", opening, "properties", properties);
+    JsValue endTag = JS.get(loc, "endTag");
+    if (endTag.truthy()) {
+      JS.set(data, "closing", positionOf(endTag));
+    }
+    JS.set(node, "data", JS.object("position", data));
+  }
+  return result;
+}
+
+JsValue allNodes(ConversionState state, JsValue nodes) {
+  JsValue results = JS.array();
+  if (!JS.isArray(nodes)) {
+    return results;
+  }
+  int n = nodes.length.toInt();
+  int i = 0;
+  while (i < n) {
+    JS.push(results, oneNode(state, nodes[i]));
+    i = i + 1;
+  }
+  return results;
+}
+
+JsValue oneNode(ConversionState state, JsValue node) {
+  string nodeName = asStr(JS.get(node, "nodeName"));
+  if (nodeName == "#comment") {
+    JsValue result = JS.object("type", "comment", "value", asStr(JS.get(node, "data")));
+    patchNode(state, node, result);
+    return result;
+  }
+  if (nodeName == "#document" || nodeName == "#document-fragment") {
+    bool quirksMode = false;
+    if (JS.in("mode", node)) {
+      string mode = asStr(JS.get(node, "mode"));
+      quirksMode = mode == "quirks" || mode == "limited-quirks";
+    }
+    JsValue result = JS.object("type", "root", "children", allNodes(state, JS.get(node, "childNodes")), "data", JS.object("quirksMode", quirksMode));
+    if (state.file.truthy() && state.location) {
+      string document = fileText(state.file);
+      JS.set(result, "position", JS.object("start", toPoint(document, 0), "end", toPoint(document, document.length)));
+    }
+    return result;
+  }
+  if (nodeName == "#documentType") {
+    JsValue result = JS.object("type", "doctype");
+    patchNode(state, node, result);
+    return result;
+  }
+  if (nodeName == "#text") {
+    JsValue result = JS.object("type", "text", "value", asStr(JS.get(node, "value")));
+    patchNode(state, node, result);
+    return result;
+  }
+  return elementNode(state, node);
+}
+
+JsValue elementNode(ConversionState state, JsValue node) {
+  Space previous = state.space;
+  string ns = asStr(JS.get(node, "namespaceURI"));
+  if (ns == SVG_NS) {
+    state.space = Space.Svg;
+  } else {
+    state.space = Space.Html;
+  }
+  JsValue properties = JS.object();
+  JsValue attrs = JS.get(node, "attrs");
+  if (JS.isArray(attrs)) {
+    JsValue proto = JS.get(Object, "prototype");
+    int n = attrs.length.toInt();
+    int i = 0;
+    while (i < n) {
+      JsValue attribute = attrs[i];
+      string prefix = asStr(JS.get(attribute, "prefix"));
+      string name = asStr(JS.get(attribute, "name"));
+      if (prefix.length > 0) {
+        name = prefix + ":" + name;
+      }
+      if (!JS.call(HAS_OWN, proto, name).truthy()) {
+        JS.set(properties, name, JS.get(attribute, "value"));
+      }
+      i = i + 1;
+    }
+  }
+  JsValue result = createElement(state.space, asStr(JS.get(node, "tagName")), properties, allNodes(state, JS.get(node, "childNodes")));
+  patchNode(state, node, result);
+  if (asStr(JS.get(result, "tagName")) == "template") {
+    JsValue content = oneNode(state, JS.get(node, "content"));
+    JsValue pos = JS.get(node, "sourceCodeLocation");
+    if (!(JS.isUndefined(pos) || JS.isNullish(pos)) && state.file.truthy()) {
+      JsValue startTag = positionOf(JS.get(pos, "startTag"));
+      JsValue endTag = positionOf(JS.get(pos, "endTag"));
+      if (!(JS.isUndefined(startTag) || JS.isNullish(startTag)) && !(JS.isUndefined(endTag) || JS.isNullish(endTag))) {
+        JS.set(content, "position", JS.object("start", JS.get(startTag, "end"), "end", JS.get(endTag, "start")));
+      }
+    }
+    JS.set(result, "content", content);
+  }
+  state.space = previous;
+  return result;
+}
+
+export JsValue fromParse5(JsValue tree, JsValue options) {
+  JsValue settings = options;
+  if (JS.isUndefined(options) || JS.isNullish(options)) {
+    settings = JS.object();
+  }
+  Space space = Space.Html;
+  if (asStr(JS.get(settings, "space")) == "svg") {
+    space = Space.Svg;
+  }
+  ConversionState state = new ConversionState();
+  state.file = JS.get(settings, "file");
+  state.space = space;
+  state.verbose = JS.get(settings, "verbose").truthy();
+  return oneNode(state, tree);
+}

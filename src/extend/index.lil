@@ -1,0 +1,66 @@
+import { Object, objectHasOwn } from "../unified/host.lil";
+import { isPlainObjectExtend } from "../is-plain-obj/index.lil";
+
+void setProperty(JsValue target, string name, JsValue newValue) {
+  if (name == "__proto__") {
+    JS.invoke(
+      Object,
+      "defineProperty",
+      target,
+      "__proto__",
+      JS.object("enumerable", true, "configurable", true, "writable", true, "value", newValue)
+    );
+    return;
+  }
+  JS.set(target, name, newValue);
+}
+
+JsValue getProperty(JsValue obj, string name) {
+  if (name == "__proto__") {
+    if (!objectHasOwn(obj, name)) {
+      return JS.undefined();
+    }
+    JsValue desc = JS.invoke(Object, "getOwnPropertyDescriptor", obj, name);
+    return JS.get(desc, "value");
+  }
+  return JS.get(obj, name);
+}
+
+export JsValue extendWith(bool deep, JsValue target, JsValue source) {
+  if (JS.isNullish(target) || (JS.typeOf(target) != "object" && JS.typeOf(target) != "function")) {
+    target = JS.object();
+  }
+  if (JS.isNullish(source)) {
+    return target;
+  }
+  for (string name in source) {
+    JsValue src = getProperty(target, name);
+    JsValue copy = getProperty(source, name);
+    if (!JS.strictEqual(target, copy)) {
+      if (deep && copy.truthy() && (isPlainObjectExtend(copy) || copy.isArray())) {
+        JsValue clone = JS.undefined();
+        if (copy.isArray()) {
+          if (src.truthy() && src.isArray()) {
+            clone = src;
+          } else {
+            clone = JS.array();
+          }
+        } else {
+          if (src.truthy() && isPlainObjectExtend(src)) {
+            clone = src;
+          } else {
+            clone = JS.object();
+          }
+        }
+        setProperty(target, name, extendWith(true, clone, copy));
+      } else if (JS.typeOf(copy) != "undefined") {
+        setProperty(target, name, copy);
+      }
+    }
+  }
+  return target;
+}
+
+export JsValue cloneNamespace(JsValue namespace) {
+  return extendWith(true, JS.object(), namespace);
+}

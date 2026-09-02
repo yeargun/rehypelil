@@ -1,6 +1,6 @@
 {
   "name": "@itslil/rehype",
-  "version": "13.0.3",
+  "version": "13.0.4",
   "description": "rehype reimplemented in LilScript",
   "keywords": [
     "rehype",
@@ -30,8 +30,7 @@
     ".": {
       "types": "./dist/rehype.d.ts",
       "import": "./dist/rehype.esm.js",
-      "require": "./dist/rehype.cjs",
-      "default": "./dist/rehype.esm.js"
+      "require": "./dist/rehype.cjs"
     },
     "./closed": "./dist/rehype.closed.js",
     "./dist/*": "./dist/*",
@@ -55,16 +54,29 @@
   "scripts": {
     "build": "node scripts/build.mjs --compile",
     "build:site": "node scripts/build-site.mjs",
-    "test": "node --test test/*.test.mjs test/official/api.js test/official/parse-error.js",
+    "generate:parse5-entities": "node scripts/generate-parse5-entity-data.mjs",
+    "test": "npm run check:types && node --test test/*.test.mjs test/official/api.js test/official/parse-error.js",
+    "test:parse5-corpus": "node scripts/check-parse5-corpus.mjs",
+    "test:parse5-parser": "node scripts/check-parse5-parser.mjs",
+    "test:parse5-tokenizer": "node scripts/check-parse5-tokenizer.mjs",
+    "check:types": "tsc --noEmit",
+    "check:brotli": "node scripts/compare-brotli.mjs",
     "check:site": "npm run build:site && node --test test/site.test.mjs",
     "check:pack": "node scripts/check-pack.mjs",
     "prepublishOnly": "npm test && npm run check:pack && npm run check:site"
   },
+  "dependencies": {
+    "@types/hast": "^3.0.0",
+    "rehype-parse": "^9.0.0",
+    "rehype-stringify": "^10.0.0",
+    "unified": "^11.0.0"
+  },
   "devDependencies": {
     "esbuild": "0.28.1",
     "hast-util-assert": "^4.0.0",
-    "parse5": "^7.2.1",
-    "unified": "^11.0.5",
+    "parse5": "7.3.0",
+    "terser": "5.51.2",
+    "typescript": "^5.9.2",
     "unist-util-remove-position": "^5.0.0",
     "vfile": "^6.0.3"
   }

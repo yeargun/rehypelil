@@ -1,0 +1,190 @@
+import { TagToken } from "../common/token.lil";
+import { getAttrList, getNamespaceURI, getTagName } from "../tree-adapters/default.lil";
+
+int NOAH_ARK_CAPACITY = 3;
+
+export enum EntryType { Marker, Element }
+
+export class FormattingEntry {
+  JsValue element;
+  TagToken? token;
+}
+
+struct NoahCandidate {
+  int index;
+  JsValue attrs;
+}
+
+void insertEntry(FormattingEntry?[] entries, int index, FormattingEntry? entry) {
+  int normalized = index;
+  if (normalized < 0) normalized = entries.length + normalized;
+  if (normalized < 0) normalized = 0;
+  if (normalized > entries.length) normalized = entries.length;
+  entries.push(entry);
+  int i = entries.length - 1;
+  while (i > normalized) {
+    entries[i] = entries[i - 1];
+    i = i - 1;
+  }
+  entries[normalized] = entry;
+}
+
+void removeEntryAt(FormattingEntry?[] entries, int index) {
+  int i = index;
+  while (i + 1 < entries.length) {
+    entries[i] = entries[i + 1];
+    i = i + 1;
+  }
+  entries.pop();
+}
+
+export class FormattingElementList {
+  FormattingEntry?[] entries;
+  FormattingEntry? bookmark;
+
+  init() {
+    this.entries = [];
+    this.bookmark = null;
+  }
+
+  NoahCandidate[] getNoahArkConditionCandidates(JsValue newElement, JsValue newAttrs) {
+    NoahCandidate[] candidates = [];
+    int attrsLength = JS.number(JS.get(newAttrs, "length")).toInt();
+    string tagName = getTagName(newElement);
+    string namespaceURI = getNamespaceURI(newElement);
+    int i = 0;
+    while (i < this.entries.length) {
+      FormattingEntry? entry = this.entries[i];
+      if (entry == null) return candidates;
+      if (getTagName(entry.element) == tagName && getNamespaceURI(entry.element) == namespaceURI) {
+        JsValue attrs = getAttrList(entry.element);
+        if (JS.number(JS.get(attrs, "length")).toInt() == attrsLength) {
+          candidates.push(NoahCandidate{i, attrs});
+        }
+      }
+      i = i + 1;
+    }
+    return candidates;
+  }
+
+  void ensureNoahArkCondition(JsValue newElement) {
+    if (this.entries.length < NOAH_ARK_CAPACITY) return;
+    JsValue newAttrs = getAttrList(newElement);
+    NoahCandidate[] candidates = this.getNoahArkConditionCandidates(newElement, newAttrs);
+    if (candidates.length < NOAH_ARK_CAPACITY) return;
+    Map<string, string> attrsByName = new Map<string, string>();
+    int i = 0;
+    while (i < JS.number(JS.get(newAttrs, "length")).toInt()) {
+      JsValue attr = newAttrs[i];
+      attrsByName.set(JS.string(JS.get(attr, "name")), JS.string(JS.get(attr, "value")));
+      i = i + 1;
+    }
+    int validCandidates = 0;
+    i = 0;
+    while (i < candidates.length) {
+      NoahCandidate candidate = candidates[i];
+      bool valid = true;
+      int j = 0;
+      while (j < JS.number(JS.get(candidate.attrs, "length")).toInt()) {
+        JsValue attr = candidate.attrs[j];
+        string? value = attrsByName.get(JS.string(JS.get(attr, "name")));
+        if (value == null || value != JS.string(JS.get(attr, "value"))) {
+          valid = false;
+          j = JS.number(JS.get(candidate.attrs, "length")).toInt();
+        }
+        j = j + 1;
+      }
+      if (valid) {
+        validCandidates = validCandidates + 1;
+        if (validCandidates >= NOAH_ARK_CAPACITY) {
+          removeEntryAt(this.entries, candidate.index);
+        }
+      }
+      i = i + 1;
+    }
+  }
+
+  void insertMarker() {
+    insertEntry(this.entries, 0, null);
+  }
+
+  void pushElement(JsValue element, TagToken token) {
+    this.ensureNoahArkCondition(element);
+    FormattingEntry entry = new FormattingEntry();
+    entry.element = element;
+    entry.token = token;
+    insertEntry(this.entries, 0, entry);
+  }
+
+  void insertElementAfterBookmark(JsValue element, TagToken token) {
+    int bookmarkIndex = -1;
+    FormattingEntry? bookmark = this.bookmark;
+    if (bookmark != null) {
+      int i = 0;
+      while (i < this.entries.length) {
+        if (this.entries[i] == bookmark) {
+          bookmarkIndex = i;
+          i = this.entries.length;
+        }
+        i = i + 1;
+      }
+    }
+    FormattingEntry entry = new FormattingEntry();
+    entry.element = element;
+    entry.token = token;
+    insertEntry(this.entries, bookmarkIndex, entry);
+  }
+
+  void removeEntry(FormattingEntry entry) {
+    int i = 0;
+    while (i < this.entries.length) {
+      if (this.entries[i] == entry) {
+        removeEntryAt(this.entries, i);
+        return;
+      }
+      i = i + 1;
+    }
+  }
+
+  void clearToLastMarker() {
+    int markerIndex = -1;
+    int i = 0;
+    while (i < this.entries.length) {
+      if (this.entries[i] == null) {
+        markerIndex = i;
+        i = this.entries.length;
+      }
+      i = i + 1;
+    }
+    if (markerIndex < 0) {
+      while (this.entries.length > 0) this.entries.pop();
+      return;
+    }
+    i = 0;
+    while (i <= markerIndex) {
+      removeEntryAt(this.entries, 0);
+      i = i + 1;
+    }
+  }
+
+  FormattingEntry? getElementEntryInScopeWithTagName(string tagName) {
+    int i = 0;
+    while (i < this.entries.length) {
+      FormattingEntry? entry = this.entries[i];
+      if (entry == null) return null;
+      if (getTagName(entry.element) == tagName) return entry;
+      i = i + 1;
+    }
+    return null;
+  }
+
+  FormattingEntry? getElementEntry(JsValue element) {
+    int i = 0;
+    while (i < this.entries.length) {
+      FormattingEntry? entry = this.entries[i];
+      if (entry != null && JS.strictEqual(entry.element, element)) return entry;
+      i = i + 1;
+    }
+    return null;
+  }
+}

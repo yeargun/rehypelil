@@ -1,0 +1,54 @@
+import { Object, Symbol, protoOf } from "../unified/host.lil";
+
+export bool isPlainObj(JsValue value) {
+  if (JS.typeOf(value) != "object" || JS.isNullish(value)) {
+    return false;
+  }
+  JsValue prototype = protoOf(value);
+  bool protoOk = JS.isNullish(prototype) || JS.strictEqual(prototype, JS.get(Object, "prototype"));
+  if (!protoOk) {
+    protoOk = JS.isNullish(protoOf(prototype));
+  }
+  if (!protoOk) {
+    return false;
+  }
+  if (JS.in(JS.get(Symbol, "toStringTag"), value)) {
+    return false;
+  }
+  if (JS.in(JS.get(Symbol, "iterator"), value)) {
+    return false;
+  }
+  return true;
+}
+
+export bool isPlainObjectExtend(JsValue obj) {
+  if (!obj.truthy()) {
+    return false;
+  }
+  JsValue tag = JS.call(JS.get(JS.get(Object, "prototype"), "toString"), obj);
+  if (JS.string(tag) != "[object Object]") {
+    return false;
+  }
+  bool hasOwnConstructor = JS.call(JS.get(JS.get(Object, "prototype"), "hasOwnProperty"), obj, "constructor").truthy();
+  JsValue ctor = JS.get(obj, "constructor");
+  bool hasIsPrototypeOf = false;
+  if (ctor.truthy()) {
+    JsValue ctorProto = JS.get(ctor, "prototype");
+    if (ctorProto.truthy()) {
+      hasIsPrototypeOf = JS.call(JS.get(JS.get(Object, "prototype"), "hasOwnProperty"), ctorProto, "isPrototypeOf").truthy();
+    }
+  }
+  if (ctor.truthy() && !hasOwnConstructor && !hasIsPrototypeOf) {
+    return false;
+  }
+  string last = "";
+  bool saw = false;
+  for (string key in obj) {
+    last = key;
+    saw = true;
+  }
+  if (!saw) {
+    return true;
+  }
+  return JS.call(JS.get(JS.get(Object, "prototype"), "hasOwnProperty"), obj, last).truthy();
+}

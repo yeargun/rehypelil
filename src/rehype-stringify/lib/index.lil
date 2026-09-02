@@ -1,0 +1,45 @@
+import { serializeTree } from "../../hast-util-to-html/lib/index.lil";
+import { Object } from "../../unified/host.lil";
+
+void assignOwn(JsValue target, JsValue source) {
+  if (JS.isUndefined(source) || JS.isNullish(source) || JS.typeOf(source) != "object") {
+    return;
+  }
+  JsValue keys = JS.invoke(Object, "keys", source);
+  int index = 0;
+  int n = keys.length.toInt();
+  while (index < n) {
+    string key = JS.string(keys[index]);
+    JS.set(target, key, JS.get(source, key));
+    index = index + 1;
+  }
+}
+
+JsValue mergedSettings(JsValue self, JsValue options) {
+  JsValue settings = JS.object();
+  if (!(JS.isUndefined(self) || JS.isNullish(self))) {
+    JsValue dataFn = JS.get(self, "data");
+    if (JS.typeOf(dataFn) == "function") {
+      JsValue fromData = JS.call(dataFn, self, "settings");
+      assignOwn(settings, fromData);
+    }
+  }
+  assignOwn(settings, options);
+  return settings;
+}
+
+JsValue compileTree(JsValue settings, JsValue tree) {
+  return serializeTree(tree, settings);
+}
+
+JsValue attach(JsValue self, JsValue options) {
+  JsValue settings = mergedSettings(self, options);
+  if (!(JS.isUndefined(self) || JS.isNullish(self))) {
+    self["compiler"] = JS.method1((JsValue _s, JsValue tree) => {
+      return compileTree(settings, tree);
+    });
+  }
+  return JS.undefined();
+}
+
+export JsValue rehypeStringify = JS.method1(attach);

@@ -1,0 +1,265 @@
+import { Info, findInfo, flagHas } from "../../hast-util-to-html/lib/schema.lil";
+import { Space } from "../../hast-util-to-html/lib/types.lil";
+import { Number } from "../../unified/host.lil";
+
+bool isNumberProperty(Space space, string prop) {
+  if (space != Space.Html) {
+    return false;
+  }
+  return prop == "border" || prop == "bottomMargin" || prop == "cols" || prop == "height" || prop == "high" || prop == "hSpace" || prop == "leftMargin" || prop == "low" || prop == "marginHeight" || prop == "marginWidth" || prop == "maxLength" || prop == "minLength" || prop == "optimum" || prop == "results" || prop == "rightMargin" || prop == "rows" || prop == "rowSpan" || prop == "size" || prop == "span" || prop == "start" || prop == "tabIndex" || prop == "topMargin" || prop == "vSpace" || prop == "width";
+}
+
+bool isCommaOrSpaceProperty(Space space, string prop) {
+  if (space != Space.Svg) {
+    return false;
+  }
+  return prop == "about" || prop == "kernelMatrix" || prop == "property" || prop == "rel" || prop == "requiredExtensions" || prop == "requiredFeatures" || prop == "requiredFonts" || prop == "requiredFormats" || prop == "rev" || prop == "strokeDashArray" || prop == "systemLanguage" || prop == "typeOf";
+}
+
+string joinTokens(JsValue list, string sep) {
+  string out = "";
+  int n = list.length.toInt();
+  int i = 0;
+  while (i < n) {
+    if (i > 0) {
+      out = out + sep;
+    }
+    JsValue item = list[i];
+    if (item is string) {
+      out = out + item;
+    } else {
+      out = out + JS.string(item);
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+string normalizeName(string value) {
+  return value.toLowerCase();
+}
+
+string normalizeTagName(Space space, string value) {
+  string lower = value.toLowerCase();
+  if (space != Space.Svg) {
+    return lower;
+  }
+  if (lower == "altglyph") return "altGlyph";
+  if (lower == "altglyphdef") return "altGlyphDef";
+  if (lower == "altglyphitem") return "altGlyphItem";
+  if (lower == "animatecolor") return "animateColor";
+  if (lower == "animatemotion") return "animateMotion";
+  if (lower == "animatetransform") return "animateTransform";
+  if (lower == "clippath") return "clipPath";
+  if (lower == "feblend") return "feBlend";
+  if (lower == "fecolormatrix") return "feColorMatrix";
+  if (lower == "fecomponenttransfer") return "feComponentTransfer";
+  if (lower == "fecomposite") return "feComposite";
+  if (lower == "feconvolvematrix") return "feConvolveMatrix";
+  if (lower == "fediffuselighting") return "feDiffuseLighting";
+  if (lower == "fedisplacementmap") return "feDisplacementMap";
+  if (lower == "fedistantlight") return "feDistantLight";
+  if (lower == "fedropshadow") return "feDropShadow";
+  if (lower == "feflood") return "feFlood";
+  if (lower == "fefunca") return "feFuncA";
+  if (lower == "fefuncb") return "feFuncB";
+  if (lower == "fefuncg") return "feFuncG";
+  if (lower == "fefuncr") return "feFuncR";
+  if (lower == "fegaussianblur") return "feGaussianBlur";
+  if (lower == "feimage") return "feImage";
+  if (lower == "femerge") return "feMerge";
+  if (lower == "femergenode") return "feMergeNode";
+  if (lower == "femorphology") return "feMorphology";
+  if (lower == "feoffset") return "feOffset";
+  if (lower == "fepointlight") return "fePointLight";
+  if (lower == "fespecularlighting") return "feSpecularLighting";
+  if (lower == "fespotlight") return "feSpotLight";
+  if (lower == "fetile") return "feTile";
+  if (lower == "feturbulence") return "feTurbulence";
+  if (lower == "foreignobject") return "foreignObject";
+  if (lower == "glyphref") return "glyphRef";
+  if (lower == "lineargradient") return "linearGradient";
+  if (lower == "radialgradient") return "radialGradient";
+  if (lower == "solidcolor") return "solidColor";
+  if (lower == "textarea") return "textArea";
+  if (lower == "textpath") return "textPath";
+  return lower;
+}
+
+JsValue parseSpaces(string value) {
+  JsValue out = JS.array();
+  string current = "";
+  int i = 0;
+  int n = value.length;
+  while (i <= n) {
+    int c = 0;
+    if (i < n) {
+      c = value.charCodeAt(i);
+    }
+    bool brk = i == n || c == 9 || c == 10 || c == 12 || c == 13 || c == 32;
+    if (brk) {
+      if (current.length > 0) {
+        JS.push(out, current);
+        current = "";
+      }
+    } else {
+      current = current + value.charAt(i);
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+JsValue parseCommas(string value) {
+  JsValue out = JS.array();
+  string current = "";
+  int i = 0;
+  int n = value.length;
+  while (i <= n) {
+    if (i == n || value.charAt(i) == ",") {
+      int start = 0;
+      int end = current.length;
+      while (start < end) {
+        int c = current.charCodeAt(start);
+        if (c == 9 || c == 10 || c == 12 || c == 13 || c == 32) {
+          start = start + 1;
+        } else {
+          break;
+        }
+      }
+      while (end > start) {
+        int c = current.charCodeAt(end - 1);
+        if (c == 9 || c == 10 || c == 12 || c == 13 || c == 32) {
+          end = end - 1;
+        } else {
+          break;
+        }
+      }
+      JS.push(out, current.slice(start, end));
+      current = "";
+    } else {
+      current = current + value.charAt(i);
+    }
+    i = i + 1;
+  }
+  return out;
+}
+
+JsValue parsePrimitive(Space space, string prop, string flags, JsValue value) {
+  if (!(value is string)) {
+    return value;
+  }
+  string text = value;
+  if (isNumberProperty(space, prop) || flagHas(flags, "n")) {
+    if (text.length > 0) {
+      JsValue num = JS.call(Number, JS.undefined(), text);
+      if (!JS.call(JS.get(Number, "isNaN"), JS.undefined(), num).truthy()) {
+        return num;
+      }
+    }
+  }
+  if (flagHas(flags, "b") || flagHas(flags, "o")) {
+    if (text.length == 0 || normalizeName(text) == normalizeName(prop)) {
+      return true;
+    }
+  }
+  return value;
+}
+
+void addProperty(Space space, JsValue properties, string key, JsValue value) {
+  if (JS.isUndefined(value) || JS.isNullish(value)) {
+    return;
+  }
+  Info info = findInfo(space, key);
+  string prop = info.property;
+  string flags = info.flags;
+  JsValue result = value;
+  if (value is string) {
+    if (isCommaOrSpaceProperty(space, prop)) {
+      result = parseSpaces(joinTokens(parseCommas(value), " "));
+    } else if (flagHas(flags, "s")) {
+      result = parseSpaces(value);
+    } else if (flagHas(flags, "c")) {
+      result = parseCommas(value);
+    } else {
+      result = parsePrimitive(space, prop, flags, value);
+    }
+  }
+  if (JS.isArray(result)) {
+    JsValue mapped = JS.array();
+    int n = result.length.toInt();
+    int i = 0;
+    while (i < n) {
+      JS.push(mapped, parsePrimitive(space, prop, flags, result[i]));
+      i = i + 1;
+    }
+    result = mapped;
+  }
+  if (prop == "className" && JS.isArray(JS.get(properties, "className"))) {
+    JsValue prev = JS.get(properties, "className");
+    if (JS.isArray(result)) {
+      int i = 0;
+      int n = result.length.toInt();
+      while (i < n) {
+        JS.push(prev, result[i]);
+        i = i + 1;
+      }
+      result = prev;
+    } else {
+      JS.push(prev, result);
+      result = prev;
+    }
+  }
+  JS.set(properties, prop, result);
+}
+
+export JsValue createElement(Space space, string tagName, JsValue rawProperties, JsValue children) {
+  JsValue properties = JS.object();
+  string parsedTagName = "";
+  string previous = "";
+  int start = 0;
+  int length = tagName.length;
+  while (start < length) {
+    int end = start;
+    while (end < length && tagName.charAt(end) != "#" && tagName.charAt(end) != ".") {
+      end = end + 1;
+    }
+    string part = tagName.slice(start, end);
+    if (part.length > 0) {
+      if (previous.length == 0) {
+        parsedTagName = part;
+      } else if (previous == "#") {
+        JS.set(properties, "id", part);
+      } else {
+        JsValue classes = JS.get(properties, "className");
+        if (!JS.isArray(classes)) {
+          classes = JS.array();
+          JS.set(properties, "className", classes);
+        }
+        JS.push(classes, part);
+      }
+      start = end;
+    }
+    if (end < length) {
+      previous = tagName.charAt(end);
+      start = end + 1;
+    }
+  }
+  if (parsedTagName.length == 0) {
+    if (space == Space.Svg) {
+      parsedTagName = "g";
+    } else {
+      parsedTagName = "div";
+    }
+  }
+  if (!(JS.isUndefined(rawProperties) || JS.isNullish(rawProperties))) {
+    for (string key in rawProperties) {
+      addProperty(space, properties, key, JS.get(rawProperties, key));
+    }
+  }
+  JsValue kids = children;
+  if (JS.isUndefined(kids) || JS.isNullish(kids) || !JS.isArray(kids)) {
+    kids = JS.array();
+  }
+  return JS.object("type", "element", "tagName", normalizeTagName(space, parsedTagName), "properties", properties, "children", kids);
+}

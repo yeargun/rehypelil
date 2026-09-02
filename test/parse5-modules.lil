@@ -1,0 +1,566 @@
+import { DocumentMode, TagId, documentModeName, getTagID, hasUnescapedText, isNumberedHeader, isSpecial, Namespace } from "../src/parse5/common/html.lil";
+import { getDocumentMode, isConforming } from "../src/parse5/common/doctype.lil";
+import { DoctypeToken, TokenType, getTokenAttr } from "../src/parse5/common/token.lil";
+import { Attribute, TagToken } from "../src/parse5/common/token.lil";
+import { adjustTokenMathMLAttrs, adjustTokenSVGAttrs, adjustTokenSVGTagName, adjustTokenXMLAttrs, causesExit, isIntegrationPoint } from "../src/parse5/common/foreign-content.lil";
+import { decodeCodePoint, replaceCodePoint } from "../src/parse5/entities/decode-codepoint.lil";
+import { DecodingMode, EntityDecoder, decodeHTML, decodeHTMLAttribute, decodeHTMLStrict, decodeXML } from "../src/parse5/entities/decode.lil";
+import { htmlDecodeData } from "../src/parse5/entities/generated/decode-data-html.lil";
+import { getSurrogatePairCodePoint, isControlCodePoint, isSurrogate, isSurrogatePair, isUndefinedCodePoint } from "../src/parse5/common/unicode.lil";
+import { EOF } from "../src/parse5/common/unicode.lil";
+import { Preprocessor } from "../src/parse5/tokenizer/preprocessor.lil";
+import { MODE_CDATA_SECTION, MODE_DATA, MODE_PLAINTEXT, MODE_RAWTEXT, MODE_RCDATA, MODE_SCRIPT_DATA, State, Tokenizer, adaptTokenHandler } from "../src/parse5/tokenizer/index.lil";
+import { adoptAttributes, appendChild, createCommentNode, createDocument, createDocumentFragment, createElement, createTextNode, detachNode, getAttrList, getChildNodes, getCommentNodeContent, getDocumentTypeNodeName, getDocumentTypeNodePublicId, getDocumentTypeNodeSystemId, getFirstChild, getNamespaceURI, getNodeSourceCodeLocation, getParentNode, getTagName, getTemplateContent, getTextNodeContent, insertBefore, insertText, insertTextBefore, isCommentNode, isDocumentTypeNode, isElementNode, isTextNode, setDocumentMode, setDocumentType, setNodeSourceCodeLocation, setTemplateContent, updateNodeSourceCodeLocation } from "../src/parse5/tree-adapters/default.lil";
+import { EntryType, FormattingElementList, FormattingEntry } from "../src/parse5/parser/formatting-element-list.lil";
+import { OpenElementStack } from "../src/parse5/parser/open-element-stack.lil";
+import { namespaceUri } from "../src/parse5/common/html.lil";
+import { ErrorCode, errorCodeName } from "../src/parse5/common/error-codes.lil";
+
+export string[] errorCodes() {
+  return [
+    errorCodeName(ErrorCode.ControlCharacterInInputStream),
+    errorCodeName(ErrorCode.NoncharacterInInputStream),
+    errorCodeName(ErrorCode.SurrogateInInputStream),
+    errorCodeName(ErrorCode.NonVoidHtmlElementStartTagWithTrailingSolidus),
+    errorCodeName(ErrorCode.EndTagWithAttributes),
+    errorCodeName(ErrorCode.EndTagWithTrailingSolidus),
+    errorCodeName(ErrorCode.UnexpectedSolidusInTag),
+    errorCodeName(ErrorCode.UnexpectedNullCharacter),
+    errorCodeName(ErrorCode.UnexpectedQuestionMarkInsteadOfTagName),
+    errorCodeName(ErrorCode.InvalidFirstCharacterOfTagName),
+    errorCodeName(ErrorCode.UnexpectedEqualsSignBeforeAttributeName),
+    errorCodeName(ErrorCode.MissingEndTagName),
+    errorCodeName(ErrorCode.UnexpectedCharacterInAttributeName),
+    errorCodeName(ErrorCode.UnknownNamedCharacterReference),
+    errorCodeName(ErrorCode.MissingSemicolonAfterCharacterReference),
+    errorCodeName(ErrorCode.UnexpectedCharacterAfterDoctypeSystemIdentifier),
+    errorCodeName(ErrorCode.UnexpectedCharacterInUnquotedAttributeValue),
+    errorCodeName(ErrorCode.EofBeforeTagName),
+    errorCodeName(ErrorCode.EofInTag),
+    errorCodeName(ErrorCode.MissingAttributeValue),
+    errorCodeName(ErrorCode.MissingWhitespaceBetweenAttributes),
+    errorCodeName(ErrorCode.MissingWhitespaceAfterDoctypePublicKeyword),
+    errorCodeName(ErrorCode.MissingWhitespaceBetweenDoctypePublicAndSystemIdentifiers),
+    errorCodeName(ErrorCode.MissingWhitespaceAfterDoctypeSystemKeyword),
+    errorCodeName(ErrorCode.MissingQuoteBeforeDoctypePublicIdentifier),
+    errorCodeName(ErrorCode.MissingQuoteBeforeDoctypeSystemIdentifier),
+    errorCodeName(ErrorCode.MissingDoctypePublicIdentifier),
+    errorCodeName(ErrorCode.MissingDoctypeSystemIdentifier),
+    errorCodeName(ErrorCode.AbruptDoctypePublicIdentifier),
+    errorCodeName(ErrorCode.AbruptDoctypeSystemIdentifier),
+    errorCodeName(ErrorCode.CdataInHtmlContent),
+    errorCodeName(ErrorCode.IncorrectlyOpenedComment),
+    errorCodeName(ErrorCode.EofInScriptHtmlCommentLikeText),
+    errorCodeName(ErrorCode.EofInDoctype),
+    errorCodeName(ErrorCode.NestedComment),
+    errorCodeName(ErrorCode.AbruptClosingOfEmptyComment),
+    errorCodeName(ErrorCode.EofInComment),
+    errorCodeName(ErrorCode.IncorrectlyClosedComment),
+    errorCodeName(ErrorCode.EofInCdata),
+    errorCodeName(ErrorCode.AbsenceOfDigitsInNumericCharacterReference),
+    errorCodeName(ErrorCode.NullCharacterReference),
+    errorCodeName(ErrorCode.SurrogateCharacterReference),
+    errorCodeName(ErrorCode.CharacterReferenceOutsideUnicodeRange),
+    errorCodeName(ErrorCode.ControlCharacterReference),
+    errorCodeName(ErrorCode.NoncharacterCharacterReference),
+    errorCodeName(ErrorCode.MissingWhitespaceBeforeDoctypeName),
+    errorCodeName(ErrorCode.MissingDoctypeName),
+    errorCodeName(ErrorCode.InvalidCharacterSequenceAfterDoctypeName),
+    errorCodeName(ErrorCode.DuplicateAttribute),
+    errorCodeName(ErrorCode.NonConformingDoctype),
+    errorCodeName(ErrorCode.MissingDoctype),
+    errorCodeName(ErrorCode.MisplacedDoctype),
+    errorCodeName(ErrorCode.EndTagWithoutMatchingOpenElement),
+    errorCodeName(ErrorCode.ClosingOfElementWithOpenChildElements),
+    errorCodeName(ErrorCode.DisallowedContentInNoscriptInHead),
+    errorCodeName(ErrorCode.OpenElementsLeftAfterEof),
+    errorCodeName(ErrorCode.AbandonedHeadElementChild),
+    errorCodeName(ErrorCode.MisplacedStartTagForHeadElement),
+    errorCodeName(ErrorCode.NestedNoscriptInHead),
+    errorCodeName(ErrorCode.EofInElementThatCanContainOnlyText)
+  ];
+}
+
+export TagId tagId(string name) {
+  return getTagID(name);
+}
+
+export bool sameTag(string left, string right) {
+  return getTagID(left) == getTagID(right);
+}
+
+export string? tokenAttribute(string firstName, string firstValue, string secondName, string secondValue, string wanted) {
+  TagToken token = tagToken("div", "", "");
+  token.attrs.push(attribute(firstName, firstValue));
+  token.attrs.push(attribute(secondName, secondValue));
+  return getTokenAttr(token, wanted);
+}
+
+export bool numberedHeader(string name) {
+  return isNumberedHeader(getTagID(name));
+}
+
+export bool specialElement(int namespaceIndex, string name) {
+  Namespace ns = Namespace.Html;
+  if (namespaceIndex == 1) ns = Namespace.MathMl;
+  if (namespaceIndex == 2) ns = Namespace.Svg;
+  if (namespaceIndex == 3) ns = Namespace.XLink;
+  if (namespaceIndex == 4) ns = Namespace.Xml;
+  if (namespaceIndex == 5) ns = Namespace.Xmlns;
+  return isSpecial(ns, getTagID(name));
+}
+
+export bool unescapedText(string name, bool scriptingEnabled) {
+  return hasUnescapedText(name, scriptingEnabled);
+}
+
+DoctypeToken doctypeToken(string name, bool hasName, string publicId, bool hasPublicId, string systemId, bool hasSystemId) {
+  DoctypeToken token = DoctypeToken{TokenType.Doctype, null, false, null, null, null};
+  if (hasName) token.name = name;
+  token.forceQuirks = false;
+  if (hasPublicId) token.publicId = publicId;
+  if (hasSystemId) token.systemId = systemId;
+  return token;
+}
+
+export bool conformingDoctype(string name, bool hasName, string publicId, bool hasPublicId, string systemId, bool hasSystemId) {
+  return isConforming(doctypeToken(name, hasName, publicId, hasPublicId, systemId, hasSystemId));
+}
+
+export string documentMode(string name, bool hasName, string publicId, bool hasPublicId, string systemId, bool hasSystemId) {
+  DocumentMode mode = getDocumentMode(doctypeToken(name, hasName, publicId, hasPublicId, systemId, hasSystemId));
+  return documentModeName(mode);
+}
+
+export int replacedCodePoint(int codePoint) {
+  return replaceCodePoint(codePoint);
+}
+
+export string decodedCodePoint(int codePoint) {
+  return decodeCodePoint(codePoint);
+}
+
+export string decodedHtml(string input, int modeIndex) {
+  DecodingMode mode = DecodingMode.Legacy;
+  if (modeIndex == 1) mode = DecodingMode.Strict;
+  if (modeIndex == 2) mode = DecodingMode.Attribute;
+  return decodeHTML(input, mode);
+}
+
+export string decodedHtmlAttribute(string input) {
+  return decodeHTMLAttribute(input);
+}
+
+export string decodedHtmlStrict(string input) {
+  return decodeHTMLStrict(input);
+}
+
+export string decodedXml(string input) {
+  return decodeXML(input);
+}
+
+export JsValue entityTrace(string first, string second, bool split, int modeIndex, JsValue errors) {
+  DecodingMode mode = DecodingMode.Legacy;
+  if (modeIndex == 1) mode = DecodingMode.Strict;
+  if (modeIndex == 2) mode = DecodingMode.Attribute;
+  JsValue emitted = JS.array();
+  EntityDecoder decoder = new EntityDecoder(htmlDecodeData, (int codePoint, int consumed) => {
+    JS.push(emitted, JS.object("codePoint", codePoint, "consumed", consumed));
+  }, errors);
+  decoder.startEntity(mode);
+  int firstResult = decoder.write(first, 0);
+  int finalResult = firstResult;
+  if (split && firstResult < 0) finalResult = decoder.write(second, 0);
+  if (finalResult < 0) finalResult = decoder.end();
+  return JS.object("firstResult", firstResult, "result", finalResult, "emitted", emitted);
+}
+
+export bool surrogate(int codePoint) {
+  return isSurrogate(codePoint);
+}
+
+export bool trailingSurrogate(int codePoint) {
+  return isSurrogatePair(codePoint);
+}
+
+export int surrogatePair(int first, int second) {
+  return getSurrogatePairCodePoint(first, second);
+}
+
+export bool controlCodePoint(int codePoint) {
+  return isControlCodePoint(codePoint);
+}
+
+export bool undefinedCodePoint(int codePoint) {
+  return isUndefinedCodePoint(codePoint);
+}
+
+Attribute attribute(string name, string value) {
+  return Attribute{name, value, null, null};
+}
+
+TagToken tagToken(string name, string attrName, string attrValue) {
+  TagToken token = TagToken{TokenType.StartTag, name, getTagID(name), false, false, [], null, JS.undefined()};
+  if (attrName.length > 0) token.attrs.push(attribute(attrName, attrValue));
+  return token;
+}
+
+export bool exitsForeignContent(string name, string attrName) {
+  return causesExit(tagToken(name, attrName, ""));
+}
+
+export string adjustedMathAttribute(string name) {
+  TagToken token = tagToken("math", name, "");
+  adjustTokenMathMLAttrs(token);
+  return token.attrs[0].name;
+}
+
+export string adjustedSvgAttribute(string name) {
+  TagToken token = tagToken("svg", name, "");
+  adjustTokenSVGAttrs(token);
+  return token.attrs[0].name;
+}
+
+export string adjustedXmlAttribute(string name) {
+  TagToken token = tagToken("svg", name, "");
+  adjustTokenXMLAttrs(token);
+  Attribute attr = token.attrs[0];
+  string prefix = "-";
+  string namespace = "-";
+  string? attrPrefix = attr.prefix;
+  string? attrNamespace = attr.namespace;
+  if (attrPrefix != null) prefix = attrPrefix;
+  if (attrNamespace != null) namespace = attrNamespace;
+  return prefix + "|" + attr.name + "|" + namespace;
+}
+
+export string adjustedSvgTag(string name) {
+  TagToken token = tagToken(name, "", "");
+  adjustTokenSVGTagName(token);
+  return token.tagName;
+}
+
+export bool integrationPoint(string name, int namespaceIndex, string attrName, string attrValue, int foreignNamespaceIndex) {
+  Namespace ns = Namespace.Html;
+  if (namespaceIndex == 1) ns = Namespace.MathMl;
+  if (namespaceIndex == 2) ns = Namespace.Svg;
+  Attribute[] attrs = [];
+  if (attrName.length > 0) attrs.push(attribute(attrName, attrValue));
+  Namespace? foreignNS = null;
+  if (foreignNamespaceIndex == 0) foreignNS = Namespace.Html;
+  if (foreignNamespaceIndex == 1) foreignNS = Namespace.MathMl;
+  if (foreignNamespaceIndex == 2) foreignNS = Namespace.Svg;
+  return isIntegrationPoint(getTagID(name), ns, attrs, foreignNS);
+}
+
+void drainPreprocessor(Preprocessor preprocessor, JsValue codePoints) {
+  while (true) {
+    int codePoint = preprocessor.advance();
+    if (codePoint == EOF) return;
+    JS.push(codePoints, codePoint);
+  }
+}
+
+export JsValue preprocessTrace(string first, string second, bool split, JsValue onParseError) {
+  Preprocessor preprocessor = new Preprocessor(JS.object("onParseError", onParseError));
+  JsValue codePoints = JS.array();
+  if (split) {
+    preprocessor.write(first, false);
+    drainPreprocessor(preprocessor, codePoints);
+    preprocessor.retreat(1);
+    preprocessor.write(second, true);
+  } else {
+    preprocessor.write(first, true);
+  }
+  drainPreprocessor(preprocessor, codePoints);
+  return JS.object(
+    "codePoints", codePoints,
+    "line", preprocessor.line,
+    "col", preprocessor.col(),
+    "offset", preprocessor.offset(),
+    "endOfChunkHit", preprocessor.endOfChunkHit
+  );
+}
+
+export JsValue preprocessorMethodTrace() {
+  Preprocessor preprocessor = new Preprocessor(JS.object("onParseError", JS.undefined()));
+  preprocessor.write("Ab\r\ncd", false);
+  int first = preprocessor.advance();
+  bool sensitive = preprocessor.startsWith("Ab", true);
+  bool insensitive = preprocessor.startsWith("ab", false);
+  int peekCr = preprocessor.peek(2);
+  int peekPastEnd = preprocessor.peek(100);
+  bool chunkHit = preprocessor.endOfChunkHit;
+  preprocessor.insertHtmlAtCurrentPos("XY");
+  int inserted = preprocessor.advance();
+  preprocessor.bufferWaterline = 0;
+  bool willDrop = preprocessor.willDropParsedChunk();
+  preprocessor.dropParsedChunk();
+  return JS.object(
+    "first", first,
+    "sensitive", sensitive,
+    "insensitive", insensitive,
+    "peekCr", peekCr,
+    "peekPastEnd", peekPastEnd,
+    "chunkHit", chunkHit,
+    "inserted", inserted,
+    "willDrop", willDrop,
+    "html", preprocessor.html,
+    "position", preprocessor.pos,
+    "offset", preprocessor.offset()
+  );
+}
+
+State tokenizerState(int mode) {
+  if (mode == MODE_RCDATA) return State.Rcdata;
+  if (mode == MODE_RAWTEXT) return State.Rawtext;
+  if (mode == MODE_SCRIPT_DATA) return State.ScriptData;
+  if (mode == MODE_PLAINTEXT) return State.Plaintext;
+  if (mode == MODE_CDATA_SECTION) return State.CdataSection;
+  return State.Data;
+}
+
+export JsValue tokenizerTrace(JsValue chunks, int mode, string lastStartTag, bool inForeignNode, bool locations) {
+  JsValue tokens = JS.array();
+  JsValue errors = JS.array();
+  JsValue events = JS.array();
+  JsValue handler = JS.object(
+    "onComment", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "comment", "value", token));
+      return JS.undefined();
+    }),
+    "onDoctype", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "doctype", "value", token));
+      return JS.undefined();
+    }),
+    "onStartTag", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "startTag", "value", token));
+      return JS.undefined();
+    }),
+    "onEndTag", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "endTag", "value", token));
+      return JS.undefined();
+    }),
+    "onEof", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "eof", "value", token));
+      return JS.undefined();
+    }),
+    "onCharacter", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "character", "value", token));
+      return JS.undefined();
+    }),
+    "onNullCharacter", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "null", "value", token));
+      return JS.undefined();
+    }),
+    "onWhitespaceCharacter", JS.method1((JsValue _self, JsValue token) => {
+      JS.push(tokens, token);
+      JS.push(events, JS.object("kind", "whitespace", "value", token));
+      return JS.undefined();
+    }),
+    "onParseError", JS.method1((JsValue _self, JsValue error) => {
+      JS.push(errors, error);
+      JS.push(events, JS.object("kind", "error", "value", error));
+      return JS.undefined();
+    })
+  );
+  Tokenizer tokenizer = new Tokenizer(JS.object("sourceCodeLocationInfo", locations), handler, adaptTokenHandler(handler));
+  tokenizer.preprocessor.bufferWaterline = 8;
+  tokenizer.state = tokenizerState(mode);
+  tokenizer.lastStartTagName = lastStartTag;
+  tokenizer.inForeignNode = inForeignNode;
+  int length = JS.number(JS.get(chunks, "length")).toInt();
+  int i = 0;
+  while (i < length) {
+    int chunkIndex = i;
+    tokenizer.write(JS.string(chunks[i]), i == length - 1, JS.method0((JsValue _self) => {
+      JS.push(events, JS.object("kind", "write", "value", chunkIndex));
+      return JS.undefined();
+    }));
+    i = i + 1;
+  }
+  return JS.object(
+    "tokens", tokens,
+    "errors", errors,
+    "events", events,
+    "active", tokenizer.active,
+    "state", tokenizer.state,
+    "line", tokenizer.preprocessor.line,
+    "col", tokenizer.preprocessor.col(),
+    "offset", tokenizer.preprocessor.offset()
+  );
+}
+
+export JsValue treeAdapterTrace() {
+  JsValue document = createDocument();
+  setDocumentMode(document, DocumentMode.Quirks);
+  JsValue attrs = JS.array();
+  JS.push(attrs, JS.object("name", "id", "value", "a"));
+  JsValue element = createElement("div", "http://www.w3.org/1999/xhtml", attrs);
+  appendChild(document, element);
+  JsValue comment = createCommentNode("note");
+  appendChild(element, comment);
+  JsValue firstText = createTextNode("a");
+  insertBefore(element, firstText, comment);
+  insertTextBefore(element, "b", comment);
+  insertText(element, "c");
+  insertText(element, "d");
+  JsValue fragment = createDocumentFragment();
+  setTemplateContent(element, fragment);
+  setDocumentType(document, "html", "one", "two");
+  setDocumentType(document, "html", "public", "system");
+  JsValue moreAttrs = JS.array();
+  JS.push(moreAttrs, JS.object("name", "id", "value", "ignored"));
+  JS.push(moreAttrs, JS.object("name", "class", "value", "added"));
+  adoptAttributes(element, moreAttrs);
+  JsValue location = JS.object("startLine", 1, "startCol", 2, "startOffset", 1, "endLine", 1, "endCol", 3, "endOffset", 2);
+  setNodeSourceCodeLocation(comment, location);
+  updateNodeSourceCodeLocation(comment, JS.object("endLine", 2, "endCol", 1, "endOffset", 4));
+  JsValue doctype = JS.get(document, "childNodes")[1];
+  JsValue trailingText = JS.get(element, "childNodes")[2];
+  JsValue result = JS.object(
+    "mode", JS.get(document, "mode"),
+    "firstChild", getFirstChild(document),
+    "children", getChildNodes(element),
+    "parent", getParentNode(comment),
+    "attrs", getAttrList(element),
+    "tagName", getTagName(element),
+    "namespace", getNamespaceURI(element),
+    "text", getTextNodeContent(trailingText),
+    "comment", getCommentNodeContent(comment),
+    "doctypeName", getDocumentTypeNodeName(doctype),
+    "doctypePublic", getDocumentTypeNodePublicId(doctype),
+    "doctypeSystem", getDocumentTypeNodeSystemId(doctype),
+    "isText", isTextNode(trailingText),
+    "isComment", isCommentNode(comment),
+    "isDoctype", isDocumentTypeNode(doctype),
+    "isElement", isElementNode(element),
+    "templateContent", getTemplateContent(element),
+    "location", getNodeSourceCodeLocation(comment)
+  );
+  detachNode(comment);
+  JS.set(result, "detachedParent", getParentNode(comment));
+  JS.set(result, "remainingChildren", getChildNodes(element));
+  return result;
+}
+
+JsValue testElement(string name, Namespace ns, string attrName, string attrValue) {
+  JsValue attrs = JS.array();
+  if (attrName.length > 0) JS.push(attrs, JS.object("name", attrName, "value", attrValue));
+  return createElement(name, namespaceUri(ns), attrs);
+}
+
+export JsValue formattingListTrace() {
+  FormattingElementList list = new FormattingElementList();
+  TagToken bToken = tagToken("b", "class", "same");
+  int i = 0;
+  while (i < 4) {
+    list.pushElement(testElement("b", Namespace.Html, "class", "same"), bToken);
+    i = i + 1;
+  }
+  int afterNoah = list.entries.length;
+  list.insertMarker();
+  JsValue italic = testElement("i", Namespace.Html, "", "");
+  TagToken iToken = tagToken("i", "", "");
+  list.pushElement(italic, iToken);
+  bool bHiddenByMarker = list.getElementEntryInScopeWithTagName("b") == null;
+  FormattingEntry? italicEntry = list.getElementEntry(italic);
+  bool foundItalic = italicEntry != null;
+  if (italicEntry != null) list.bookmark = italicEntry;
+  list.insertElementAfterBookmark(testElement("em", Namespace.Html, "", ""), tagToken("em", "", ""));
+  if (italicEntry != null) list.removeEntry(italicEntry);
+  int beforeClear = list.entries.length;
+  list.clearToLastMarker();
+  int afterClear = list.entries.length;
+  FormattingEntry? bEntry = list.getElementEntryInScopeWithTagName("b");
+  if (bEntry != null) list.removeEntry(bEntry);
+  return JS.object(
+    "afterNoah", afterNoah,
+    "bHiddenByMarker", bHiddenByMarker,
+    "foundItalic", foundItalic,
+    "beforeClear", beforeClear,
+    "afterClear", afterClear,
+    "afterRemove", list.entries.length
+  );
+}
+
+export JsValue openElementStackTrace() {
+  JsValue pushed = JS.array();
+  JsValue popped = JS.array();
+  JsValue document = createDocument();
+  OpenElementStack stack = new OpenElementStack(
+    document,
+    (JsValue element, TagId _id, bool current) => {
+      JS.push(pushed, JS.object("name", getTagName(element), "current", current));
+    },
+    (JsValue element, bool current) => {
+      JS.push(popped, JS.object("name", getTagName(element), "current", current));
+    }
+  );
+  JsValue htmlElement = testElement("html", Namespace.Html, "", "");
+  JsValue body = testElement("body", Namespace.Html, "", "");
+  JsValue paragraph = testElement("p", Namespace.Html, "", "");
+  stack.push(htmlElement, TagId.Html);
+  stack.push(body, TagId.Body);
+  stack.push(paragraph, TagId.P);
+  bool bodyPeek = JS.strictEqual(stack.tryPeekProperlyNestedBodyElement(), body);
+  bool pScope = stack.hasInScope(TagId.P);
+  bool pButtonScope = stack.hasInButtonScope(TagId.P);
+  bool liListScope = stack.hasInListItemScope(TagId.Li);
+  JsValue section = testElement("section", Namespace.Html, "", "");
+  stack.insertAfter(body, section, TagId.Section);
+  JsValue main = testElement("main", Namespace.Html, "", "");
+  stack.replace(section, main);
+  bool ancestor = JS.strictEqual(stack.getCommonAncestor(paragraph), main);
+  stack.remove(main);
+  JsValue listItem = testElement("li", Namespace.Html, "", "");
+  JsValue option = testElement("option", Namespace.Html, "", "");
+  stack.push(listItem, TagId.Li);
+  stack.push(option, TagId.Option);
+  stack.generateImpliedEndTags();
+  bool impliedStoppedAtP = JS.strictEqual(stack.current, paragraph);
+  JsValue template = testElement("template", Namespace.Html, "", "");
+  JsValue content = createDocumentFragment();
+  setTemplateContent(template, content);
+  stack.push(template, TagId.Template);
+  bool templateCurrent = JS.strictEqual(stack.currentTmplContentOrNode(), content);
+  int templateCount = stack.tmplCount;
+  stack.pop();
+  bool rootCurrent = stack.isRootHtmlElementCurrent();
+  bool tableScope = stack.hasInTableScope(TagId.Table);
+  bool tableBodyScope = stack.hasTableBodyContextInTableScope();
+  bool selectScope = stack.hasInSelectScope(TagId.Option);
+  bool headerScope = stack.hasNumberedHeaderInScope();
+  stack.generateImpliedEndTagsThoroughly();
+  stack.generateImpliedEndTagsWithExclusion(TagId.P);
+  stack.clearBackToTableRowContext();
+  stack.clearBackToTableBodyContext();
+  stack.clearBackToTableContext();
+  stack.popAllUpToHtmlElement();
+  return JS.object(
+    "bodyPeek", bodyPeek,
+    "pScope", pScope,
+    "pButtonScope", pButtonScope,
+    "liListScope", liListScope,
+    "ancestor", ancestor,
+    "impliedStoppedAtP", impliedStoppedAtP,
+    "templateCurrent", templateCurrent,
+    "templateCount", templateCount,
+    "rootCurrent", rootCurrent,
+    "tableScope", tableScope,
+    "tableBodyScope", tableBodyScope,
+    "selectScope", selectScope,
+    "headerScope", headerScope,
+    "stackTop", stack.stackTop,
+    "current", getTagName(stack.current),
+    "pushed", pushed,
+    "popped", popped
+  );
+}

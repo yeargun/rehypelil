@@ -1,26 +1,23 @@
-import { String } from "../../unified/host.lil";
+import { fromCodePoint } from "../common/unicode.lil";
 
 int[] DECODE_MAP_KEYS = [
   0, 128, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 142,
   145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 158, 159
 ];
-int[] DECODE_MAP_VALS = [
+
+int[] DECODE_MAP_VALUES = [
   65533, 8364, 8218, 402, 8222, 8230, 8224, 8225, 710, 8240, 352, 8249, 338, 381,
   8216, 8217, 8220, 8221, 8226, 8211, 8212, 732, 8482, 353, 8250, 339, 382, 376
 ];
 
-export string fromCodePoint(int codePoint) {
-  return JS.string(JS.invoke(String, "fromCodePoint", codePoint));
-}
-
-export int replaceCodePoint(int codePoint) {
+export pure int replaceCodePoint(int codePoint) {
   if ((codePoint >= 55296 && codePoint <= 57343) || codePoint > 1114111) {
     return 65533;
   }
   int i = 0;
   while (i < DECODE_MAP_KEYS.length) {
     if (DECODE_MAP_KEYS[i] == codePoint) {
-      return DECODE_MAP_VALS[i];
+      return DECODE_MAP_VALUES[i];
     }
     i = i + 1;
   }

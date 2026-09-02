@@ -4,9 +4,7 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readFileSync,
-  unlinkSync,
-  writeFileSync,
+  rmSync,
 } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -16,6 +14,7 @@ import { build as esbuild } from "esbuild"
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const lilscriptRoot = process.env.LILSCRIPT_ROOT ?? resolve(root, "..", "lilscript")
 const dist = resolve(root, "dist")
+const temporary = resolve(root, ".tmp", "build")
 const file = "rehype"
 const banner = "/*! @itslil/rehype 13.0.3 | LilScript reimplementation of rehype | MIT */\n"
 
@@ -41,45 +40,32 @@ function run(cmd, args) {
   if (result.status !== 0) process.exit(result.status ?? 1)
 }
 
-function compileLil(compiler, configName, outputName) {
+function compileLil(compiler, configName, outputPath) {
   run(compiler, [
-    resolve(root, "src", "entry.lil"),
+    resolve(root, "src", "index.lil"),
     "--target",
     "js-module",
     "--config",
     resolve(root, configName),
     "-o",
-    resolve(dist, outputName),
+    outputPath,
   ])
 }
 
-async function bundleParse5Host() {
+async function bundleCompiled(entryPath, outfile, format, extra) {
   await esbuild({
     absWorkingDir: root,
-    entryPoints: [resolve(root, "src", "parse5-host.js")],
-    outfile: resolve(dist, "parse5-host.js"),
-    bundle: true,
-    format: "esm",
-    platform: "neutral",
-    legalComments: "none",
-    minifyWhitespace: false,
-    minifyIdentifiers: false,
-    minifySyntax: false,
-    logLevel: "error",
-  })
-  copyFileSync(resolve(root, "src", "errors-host.js"), resolve(dist, "errors-host.js"))
-}
-
-async function bundleCompiled(entryName, outfile, format, extra) {
-  await esbuild({
-    absWorkingDir: dist,
-    entryPoints: [resolve(dist, entryName)],
+    entryPoints: [entryPath],
     outfile,
     bundle: true,
     format,
     platform: "neutral",
     legalComments: "none",
-    minifyWhitespace: format != "esm",
+    // esbuild escapes every non-ASCII character to `\uXXXX` unless told otherwise:
+    // six ASCII bytes where the literal is two or three UTF-8 ones. This artifact
+    // carries over six thousand of them.
+    charset: "utf8",
+    minifyWhitespace: true,
     minifyIdentifiers: false,
     minifySyntax: false,
     banner: { js: banner },
@@ -89,44 +75,45 @@ async function bundleCompiled(entryName, outfile, format, extra) {
 }
 
 async function compileIfRequested() {
-  if (!process.argv.includes("--compile") && existsSync(resolve(dist, `${file}.raw.js`))) {
-    return
+  if (!process.argv.includes("--compile") && existsSync(resolve(dist, `${file}.esm.js`))) {
+    return false
   }
   const compiler = compilerPath()
   if (!compiler) {
     throw new Error("LilScript compiler not found. Set LILSCRIPT_COMPILER or build lilscript.")
   }
   mkdirSync(dist, { recursive: true })
-  await bundleParse5Host()
-  compileLil(compiler, "lilscript.toml", `${file}.raw.js`)
-  compileLil(compiler, "lilscript.closed.toml", `${file}.closed.js`)
+  mkdirSync(temporary, { recursive: true })
+  rmSync(resolve(dist, `${file}.raw.js`), { force: true })
+  rmSync(resolve(dist, "parse5-host.js"), { force: true })
+  rmSync(resolve(dist, "errors-host.js"), { force: true })
+  compileLil(compiler, "lilscript.toml", resolve(temporary, `${file}.raw.js`))
+  compileLil(compiler, "lilscript.closed.toml", resolve(temporary, `${file}.closed.raw.js`))
+  return true
 }
 
-await compileIfRequested()
+const compiled = await compileIfRequested()
 mkdirSync(dist, { recursive: true })
 
-const rawPath = resolve(dist, `${file}.raw.js`)
-if (!existsSync(rawPath)) {
-  throw new Error(`dist/${file}.raw.js is missing. Run with --compile after building LilScript.`)
+if (compiled) {
+  await bundleCompiled(
+    resolve(temporary, `${file}.raw.js`),
+    resolve(dist, `${file}.esm.js`),
+    "esm",
+  )
+  await bundleCompiled(
+    resolve(temporary, `${file}.closed.raw.js`),
+    resolve(dist, `${file}.closed.js`),
+    "esm",
+  )
+  rmSync(temporary, { recursive: true, force: true })
 }
 
-if (!existsSync(resolve(dist, "parse5-host.js"))) {
-  await bundleParse5Host()
-}
-
-await bundleCompiled(`${file}.raw.js`, resolve(dist, `${file}.esm.js`), "esm")
-
-const closedPath = resolve(dist, `${file}.closed.js`)
-if (existsSync(closedPath) && readFileSync(closedPath, "utf8").includes("parse5-host.js")) {
-  const closedBundled = resolve(dist, `${file}.closed.bundled.js`)
-  await bundleCompiled(`${file}.closed.js`, closedBundled, "esm", { banner: undefined })
-  writeFileSync(closedPath, `${banner}${readFileSync(closedBundled, "utf8").trimEnd()}\n`)
-  try {
-    unlinkSync(closedBundled)
-  } catch {}
-}
-
-await bundleCompiled(`${file}.esm.js`, resolve(dist, `${file}.cjs`), "cjs")
+await bundleCompiled(
+  resolve(dist, `${file}.esm.js`),
+  resolve(dist, `${file}.cjs`),
+  "cjs",
+)
 
 await esbuild({
   absWorkingDir: dist,
@@ -139,6 +126,10 @@ await esbuild({
     js: `globalThis.rehype=rehype.default||rehype.rehype||rehype;`,
   },
   legalComments: "none",
+  // esbuild escapes every non-ASCII character to `\uXXXX` unless told otherwise:
+  // six ASCII bytes where the literal is two or three UTF-8 ones. This artifact
+  // carries 6327 of them.
+  charset: "utf8",
   minifyWhitespace: true,
   minifyIdentifiers: false,
   minifySyntax: false,

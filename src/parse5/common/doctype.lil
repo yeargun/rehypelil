@@ -1,10 +1,11 @@
-import { MODE_NO_QUIRKS, MODE_QUIRKS, MODE_LIMITED_QUIRKS } from "./html.lil";
+import { DocumentMode } from "./html.lil";
+import { DoctypeToken } from "./token.lil";
 
 string VALID_DOCTYPE_NAME = "html";
 string VALID_SYSTEM_ID = "about:legacy-compat";
 string QUIRKS_MODE_SYSTEM_ID = "http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd";
 
-string[] QUIRKS_PREFIXES = [
+string[] QUIRKS_MODE_PUBLIC_ID_PREFIXES = [
   "+//silmaril//dtd html pro v0r11 19970101//",
   "-//as//dtd html 3.0 aswedit + extensions//",
   "-//advasoft ltd//dtd html 3.0 aswedit + extensions//",
@@ -62,28 +63,28 @@ string[] QUIRKS_PREFIXES = [
   "-//webtechs//dtd mozilla html//"
 ];
 
-string[] QUIRKS_NO_SYSTEM_PREFIXES = [
+string[] QUIRKS_MODE_NO_SYSTEM_ID_PUBLIC_ID_PREFIXES = [
   "-//w3c//dtd html 4.01 frameset//",
   "-//w3c//dtd html 4.01 transitional//"
 ];
 
-string[] QUIRKS_PUBLIC_IDS = [
+string[] QUIRKS_MODE_PUBLIC_IDS = [
   "-//w3o//dtd w3 html strict 3.0//en//",
   "-/w3c/dtd html 4.0 transitional/en",
   "html"
 ];
 
-string[] LIMITED_QUIRKS_PREFIXES = [
+string[] LIMITED_QUIRKS_PUBLIC_ID_PREFIXES = [
   "-//w3c//dtd xhtml 1.0 frameset//",
   "-//w3c//dtd xhtml 1.0 transitional//"
 ];
 
-string[] LIMITED_QUIRKS_WITH_SYSTEM = [
+string[] LIMITED_QUIRKS_WITH_SYSTEM_ID_PUBLIC_ID_PREFIXES = [
   "-//w3c//dtd html 4.01 frameset//",
   "-//w3c//dtd html 4.01 transitional//"
 ];
 
-bool hasPrefix(string publicId, string[] prefixes) {
+pure bool hasPrefix(string publicId, string[] prefixes) {
   int i = 0;
   while (i < prefixes.length) {
     if (publicId.startsWith(prefixes[i])) {
@@ -94,57 +95,43 @@ bool hasPrefix(string publicId, string[] prefixes) {
   return false;
 }
 
-bool isNullId(JsValue value) {
-  return JS.isUndefined(value) || JS.isNullish(value);
+pure bool equalsAny(string value, string[] values) {
+  int i = 0;
+  while (i < values.length) {
+    if (value == values[i]) {
+      return true;
+    }
+    i = i + 1;
+  }
+  return false;
 }
 
-export bool isConforming(JsValue token) {
-  if (JS.string(JS.get(token, "name")) != VALID_DOCTYPE_NAME) {
-    return false;
-  }
-  if (!isNullId(JS.get(token, "publicId"))) {
-    return false;
-  }
-  JsValue systemId = JS.get(token, "systemId");
-  if (isNullId(systemId)) {
-    return true;
-  }
-  return JS.string(systemId) == VALID_SYSTEM_ID;
+export pure bool isConforming(DoctypeToken token) {
+  return token.name == VALID_DOCTYPE_NAME && token.publicId == null && (token.systemId == null || token.systemId == VALID_SYSTEM_ID);
 }
 
-export string getDocumentMode(JsValue token) {
-  if (JS.string(JS.get(token, "name")) != VALID_DOCTYPE_NAME) {
-    return MODE_QUIRKS;
+export pure DocumentMode getDocumentMode(DoctypeToken token) {
+  if (token.name != VALID_DOCTYPE_NAME) {
+    return DocumentMode.Quirks;
   }
-  JsValue systemIdVal = JS.get(token, "systemId");
-  if (!isNullId(systemIdVal) && JS.string(systemIdVal).toLowerCase() == QUIRKS_MODE_SYSTEM_ID) {
-    return MODE_QUIRKS;
-  }
-  JsValue publicIdVal = JS.get(token, "publicId");
-  if (!isNullId(publicIdVal)) {
-    string publicId = JS.string(publicIdVal).toLowerCase();
-    int i = 0;
-    while (i < QUIRKS_PUBLIC_IDS.length) {
-      if (publicId == QUIRKS_PUBLIC_IDS[i]) {
-        return MODE_QUIRKS;
-      }
-      i = i + 1;
-    }
-    if (isNullId(systemIdVal)) {
-      if (hasPrefix(publicId, QUIRKS_PREFIXES) || hasPrefix(publicId, QUIRKS_NO_SYSTEM_PREFIXES)) {
-        return MODE_QUIRKS;
-      }
-      if (hasPrefix(publicId, LIMITED_QUIRKS_PREFIXES)) {
-        return MODE_LIMITED_QUIRKS;
-      }
-    } else {
-      if (hasPrefix(publicId, QUIRKS_PREFIXES)) {
-        return MODE_QUIRKS;
-      }
-      if (hasPrefix(publicId, LIMITED_QUIRKS_PREFIXES) || hasPrefix(publicId, LIMITED_QUIRKS_WITH_SYSTEM)) {
-        return MODE_LIMITED_QUIRKS;
-      }
+  string? systemId = token.systemId;
+  if (systemId != null) {
+    if (systemId.toLowerCase() == QUIRKS_MODE_SYSTEM_ID) {
+      return DocumentMode.Quirks;
     }
   }
-  return MODE_NO_QUIRKS;
+  string? tokenPublicId = token.publicId;
+  if (tokenPublicId != null) {
+    string publicId = tokenPublicId.toLowerCase();
+    if (equalsAny(publicId, QUIRKS_MODE_PUBLIC_IDS)) {
+      return DocumentMode.Quirks;
+    }
+    if (hasPrefix(publicId, QUIRKS_MODE_PUBLIC_ID_PREFIXES) || (systemId == null && hasPrefix(publicId, QUIRKS_MODE_NO_SYSTEM_ID_PUBLIC_ID_PREFIXES))) {
+      return DocumentMode.Quirks;
+    }
+    if (hasPrefix(publicId, LIMITED_QUIRKS_PUBLIC_ID_PREFIXES) || (systemId != null && hasPrefix(publicId, LIMITED_QUIRKS_WITH_SYSTEM_ID_PUBLIC_ID_PREFIXES))) {
+      return DocumentMode.LimitedQuirks;
+    }
+  }
+  return DocumentMode.NoQuirks;
 }

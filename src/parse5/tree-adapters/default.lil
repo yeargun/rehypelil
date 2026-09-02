@@ -1,0 +1,212 @@
+import { HAS_OWN, NULL, Object } from "../../unified/host.lil";
+import { DocumentMode, documentModeName } from "../common/html.lil";
+
+// Tree nodes and source locations intentionally use JsValue: this module is the
+// public tree-adapter boundary, and parse5's default output is plain JS data.
+export JsValue createDocument() {
+  return JS.object("nodeName", "#document", "mode", "no-quirks", "childNodes", JS.array());
+}
+
+export JsValue createDocumentFragment() {
+  return JS.object("nodeName", "#document-fragment", "childNodes", JS.array());
+}
+
+export JsValue createElement(string tagName, string namespaceURI, JsValue attrs) {
+  return JS.object(
+    "nodeName", tagName,
+    "tagName", tagName,
+    "attrs", attrs,
+    "namespaceURI", namespaceURI,
+    "childNodes", JS.array(),
+    "parentNode", NULL
+  );
+}
+
+export JsValue createCommentNode(string data) {
+  return JS.object("nodeName", "#comment", "data", data, "parentNode", NULL);
+}
+
+export JsValue createTextNode(string value) {
+  return JS.object("nodeName", "#text", "value", value, "parentNode", NULL);
+}
+
+export void appendChild(JsValue parentNode, JsValue newNode) {
+  JS.push(JS.get(parentNode, "childNodes"), newNode);
+  JS.set(newNode, "parentNode", parentNode);
+}
+
+export void insertBefore(JsValue parentNode, JsValue newNode, JsValue referenceNode) {
+  JsValue childNodes = JS.get(parentNode, "childNodes");
+  int index = JS.number(JS.invoke(childNodes, "indexOf", referenceNode)).toInt();
+  JS.splice(childNodes, index * 1.0, 0.0, newNode);
+  JS.set(newNode, "parentNode", parentNode);
+}
+
+export void setTemplateContent(JsValue templateElement, JsValue contentElement) {
+  JS.set(templateElement, "content", contentElement);
+}
+
+export JsValue getTemplateContent(JsValue templateElement) {
+  return JS.get(templateElement, "content");
+}
+
+export void setDocumentType(JsValue document, string name, string publicId, string systemId) {
+  JsValue childNodes = JS.get(document, "childNodes");
+  int i = 0;
+  while (i < JS.number(JS.get(childNodes, "length")).toInt()) {
+    JsValue node = childNodes[i];
+    if (JS.strictEqual(JS.get(node, "nodeName"), "#documentType")) {
+      JS.set(node, "name", name);
+      JS.set(node, "publicId", publicId);
+      JS.set(node, "systemId", systemId);
+      return;
+    }
+    i = i + 1;
+  }
+  appendChild(document, JS.object(
+    "nodeName", "#documentType",
+    "name", name,
+    "publicId", publicId,
+    "systemId", systemId,
+    "parentNode", NULL
+  ));
+}
+
+export void setDocumentMode(JsValue document, DocumentMode mode) {
+  JS.set(document, "mode", documentModeName(mode));
+}
+
+export DocumentMode getDocumentMode(JsValue document) {
+  JsValue value = JS.get(document, "mode");
+  if (value is string) {
+    if (value == "quirks") return DocumentMode.Quirks;
+    if (value == "limited-quirks") return DocumentMode.LimitedQuirks;
+  }
+  return DocumentMode.NoQuirks;
+}
+
+export void detachNode(JsValue node) {
+  JsValue parentNode = JS.get(node, "parentNode");
+  if (JS.isUndefined(parentNode) || JS.isNullish(parentNode)) return;
+  JsValue childNodes = JS.get(parentNode, "childNodes");
+  int index = JS.number(JS.invoke(childNodes, "indexOf", node)).toInt();
+  JS.splice(childNodes, index * 1.0, 1.0);
+  JS.set(node, "parentNode", NULL);
+}
+
+export void insertText(JsValue parentNode, string text) {
+  JsValue childNodes = JS.get(parentNode, "childNodes");
+  int length = JS.number(JS.get(childNodes, "length")).toInt();
+  if (length > 0) {
+    JsValue previousNode = childNodes[length - 1];
+    if (isTextNode(previousNode)) {
+      JS.set(previousNode, "value", JS.string(JS.get(previousNode, "value")) + text);
+      return;
+    }
+  }
+  appendChild(parentNode, createTextNode(text));
+}
+
+export void insertTextBefore(JsValue parentNode, string text, JsValue referenceNode) {
+  JsValue childNodes = JS.get(parentNode, "childNodes");
+  int index = JS.number(JS.invoke(childNodes, "indexOf", referenceNode)).toInt();
+  if (index > 0) {
+    JsValue previousNode = childNodes[index - 1];
+    if (isTextNode(previousNode)) {
+      JS.set(previousNode, "value", JS.string(JS.get(previousNode, "value")) + text);
+      return;
+    }
+  }
+  insertBefore(parentNode, createTextNode(text), referenceNode);
+}
+
+export void adoptAttributes(JsValue recipient, JsValue attrs) {
+  JsValue recipientAttrs = JS.get(recipient, "attrs");
+  JsValue names = JS.object();
+  int i = 0;
+  while (i < JS.number(JS.get(recipientAttrs, "length")).toInt()) {
+    JS.set(names, JS.string(JS.get(recipientAttrs[i], "name")), true);
+    i = i + 1;
+  }
+  i = 0;
+  while (i < JS.number(JS.get(attrs, "length")).toInt()) {
+    JsValue attr = attrs[i];
+    string name = JS.string(JS.get(attr, "name"));
+    if (!JS.call(HAS_OWN, names, name).truthy()) {
+      JS.push(recipientAttrs, attr);
+    }
+    i = i + 1;
+  }
+}
+
+export JsValue getFirstChild(JsValue node) {
+  return JS.get(node, "childNodes")[0];
+}
+
+export JsValue getChildNodes(JsValue node) {
+  return JS.get(node, "childNodes");
+}
+
+export JsValue getParentNode(JsValue node) {
+  return JS.get(node, "parentNode");
+}
+
+export JsValue getAttrList(JsValue element) {
+  return JS.get(element, "attrs");
+}
+
+export string getTagName(JsValue element) {
+  return JS.string(JS.get(element, "tagName"));
+}
+
+export string getNamespaceURI(JsValue element) {
+  return JS.string(JS.get(element, "namespaceURI"));
+}
+
+export string getTextNodeContent(JsValue textNode) {
+  return JS.string(JS.get(textNode, "value"));
+}
+
+export string getCommentNodeContent(JsValue commentNode) {
+  return JS.string(JS.get(commentNode, "data"));
+}
+
+export string getDocumentTypeNodeName(JsValue doctypeNode) {
+  return JS.string(JS.get(doctypeNode, "name"));
+}
+
+export string getDocumentTypeNodePublicId(JsValue doctypeNode) {
+  return JS.string(JS.get(doctypeNode, "publicId"));
+}
+
+export string getDocumentTypeNodeSystemId(JsValue doctypeNode) {
+  return JS.string(JS.get(doctypeNode, "systemId"));
+}
+
+export bool isTextNode(JsValue node) {
+  return JS.strictEqual(JS.get(node, "nodeName"), "#text");
+}
+
+export bool isCommentNode(JsValue node) {
+  return JS.strictEqual(JS.get(node, "nodeName"), "#comment");
+}
+
+export bool isDocumentTypeNode(JsValue node) {
+  return JS.strictEqual(JS.get(node, "nodeName"), "#documentType");
+}
+
+export bool isElementNode(JsValue node) {
+  return JS.call(HAS_OWN, node, "tagName").truthy();
+}
+
+export void setNodeSourceCodeLocation(JsValue node, JsValue location) {
+  JS.set(node, "sourceCodeLocation", location);
+}
+
+export JsValue getNodeSourceCodeLocation(JsValue node) {
+  return JS.get(node, "sourceCodeLocation");
+}
+
+export void updateNodeSourceCodeLocation(JsValue node, JsValue endLocation) {
+  JS.set(node, "sourceCodeLocation", JS.invoke(Object, "assign", JS.object(), JS.get(node, "sourceCodeLocation"), endLocation));
+}

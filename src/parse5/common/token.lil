@@ -1,27 +1,81 @@
-import { NULL } from "../../unified/host.lil";
+import { TagId } from "./html.lil";
 
-export int TOKEN_CHARACTER = 0;
-export int TOKEN_NULL = 1;
-export int TOKEN_WHITESPACE = 2;
-export int TOKEN_START_TAG = 3;
-export int TOKEN_END_TAG = 4;
-export int TOKEN_COMMENT = 5;
-export int TOKEN_DOCTYPE = 6;
-export int TOKEN_EOF = 7;
-export int TOKEN_HIBERNATION = 8;
+export enum TokenType {
+  Character,
+  NullCharacter,
+  WhitespaceCharacter,
+  StartTag,
+  EndTag,
+  Comment,
+  Doctype,
+  Eof,
+  Hibernation
+}
 
-export JsValue tokenAttr(JsValue token, string name) {
-  JsValue attrs = JS.get(token, "attrs");
-  if (!JS.isArray(attrs)) {
-    return NULL;
-  }
-  int i = JS.number(JS.get(attrs, "length")).toInt() - 1;
+export struct Attribute {
+  string name;
+  string value;
+  string? namespace;
+  string? prefix;
+}
+
+export class Location {
+  int startLine;
+  int startCol;
+  int startOffset;
+  int endLine;
+  int endCol;
+  int endOffset;
+}
+
+export class TagLocation extends Location {
+  Map<string, Location> attrs;
+}
+
+export struct DoctypeToken {
+  TokenType type;
+  string? name;
+  bool forceQuirks;
+  string? publicId;
+  string? systemId;
+  Location? location;
+}
+
+export struct TagToken {
+  TokenType type;
+  string tagName;
+  TagId tagID;
+  bool selfClosing;
+  bool ackSelfClosing;
+  Attribute[] attrs;
+  TagLocation? location;
+  JsValue serializedLocation;
+}
+
+export struct CommentToken {
+  TokenType type;
+  string data;
+  Location? location;
+}
+
+export struct CharacterToken {
+  TokenType type;
+  string chars;
+  Location? location;
+}
+
+export struct EofToken {
+  TokenType type;
+  Location? location;
+}
+
+export pure string? getTokenAttr(TagToken token, string attrName) {
+  int i = token.attrs.length - 1;
   while (i >= 0) {
-    JsValue attr = attrs[i];
-    if (JS.strictEqual(JS.get(attr, "name"), name)) {
-      return JS.get(attr, "value");
+    if (token.attrs[i].name == attrName) {
+      return token.attrs[i].value;
     }
     i = i - 1;
   }
-  return NULL;
+  return null;
 }

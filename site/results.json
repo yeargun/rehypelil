@@ -8,11 +8,11 @@
   "codec": "lilscript-codec gzip-9 / brotli-11",
   "runtime": "Node v22.21.1",
   "warmupDiscard": 3,
-  "comparison": "Official rows are an esbuild bundle of rehype@13.0.2 plus its runtime graph, then Terser or esbuild. LilScript is the compiled npm file. Closed is extern_fields=false.",
+  "comparison": "Official rows are an esbuild 0.28.1 bundle of the exact rehype@13.0.2 worktree plus its runtime graph, then Terser or esbuild. LilScript is the compiled npm ESM. Closed uses the closed-world config.",
   "spec": {
-    "total": 136,
-    "pass": 136,
-    "label": "official suite"
+    "total": 146,
+    "pass": 146,
+    "label": "ported upstream tests"
   },
   "play": {
     "kind": "html-html",
@@ -22,53 +22,53 @@
     {
       "id": "official",
       "name": "Official rehype@13.0.2 graph",
-      "raw": 438508,
-      "gzip9": 91765,
-      "brotli11": 74480,
+      "raw": 415899,
+      "gzip9": 90181,
+      "brotli11": 73110,
       "note": "esbuild bundle of the published package plus runtime deps",
       "diagnostic": false
     },
     {
       "id": "official-terser-mangle",
       "name": "Official · Terser mangle on",
-      "raw": 221169,
-      "gzip9": 67624,
-      "brotli11": 54928,
+      "raw": 220821,
+      "gzip9": 68462,
+      "brotli11": 55030,
       "note": "Terser compress of that graph, mangle: true",
       "baseline": true
     },
     {
       "id": "official-terser-nomangle",
       "name": "Official · Terser mangle off",
-      "raw": 275488,
-      "gzip9": 73685,
-      "brotli11": 60222,
+      "raw": 275162,
+      "gzip9": 74516,
+      "brotli11": 60291,
       "note": "Terser compress of that graph, mangle: false"
     },
     {
       "id": "official-esbuild",
       "name": "Official · esbuild minify",
-      "raw": 242664,
-      "gzip9": 69082,
-      "brotli11": 57077,
+      "raw": 242089,
+      "gzip9": 69759,
+      "brotli11": 56957,
       "note": "esbuild minify of that graph"
     },
     {
       "id": "itslil",
       "name": "@itslil/rehype · library",
-      "raw": 236405,
-      "gzip9": 63238,
-      "brotli11": 52059,
+      "raw": 173322,
+      "gzip9": 62185,
+      "brotli11": 51696,
       "note": "LilScript js-module, extern_fields true. The npm ESM.",
       "primary": true
     },
     {
       "id": "itslil-closed",
       "name": "@itslil/rehype · closed",
-      "raw": 161944,
-      "gzip9": 57464,
-      "brotli11": 48131,
-      "note": "Same source, extern_fields false"
+      "raw": 173146,
+      "gzip9": 62119,
+      "brotli11": 51726,
+      "note": "Same source, extern_fields false; diagnostic only"
     }
   ],
   "throughput": [

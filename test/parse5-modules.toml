@@ -1,0 +1,6 @@
+[javascript]
+optimization_level = 0
+public_aggregate_abi = "named"
+
+[mangle]
+exports = false
