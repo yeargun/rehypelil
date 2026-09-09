@@ -66,7 +66,12 @@ async function bundleCompiled(entryPath, outfile, format, extra) {
     // carries over six thousand of them.
     charset: "utf8",
     minifyWhitespace: true,
-    minifyIdentifiers: false,
+    // 8.16 (measured): with this off, flattening our module scope into the host
+    // modules' makes esbuild disambiguate every shadowed inner binding with a
+    // digit suffix -- 66 names, 5,712 mentions, 5,714 characters of pure `2` in
+    // the shipped ESM. Letting it mangle instead removes all of them. This is
+    // the same fix micromarklil took in 8.7 and katexlil already carried.
+    minifyIdentifiers: true,
     minifySyntax: false,
     banner: { js: banner },
     logLevel: "error",
