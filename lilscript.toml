@@ -4,7 +4,11 @@
 # read is not a coercion hook and the value can nest into its consumer.
 assume_pure_property_reads = true
 priority = "size-first"
-optimization_level = 12
+# 8.20 (measured, fleet sweep of four budgets with the level clamp bypassed):
+# this port wants a 32 MiB candidate pool -- 2 MiB -78, 32 MiB -403 against the
+# default -- and only level 15 escapes the clamp that pins the budget at 512 KiB
+# for level 12. The two are declared together because neither works alone.
+optimization_level = 15
 cost_model = "brotli"
 assume_pristine_builtins = true
 strip_console = true
@@ -15,6 +19,7 @@ local_name_reserve = 64
 candidate_search = "always"
 function_spelling = "arrow"
 public_aggregate_abi = "named"
+candidate_byte_budget = 33554432
 
 [mangle]
 identifiers = true
