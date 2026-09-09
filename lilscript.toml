@@ -17,7 +17,11 @@ strip_console = true
 # against the declared 48. Re-measure it after any emitter change.
 local_name_reserve = 64
 candidate_search = "always"
-function_spelling = "arrow"
+# 8.24 (measured, fleet): the `function` spelling is -132 Brotli here -- the
+# keyword is a long shared prefix the codec matches at every site. It is the
+# other way on five ports (jquerylil +214, remarklil +286, markedlil +115),
+# so it is declared per port.
+function_spelling = "function"
 public_aggregate_abi = "named"
 candidate_byte_budget = 33554432
 
