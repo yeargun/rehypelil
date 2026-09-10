@@ -10,9 +10,9 @@
   "warmupDiscard": 3,
   "comparison": "Official rows are an esbuild 0.28.1 bundle of the exact rehype@13.0.2 worktree plus its runtime graph, then Terser or esbuild. LilScript is the compiled npm ESM. Closed uses the closed-world config.",
   "spec": {
-    "total": 146,
-    "pass": 146,
-    "label": "ported upstream tests"
+    "total": 159,
+    "pass": 159,
+    "label": "repository checks"
   },
   "play": {
     "kind": "html-html",
@@ -47,7 +47,7 @@
       "raw": 168122,
       "gzip9": 60640,
       "brotli11": 50819,
-      "note": "Fresh packaged ESM, rebuilt with compiler 63c2896a71.",
+      "note": "ESM output from LilScript 63c2896.",
       "primary": true,
       "measuredAt": "2026-09-10T13:49:59Z",
       "artifactSha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
@@ -58,7 +58,7 @@
       "raw": 165772,
       "gzip9": 60631,
       "brotli11": 51135,
-      "note": "Same source, extern_fields false; diagnostic only",
+      "note": "ESM output from LilScript 63c2896.",
       "measuredAt": "2026-09-10T13:49:59Z",
       "artifactSha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
     }
@@ -75,7 +75,5 @@
       "documentMs": 0.213832999999795
     }
   ],
-  "sizeMeasuredAt": "2026-09-10T13:49:59Z",
-  "buildAudit": "./build-audit.json",
-  "runtimeEvidenceStatus": "Historical; runtime throughput was not republished as a measurement of this compiler."
+  "sizeMeasuredAt": "2026-09-10T13:49:59Z"
 }

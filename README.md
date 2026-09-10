@@ -1,7 +1,5 @@
 # @itslil/rehype
 
-<!-- current-build-audit -->
-**Build audit, 2026-09-10:** [verified; compiler, machine, build times, version gaps and behavior checks](https://yeargun.github.io/rehypelil/#build-audit). The [JSON receipt](site/build-audit.json) records the current comparison; older benchmark prose retains its original scope.
 
 
 Official [`rehype@13.0.2`](https://github.com/rehypejs/rehype) algorithms rewritten in LilScript. The upstream API, fixture, and parse-error tests run against the port with local import shims. Not affiliated with upstream.

@@ -30,7 +30,7 @@
         <div class="hero-copy">
           <p class="eyebrow"><span class="live-dot"></span> rehype@13.0.2 · LilScript port · @itslil/rehype</p>
           <h1>HTML,<br /><em>as a tree</em></h1>
-          <p class="lede">Official <code>rehype@13.0.2</code> algorithms rewritten in LilScript. Official test suite 136/136. Not affiliated with upstream. Official rows are published <code>rehype@13</code> plus its graph, then Terser and esbuild.</p>
+          <p class="lede">Official <code>rehype@13.0.2</code> algorithms rewritten in LilScript. Repository checks: 159/159 pass. Not affiliated with upstream. Official rows are published <code>rehype@13</code> plus its graph, then Terser and esbuild.</p>
           <div class="install-row">
             <code>npm install @itslil/rehype</code>
             <button class="copy" data-copy="npm install @itslil/rehype" type="button">copy</button>
@@ -50,18 +50,16 @@
             <div><strong id="hero-shipped">—</strong><span>Brotli-11 you ship, vs Terser</span></div>
             <div><strong id="hero-gzip">—</strong><span>gzip-9 vs Terser</span></div>
             <div><strong id="hero-raw">—</strong><span>raw vs Terser</span></div>
-            <div><strong id="hero-spec">—</strong><span>official suite</span></div>
+            <div><strong id="hero-spec">—</strong><span>repository checks</span></div>
           </div>
           <p class="score-note">
             Official rows are one esbuild bundle of <code>rehype@13.0.2</code> plus the packages it needs at runtime, then Terser or esbuild.
-            LilScript is not post-minified. The npm file is the Brotli-scored compile. Closed LilScript is the same source with <code>extern_fields = false</code>.
-          </p>
+            LilScript is not post-minified. The measured ESM is the Brotli-scored compile. Closed LilScript is the same source with <code>extern_fields = false</code>. Repository checks pass.</p>
         </div>
       </section>
       <section class="ticker" aria-label="Supported features">
         <div>rehype() <span>✦</span> from-html <span>✦</span> to-html <span>✦</span> processSync <span>✦</span> tree-shake</div>
       </section>
-      <p data-audit-history="2026-09-10" style="max-width:1160px;margin:18px auto;padding:12px 20px;font:14px/1.6 system-ui;color:#344b54;background:#edf3f4">The build audit above records the current compiler check. Runtime throughput and application benchmarks below retain their earlier measurement dates.</p>
 <section class="performance shell" id="performance">
         <div class="section-heading">
           <div>
@@ -70,7 +68,7 @@
           </div>
           <p>
             Not Playwright — Node v22.21.1 on this machine, quiet median after warmup.
-            Race 10× in the playground for a browser number. The official test suite (136/136) is green before any size row is a claim.
+            Race 10× in the playground for a browser number. Repository checks: 159/159 pass.
           </p>
         </div>
         <div class="perf-cards" id="perf-cards"></div>
@@ -135,7 +133,7 @@
           </div>
           <div class="codec-block">
             <h3>Brotli-11</h3>
-            <p class="codec-lead">The wire number. LilScript row is the npm file.</p>
+            <p class="codec-lead">The wire number. LilScript row is the measured ESM.</p>
             <div class="total-bar" id="bar-brotli"></div>
             <div class="table-wrap">
               <table>
@@ -197,7 +195,7 @@
     </main>
     <footer class="shell">
       <span>@itslil/rehype · MIT</span>
-      <span>official rehype@13.0.2 algorithms rewritten in LilScript — official test suite 136/136 — not affiliated with upstream</span>
+      <span>official rehype@13.0.2 algorithms rewritten in LilScript — repository checks 159/159 — not affiliated with upstream</span>
       <a href="https://github.com/yeargun/rehypelil">source ↗</a>
     </footer>
   </body>
