@@ -12,7 +12,7 @@
   "spec": {
     "total": 159,
     "pass": 159,
-    "label": "repository checks"
+    "label": "runtime checks"
   },
   "play": {
     "kind": "html-html",
@@ -22,13 +22,13 @@
     {
       "id": "official",
       "name": "Official rehype@13.0.2 graph",
-      "raw": 438508,
-      "gzip9": 91765,
-      "brotli11": 74480,
+      "raw": 438496,
+      "gzip9": 91769,
+      "brotli11": 74485,
       "note": "esbuild bundle of the published package plus runtime deps",
       "diagnostic": false,
-      "measuredAt": "2026-09-10T13:49:59Z",
-      "artifactSha256": "459895e2acccf3d3a639fb1de6863672aa841c561d948c44f2ff2f8bc73fccbb"
+      "measuredAt": "2026-09-10T20:38:27Z",
+      "artifactSha256": "a9904637282b3c1c0fb99beee08ac985136d56cd06221ce298c4245f722b5670"
     },
     {
       "id": "official-terser-mangle",
@@ -38,19 +38,19 @@
       "brotli11": 54982,
       "note": "Terser compress of that graph, mangle: true",
       "baseline": true,
-      "measuredAt": "2026-09-10T13:49:59Z",
+      "measuredAt": "2026-09-10T20:38:27Z",
       "artifactSha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
     },
     {
       "id": "itslil",
       "name": "@itslil/rehype \u00b7 library",
-      "raw": 168122,
-      "gzip9": 60640,
-      "brotli11": 50819,
-      "note": "ESM output from LilScript 63c2896.",
+      "raw": 168124,
+      "gzip9": 60643,
+      "brotli11": 50866,
+      "note": "ESM output from LilScript 4dc4e33.",
       "primary": true,
-      "measuredAt": "2026-09-10T13:49:59Z",
-      "artifactSha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
+      "measuredAt": "2026-09-10T20:38:27Z",
+      "artifactSha256": "d568afe29305b6a66ad18a2e4e6c81a77b919f7210201064f8ffc7dc06103f0a"
     },
     {
       "id": "itslil-closed",
@@ -58,8 +58,8 @@
       "raw": 165772,
       "gzip9": 60631,
       "brotli11": 51135,
-      "note": "ESM output from LilScript 63c2896.",
-      "measuredAt": "2026-09-10T13:49:59Z",
+      "note": "ESM output from LilScript 4dc4e33.",
+      "measuredAt": "2026-09-10T20:38:27Z",
       "artifactSha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
     }
   ],
@@ -75,5 +75,5 @@
       "documentMs": 0.213832999999795
     }
   ],
-  "sizeMeasuredAt": "2026-09-10T13:49:59Z"
+  "sizeMeasuredAt": "2026-09-10T20:38:27Z"
 }

@@ -1,0 +1,33 @@
+{
+  "source": {
+    "repository": "https://github.com/rehypejs/rehype.git",
+    "commit": "06fd4dc9b13538ece27bce1999a85d396a646817",
+    "package": "rehype",
+    "version": "13.0.2",
+    "directory": "packages/rehype"
+  },
+  "portSource": {
+    "commit": "18092d446404134707385f6ba13d52b5b3a3a92a"
+  },
+  "compilerCommit": "4dc4e3337d9ffd758d65e3852682d6e13d9331c1",
+  "install": [
+    "npm",
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund"
+  ],
+  "setup": [],
+  "build": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "clean": [],
+  "entry": "packages/rehype/index.js",
+  "defaultExport": false,
+  "external": [],
+  "esmScope": "rehype@13.0.2 public ESM runtime graph; dependency installation excluded; this is a comparison bundle build, not the upstream vendor release pipeline",
+  "lilscriptBuild": "node scripts/build.mjs --compile --force",
+  "test": "npm run check:types && node --test test/*.test.mjs test/official/api.js test/official/parse-error.js"
+}

@@ -1,0 +1,818 @@
+{
+  "schemaVersion": 1,
+  "name": "rehypelil",
+  "startedAt": "2026-09-10T20:24:14Z",
+  "machine": {
+    "provider": "Azure",
+    "instanceClass": "Standard_D16als_v7",
+    "cpu": "AMD EPYC 9V45 96-Core Processor",
+    "logicalCpus": 16,
+    "memoryBytes": 33648431104,
+    "os": "Ubuntu 24.04.4 LTS",
+    "kernel": "6.17.0-1022-azure",
+    "node": "v24.11.1",
+    "rayonThreads": 8,
+    "loadAtStart": [
+      1.42333984375,
+      1.8759765625,
+      2.0458984375
+    ],
+    "loadAtEnd": [
+      1.3681640625,
+      1.63818359375,
+      1.8798828125
+    ]
+  },
+  "compiler": {
+    "commit": "4dc4e3337d9ffd758d65e3852682d6e13d9331c1",
+    "sha256": "0616048498eb9eb2e4bd75b39e8e6a083733ada647e16108edfee30ad183beeb"
+  },
+  "source": {
+    "repository": "https://github.com/rehypejs/rehype.git",
+    "commit": "06fd4dc9b13538ece27bce1999a85d396a646817",
+    "package": "rehype",
+    "version": "13.0.2",
+    "directory": "packages/rehype"
+  },
+  "portSource": {
+    "commit": "18092d446404134707385f6ba13d52b5b3a3a92a"
+  },
+  "steps": {
+    "original-install": {
+      "command": [
+        "npm",
+        "install",
+        "--ignore-scripts",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 5.873936072000106,
+      "cpuSeconds": 6.392752999999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-install.log",
+      "logSha256": "b186f6446949aaadede72313bf9f72c892a49d25f249bd78013b9bcc6dd3ac93",
+      "tail": "npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.\n\nadded 853 packages in 6s\n"
+    },
+    "lilscript-install": {
+      "command": [
+        "npm",
+        "ci",
+        "--no-audit",
+        "--no-fund"
+      ],
+      "cwd": "port",
+      "wallSeconds": 0.8651579940001284,
+      "cpuSeconds": 0.66208,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-install.log",
+      "logSha256": "510d2c7a5db8841ca7ce1283524b5195e9dd3da55491ed6de5e2775859a380dd",
+      "tail": "\nadded 64 packages in 789ms\n"
+    },
+    "original-build-1": {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 1.6165584469999885,
+      "cpuSeconds": 3.0709720000000003,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-build-1.log",
+      "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01",
+      "tail": "\n> build\n> tsc --build --clean && tsc --build && type-coverage\n\n(830 / 830) 100.00%\ntype-coverage success.\n"
+    },
+    "lilscript-build-1": {
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/build.mjs --compile --force"
+      ],
+      "cwd": "port",
+      "wallSeconds": 279.15066288900016,
+      "cpuSeconds": 557.8227410000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-build-1.log",
+      "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908",
+      "tail": "wrote dist/rehype.esm.js, dist/rehype.cjs, dist/rehype.umd.js, dist/rehype.closed.js\n",
+      "invocations": [
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js"
+          ],
+          "startedAt": 1789071862.8389246,
+          "wallSeconds": 252.31862497329712,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js",
+          "sha256": "82e24c8076b2bd6cb63d456a690df0d0e2707d2dbe584a99a3c0538815b26660"
+        },
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.closed.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js"
+          ],
+          "startedAt": 1789072115.1814475,
+          "wallSeconds": 26.69869613647461,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js",
+          "sha256": "e2990dcdeb54995ec5c12b504de93b06b433da10a0585d64d86164ad2ef7d920"
+        }
+      ]
+    },
+    "lilscript-build-2": {
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/build.mjs --compile --force"
+      ],
+      "cwd": "port",
+      "wallSeconds": 278.6467387829998,
+      "cpuSeconds": 559.3061049999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-build-2.log",
+      "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908",
+      "tail": "wrote dist/rehype.esm.js, dist/rehype.cjs, dist/rehype.umd.js, dist/rehype.closed.js\n",
+      "invocations": [
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js"
+          ],
+          "startedAt": 1789072141.994315,
+          "wallSeconds": 251.7978389263153,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js",
+          "sha256": "82e24c8076b2bd6cb63d456a690df0d0e2707d2dbe584a99a3c0538815b26660"
+        },
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.closed.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js"
+          ],
+          "startedAt": 1789072393.817419,
+          "wallSeconds": 26.70376944541931,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js",
+          "sha256": "e2990dcdeb54995ec5c12b504de93b06b433da10a0585d64d86164ad2ef7d920"
+        }
+      ]
+    },
+    "original-build-2": {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 1.5668921699998464,
+      "cpuSeconds": 2.9502130000000593,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-build-2.log",
+      "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01",
+      "tail": "\n> build\n> tsc --build --clean && tsc --build && type-coverage\n\n(830 / 830) 100.00%\ntype-coverage success.\n"
+    },
+    "original-build-3": {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 1.5670577139999295,
+      "cpuSeconds": 2.91497199999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-build-3.log",
+      "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01",
+      "tail": "\n> build\n> tsc --build --clean && tsc --build && type-coverage\n\n(830 / 830) 100.00%\ntype-coverage success.\n"
+    },
+    "lilscript-build-3": {
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/build.mjs --compile --force"
+      ],
+      "cwd": "port",
+      "wallSeconds": 278.55146057300044,
+      "cpuSeconds": 556.7226470000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-build-3.log",
+      "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908",
+      "tail": "wrote dist/rehype.esm.js, dist/rehype.cjs, dist/rehype.umd.js, dist/rehype.closed.js\n",
+      "invocations": [
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js"
+          ],
+          "startedAt": 1789072423.776815,
+          "wallSeconds": 251.71251773834229,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js",
+          "sha256": "82e24c8076b2bd6cb63d456a690df0d0e2707d2dbe584a99a3c0538815b26660"
+        },
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.closed.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js"
+          ],
+          "startedAt": 1789072675.5134554,
+          "wallSeconds": 26.691223621368408,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js",
+          "sha256": "e2990dcdeb54995ec5c12b504de93b06b433da10a0585d64d86164ad2ef7d920"
+        }
+      ]
+    },
+    "original-esm": {
+      "command": [
+        "node",
+        "/home/lilfarm/source-perf-20260910/tools/source-esm.mjs",
+        "/home/lilfarm/source-perf-20260910",
+        "rehypelil"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 3.2195330959993953,
+      "cpuSeconds": 4.737858999999808,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-esm.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    "lilscript-tests": {
+      "command": [
+        "bash",
+        "-c",
+        "npm run check:types && node --test test/*.test.mjs test/official/api.js test/official/parse-error.js"
+      ],
+      "cwd": "port",
+      "wallSeconds": 1.4163149060004798,
+      "cpuSeconds": 3.4922309999999914,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-tests.log",
+      "logSha256": "d906eb5619e5f2ee9a4c364e66b735ae53ed0235a0befd2897bbef934c54ad53",
+      "tail": "18602ms)\n  \u2714 end-tag-with-attributes (0.592092ms)\n  \u2714 end-tag-with-trailing-solidus (0.556629ms)\n  \u2714 end-tag-without-matching-open-element (0.667817ms)\n  \u2714 eof-before-tag-name (0.616339ms)\n  \u2714 eof-in-cdata (0.587625ms)\n  \u2714 eof-in-comment (0.565613ms)\n  \u2714 eof-in-doctype (0.730892ms)\n  \u2714 eof-in-element-that-can-contain-only-text (0.632383ms)\n  \u2714 eof-in-script-html-comment-like-text (1.278767ms)\n  \u2714 eof-in-tag (0.585081ms)\n  \u2714 incorrectly-closed-comment (0.559793ms)\n  \u2714 incorrectly-opened-comment (0.648247ms)\n  \u2714 invalid-character-sequence-after-doctype-name (0.554225ms)\n  \u2714 invalid-first-character-of-tag-name (0.564871ms)\n  \u2714 misplaced-doctype (0.583439ms)\n  \u2714 misplaced-start-tag-for-head-element (0.529988ms)\n  \u2714 missing-attribute-value (0.581837ms)\n  \u2714 missing-doctype (0.527455ms)\n  \u2714 missing-doctype-name (0.576048ms)\n  \u2714 missing-doctype-public-identifier (1.588313ms)\n  \u2714 missing-doctype-system-identifier (0.679253ms)\n  \u2714 missing-end-tag-name (0.594296ms)\n  \u2714 missing-quote-before-doctype-public-identifier (0.576609ms)\n  \u2714 missing-quote-before-doctype-system-identifier (0.472482ms)\n  \u2714 missing-semicolon-after-character-reference (0.622337ms)\n  \u2714 missing-whitespace-after-doctype-public-keyword (0.623901ms)\n  \u2714 missing-whitespace-after-doctype-system-keyword (0.574245ms)\n  \u2714 missing-whitespace-before-doctype-name (0.529878ms)\n  \u2714 missing-whitespace-between-attributes (0.652924ms)\n  \u2714 missing-whitespace-between-doctype-public-and-system-identifiers (0.529768ms)\n  \u2714 nested-comment (1.285076ms)\n  \u2714 nested-noscript-in-head (0.770331ms)\n  \u2714 non-conforming-doctype (0.761027ms)\n  \u2714 non-void-html-element-start-tag-with-trailing-solidus (0.808448ms)\n  \u2714 noncharacter-character-reference (0.623129ms)\n  \u2714 noncharacter-in-input-stream (0.59074ms)\n  \u2714 null-character-reference (0.559163ms)\n  \u2714 open-elements-left-after-eof (0.533374ms)\n  \u2714 surrogate-character-reference (0.52453ms)\n  \u2714 unexpected-character-after-doctype-system-identifier (0.724472ms)\n  \u2714 unexpected-character-in-attribute-name (0.905605ms)\n  \u2714 unexpected-character-in-unquoted-attribute-value (0.626233ms)\n  \u2714 unexpected-equals-sign-before-attribute-name (0.861648ms)\n  \u2714 unexpected-null-character (0.964984ms)\n  \u2714 unexpected-question-mark-instead-of-tag-name (0.68358ms)\n  \u2714 unexpected-solidus-in-tag (0.613655ms)\n  \u2714 unknown-named-character-reference (0.570599ms)\n  \u2714 surrogate-in-input-stream (0.257838ms)\n\u2714 parse errors (59.339729ms)\n\u25b6 isolated parse5 LilScript modules\n  \u2714 matches all parse-error codes and reverse attribute lookup (1.31393ms)\n  \u2714 matches HTML tag IDs and element sets (0.99582ms)\n  \u2714 matches doctype conformance and document mode (0.591331ms)\n  \u2714 matches Unicode and entity code-point handling (171.078227ms)\n  \u2714 matches complete and incrementally supplied entity references (4.087159ms)\n  \u2714 matches foreign-content adjustment and integration rules (1.144615ms)\n  \u2714 matches preprocessing across malformed input and chunk boundaries (7.14716ms)\n  \u2714 matches preprocessor lookahead, insertion, and buffer dropping (0.264599ms)\n  \u2714 matches the default tree adapter's mutation semantics (0.363658ms)\n  \u2714 matches active-formatting-list ordering and Noah's Ark enforcement (0.552062ms)\n  \u2714 matches open-element-stack mutation, scope, and callback ordering (0.765824ms)\n\u2714 isolated parse5 LilScript modules (189.179604ms)\n\u25b6 site\n  \u2714 has a markedlil-style lab with receipts (0.593003ms)\n\u2714 site (1.075ms)\n\u2139 tests 159\n\u2139 suites 5\n\u2139 pass 159\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 687.060924\n"
+    }
+  },
+  "nativeBuilds": [
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 1.6165584469999885,
+      "cpuSeconds": 3.0709720000000003,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-build-1.log",
+      "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01",
+      "tail": "\n> build\n> tsc --build --clean && tsc --build && type-coverage\n\n(830 / 830) 100.00%\ntype-coverage success.\n"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 1.5668921699998464,
+      "cpuSeconds": 2.9502130000000593,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-build-2.log",
+      "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01",
+      "tail": "\n> build\n> tsc --build --clean && tsc --build && type-coverage\n\n(830 / 830) 100.00%\ntype-coverage success.\n"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "upstream",
+      "wallSeconds": 1.5670577139999295,
+      "cpuSeconds": 2.91497199999994,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "original-build-3.log",
+      "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01",
+      "tail": "\n> build\n> tsc --build --clean && tsc --build && type-coverage\n\n(830 / 830) 100.00%\ntype-coverage success.\n"
+    }
+  ],
+  "lilscriptBuilds": [
+    {
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/build.mjs --compile --force"
+      ],
+      "cwd": "port",
+      "wallSeconds": 279.15066288900016,
+      "cpuSeconds": 557.8227410000001,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-build-1.log",
+      "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908",
+      "tail": "wrote dist/rehype.esm.js, dist/rehype.cjs, dist/rehype.umd.js, dist/rehype.closed.js\n",
+      "invocations": [
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js"
+          ],
+          "startedAt": 1789071862.8389246,
+          "wallSeconds": 252.31862497329712,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js",
+          "sha256": "82e24c8076b2bd6cb63d456a690df0d0e2707d2dbe584a99a3c0538815b26660"
+        },
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.closed.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js"
+          ],
+          "startedAt": 1789072115.1814475,
+          "wallSeconds": 26.69869613647461,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js",
+          "sha256": "e2990dcdeb54995ec5c12b504de93b06b433da10a0585d64d86164ad2ef7d920"
+        }
+      ]
+    },
+    {
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/build.mjs --compile --force"
+      ],
+      "cwd": "port",
+      "wallSeconds": 278.6467387829998,
+      "cpuSeconds": 559.3061049999999,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-build-2.log",
+      "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908",
+      "tail": "wrote dist/rehype.esm.js, dist/rehype.cjs, dist/rehype.umd.js, dist/rehype.closed.js\n",
+      "invocations": [
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js"
+          ],
+          "startedAt": 1789072141.994315,
+          "wallSeconds": 251.7978389263153,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js",
+          "sha256": "82e24c8076b2bd6cb63d456a690df0d0e2707d2dbe584a99a3c0538815b26660"
+        },
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.closed.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js"
+          ],
+          "startedAt": 1789072393.817419,
+          "wallSeconds": 26.70376944541931,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js",
+          "sha256": "e2990dcdeb54995ec5c12b504de93b06b433da10a0585d64d86164ad2ef7d920"
+        }
+      ]
+    },
+    {
+      "command": [
+        "bash",
+        "-c",
+        "node scripts/build.mjs --compile --force"
+      ],
+      "cwd": "port",
+      "wallSeconds": 278.55146057300044,
+      "cpuSeconds": 556.7226470000002,
+      "exitCode": 0,
+      "timedOut": false,
+      "log": "lilscript-build-3.log",
+      "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908",
+      "tail": "wrote dist/rehype.esm.js, dist/rehype.cjs, dist/rehype.umd.js, dist/rehype.closed.js\n",
+      "invocations": [
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js"
+          ],
+          "startedAt": 1789072423.776815,
+          "wallSeconds": 251.71251773834229,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.raw.js",
+          "sha256": "82e24c8076b2bd6cb63d456a690df0d0e2707d2dbe584a99a3c0538815b26660"
+        },
+        {
+          "args": [
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/src/index.lil",
+            "--target",
+            "js-module",
+            "--config",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/lilscript.closed.toml",
+            "-o",
+            "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js"
+          ],
+          "startedAt": 1789072675.5134554,
+          "wallSeconds": 26.691223621368408,
+          "exitCode": 0,
+          "output": "/home/lilfarm/source-perf-20260910/ports/rehypelil/.tmp/build/rehype.closed.raw.js",
+          "sha256": "e2990dcdeb54995ec5c12b504de93b06b433da10a0585d64d86164ad2ef7d920"
+        }
+      ]
+    }
+  ],
+  "protocol": {
+    "repetitions": 3,
+    "cleanOutputs": true,
+    "dependencyInstallationTimedSeparately": true,
+    "sourceArchives": "Pinned Git checkouts; original repository package build commands, followed by production ESM assembly.",
+    "workerUse": "Both implementations use the same machine and Node version. This shared build pool also runs unrelated jobs; timings are contextual wall times, with CPU time recorded separately."
+  },
+  "esm": {
+    "source": {
+      "repository": "https://github.com/rehypejs/rehype.git",
+      "commit": "06fd4dc9b13538ece27bce1999a85d396a646817",
+      "package": "rehype",
+      "version": "13.0.2",
+      "directory": "packages/rehype"
+    },
+    "entry": "packages/rehype/index.js",
+    "scope": "rehype@13.0.2 public ESM runtime graph; dependency installation excluded; this is a comparison bundle build, not the upstream vendor release pipeline",
+    "external": [],
+    "samples": [
+      {
+        "bundleSeconds": 0.0213298,
+        "wallSeconds": 0.6378212099999999
+      },
+      {
+        "bundleSeconds": 0.016372982999999976,
+        "wallSeconds": 0.5481688929999999
+      },
+      {
+        "bundleSeconds": 0.015461426999999958,
+        "wallSeconds": 0.47257936300000003
+      }
+    ],
+    "medianSeconds": 0.5481688929999999,
+    "toolchain": {
+      "esbuild": "0.28.1",
+      "terser": "5.51.2"
+    },
+    "artifacts": [
+      {
+        "path": "original.esm.js",
+        "raw": 221170,
+        "gzip9": 67626,
+        "brotli11": 54982,
+        "sha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
+      },
+      {
+        "path": "original.unminified.js",
+        "raw": 438496,
+        "gzip9": 91769,
+        "brotli11": 74485,
+        "sha256": "a9904637282b3c1c0fb99beee08ac985136d56cd06221ce298c4245f722b5670"
+      },
+      {
+        "path": "original.terser-nomangle.js",
+        "raw": 275489,
+        "gzip9": 73689,
+        "brotli11": 60143,
+        "sha256": "8f87c94f7a7ca398dd796661ed5a48069cbaa5459b4ef92fc82aaeec69aa1b9b"
+      },
+      {
+        "path": "original.esbuild.js",
+        "raw": 242664,
+        "gzip9": 69082,
+        "brotli11": 57077,
+        "sha256": "157e29c087129b3cff003235e7e9260bbbd732a6c880e1401fdc3ff7dc2fcb81"
+      }
+    ],
+    "inputs": [
+      "node_modules/devlop/lib/default.js",
+      "node_modules/property-information/lib/util/schema.js",
+      "node_modules/property-information/lib/util/merge.js",
+      "node_modules/property-information/lib/normalize.js",
+      "node_modules/property-information/lib/util/info.js",
+      "node_modules/property-information/lib/util/types.js",
+      "node_modules/property-information/lib/util/defined-info.js",
+      "node_modules/property-information/lib/util/create.js",
+      "node_modules/property-information/lib/aria.js",
+      "node_modules/property-information/lib/util/case-sensitive-transform.js",
+      "node_modules/property-information/lib/util/case-insensitive-transform.js",
+      "node_modules/property-information/lib/html.js",
+      "node_modules/property-information/lib/svg.js",
+      "node_modules/property-information/lib/xlink.js",
+      "node_modules/property-information/lib/xmlns.js",
+      "node_modules/property-information/lib/xml.js",
+      "node_modules/property-information/lib/hast-to-react.js",
+      "node_modules/property-information/lib/find.js",
+      "node_modules/property-information/index.js",
+      "node_modules/comma-separated-tokens/index.js",
+      "node_modules/hast-util-parse-selector/lib/index.js",
+      "node_modules/hast-util-parse-selector/index.js",
+      "node_modules/space-separated-tokens/index.js",
+      "node_modules/hastscript/lib/create-h.js",
+      "node_modules/hastscript/lib/svg-case-sensitive-tag-names.js",
+      "node_modules/hastscript/lib/index.js",
+      "node_modules/hastscript/index.js",
+      "node_modules/vfile-location/lib/index.js",
+      "node_modules/vfile-location/index.js",
+      "node_modules/web-namespaces/index.js",
+      "node_modules/hast-util-from-parse5/lib/index.js",
+      "node_modules/hast-util-from-parse5/index.js",
+      "node_modules/parse5/dist/common/unicode.js",
+      "node_modules/parse5/dist/common/error-codes.js",
+      "node_modules/parse5/dist/tokenizer/preprocessor.js",
+      "node_modules/parse5/dist/common/token.js",
+      "node_modules/entities/dist/esm/generated/decode-data-html.js",
+      "node_modules/entities/dist/esm/generated/decode-data-xml.js",
+      "node_modules/entities/dist/esm/decode-codepoint.js",
+      "node_modules/entities/dist/esm/decode.js",
+      "node_modules/parse5/dist/common/html.js",
+      "node_modules/parse5/dist/tokenizer/index.js",
+      "node_modules/parse5/dist/parser/open-element-stack.js",
+      "node_modules/parse5/dist/parser/formatting-element-list.js",
+      "node_modules/parse5/dist/tree-adapters/default.js",
+      "node_modules/parse5/dist/common/doctype.js",
+      "node_modules/parse5/dist/common/foreign-content.js",
+      "node_modules/parse5/dist/parser/index.js",
+      "node_modules/entities/dist/esm/escape.js",
+      "node_modules/parse5/dist/serializer/index.js",
+      "node_modules/parse5/dist/index.js",
+      "node_modules/unist-util-stringify-position/lib/index.js",
+      "node_modules/unist-util-stringify-position/index.js",
+      "node_modules/vfile-message/lib/index.js",
+      "node_modules/vfile-message/index.js",
+      "node_modules/vfile/lib/minpath.browser.js",
+      "node_modules/vfile/lib/minproc.browser.js",
+      "node_modules/vfile/lib/minurl.shared.js",
+      "node_modules/vfile/lib/minurl.browser.js",
+      "node_modules/vfile/lib/index.js",
+      "node_modules/vfile/index.js",
+      "node_modules/hast-util-from-html/lib/errors.js",
+      "node_modules/hast-util-from-html/lib/index.js",
+      "node_modules/hast-util-from-html/index.js",
+      "packages/rehype-parse/lib/index.js",
+      "packages/rehype-parse/index.js",
+      "node_modules/html-void-elements/index.js",
+      "node_modules/zwitch/index.js",
+      "node_modules/stringify-entities/lib/core.js",
+      "node_modules/stringify-entities/lib/util/to-hexadecimal.js",
+      "node_modules/stringify-entities/lib/util/to-decimal.js",
+      "node_modules/character-entities-legacy/index.js",
+      "node_modules/character-entities-html4/index.js",
+      "node_modules/stringify-entities/lib/constant/dangerous.js",
+      "node_modules/stringify-entities/lib/util/to-named.js",
+      "node_modules/stringify-entities/lib/util/format-smart.js",
+      "node_modules/stringify-entities/lib/util/format-basic.js",
+      "node_modules/stringify-entities/lib/index.js",
+      "node_modules/stringify-entities/index.js",
+      "node_modules/hast-util-to-html/lib/handle/comment.js",
+      "node_modules/hast-util-to-html/lib/handle/doctype.js",
+      "node_modules/ccount/index.js",
+      "node_modules/hast-util-whitespace/lib/index.js",
+      "node_modules/hast-util-whitespace/index.js",
+      "node_modules/hast-util-to-html/lib/omission/util/siblings.js",
+      "node_modules/hast-util-to-html/lib/omission/omission.js",
+      "node_modules/hast-util-to-html/lib/omission/closing.js",
+      "node_modules/hast-util-to-html/lib/omission/opening.js",
+      "node_modules/hast-util-to-html/lib/handle/element.js",
+      "node_modules/hast-util-to-html/lib/handle/text.js",
+      "node_modules/hast-util-to-html/lib/handle/raw.js",
+      "node_modules/hast-util-to-html/lib/handle/root.js",
+      "node_modules/hast-util-to-html/lib/handle/index.js",
+      "node_modules/hast-util-to-html/lib/index.js",
+      "node_modules/hast-util-to-html/index.js",
+      "packages/rehype-stringify/lib/index.js",
+      "packages/rehype-stringify/index.js",
+      "node_modules/bail/index.js",
+      "node_modules/extend/index.js",
+      "node_modules/is-plain-obj/index.js",
+      "node_modules/trough/lib/index.js",
+      "node_modules/trough/index.js",
+      "node_modules/unified/lib/callable-instance.js",
+      "node_modules/unified/lib/index.js",
+      "node_modules/unified/index.js",
+      "packages/rehype/index.js",
+      "public-esm-entry.mjs"
+    ]
+  },
+  "lilscriptArtifacts": [
+    {
+      "path": "dist/rehype.cjs",
+      "raw": 168610,
+      "gzip9": 60831,
+      "brotli11": 51133,
+      "sha256": "597e8254c64973138e5569963ed8ac4abc932f3cf40970cf99e26af4678d8f1d"
+    },
+    {
+      "path": "dist/rehype.esm.js",
+      "raw": 168124,
+      "gzip9": 60643,
+      "brotli11": 50866,
+      "sha256": "d568afe29305b6a66ad18a2e4e6c81a77b919f7210201064f8ffc7dc06103f0a"
+    },
+    {
+      "path": "dist/rehype.closed.js",
+      "raw": 165772,
+      "gzip9": 60631,
+      "brotli11": 51135,
+      "sha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
+    },
+    {
+      "path": "dist/rehype.umd.js",
+      "raw": 168974,
+      "gzip9": 60945,
+      "brotli11": 51227,
+      "sha256": "8d72321b91b3f33a90201a48c7123b2c6fc7077292ab872f2e9c1d00d5ed2b70"
+    }
+  ],
+  "nativeBuildsSummary": {
+    "samples": 3,
+    "successful": 3,
+    "medianSeconds": 1.5670577139999295,
+    "minimumSeconds": 1.5668921699998464,
+    "maximumSeconds": 1.6165584469999885
+  },
+  "lilscriptBuildsSummary": {
+    "samples": 3,
+    "successful": 3,
+    "medianSeconds": 278.6467387829998,
+    "minimumSeconds": 278.55146057300044,
+    "maximumSeconds": 279.15066288900016
+  },
+  "status": "complete",
+  "finishedAt": "2026-09-10T20:38:27Z",
+  "sourceBuild": {
+    "original": {
+      "complete": true,
+      "medianSeconds": 1.5670577139999295,
+      "minimumSeconds": 1.5668921699998464,
+      "maximumSeconds": 1.6165584469999885,
+      "samples": [
+        {
+          "command": [
+            "npm",
+            "run",
+            "build"
+          ],
+          "wallSeconds": 1.6165584469999885,
+          "cpuSeconds": 3.0709720000000003,
+          "exitCode": 0,
+          "timedOut": false,
+          "log": "original-build-1.log",
+          "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01"
+        },
+        {
+          "command": [
+            "npm",
+            "run",
+            "build"
+          ],
+          "wallSeconds": 1.5668921699998464,
+          "cpuSeconds": 2.9502130000000593,
+          "exitCode": 0,
+          "timedOut": false,
+          "log": "original-build-2.log",
+          "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01"
+        },
+        {
+          "command": [
+            "npm",
+            "run",
+            "build"
+          ],
+          "wallSeconds": 1.5670577139999295,
+          "cpuSeconds": 2.91497199999994,
+          "exitCode": 0,
+          "timedOut": false,
+          "log": "original-build-3.log",
+          "logSha256": "d59531223ae0a996100ccf797b5612149d79051fd1a3abab2dd65a65e25cea01"
+        }
+      ]
+    },
+    "lilscript": {
+      "complete": true,
+      "medianSeconds": 278.6467387829998,
+      "minimumSeconds": 278.55146057300044,
+      "maximumSeconds": 279.15066288900016,
+      "samples": [
+        {
+          "command": [
+            "bash",
+            "-c",
+            "node scripts/build.mjs --compile --force"
+          ],
+          "wallSeconds": 279.15066288900016,
+          "cpuSeconds": 557.8227410000001,
+          "exitCode": 0,
+          "timedOut": false,
+          "log": "lilscript-build-1.log",
+          "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908"
+        },
+        {
+          "command": [
+            "bash",
+            "-c",
+            "node scripts/build.mjs --compile --force"
+          ],
+          "wallSeconds": 278.6467387829998,
+          "cpuSeconds": 559.3061049999999,
+          "exitCode": 0,
+          "timedOut": false,
+          "log": "lilscript-build-2.log",
+          "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908"
+        },
+        {
+          "command": [
+            "bash",
+            "-c",
+            "node scripts/build.mjs --compile --force"
+          ],
+          "wallSeconds": 278.55146057300044,
+          "cpuSeconds": 556.7226470000002,
+          "exitCode": 0,
+          "timedOut": false,
+          "log": "lilscript-build-3.log",
+          "logSha256": "ee7f375910a4ab13d2e2ff8456fe82f1432bcb253881387e9e270805f956a908"
+        }
+      ]
+    },
+    "scopeNote": "The original command builds the upstream monorepo\u2019s generated types/checks; the byte comparison includes the selected package runtime graph.",
+    "cleanOutputs": true,
+    "installationExcluded": true
+  },
+  "prerequisiteAdjustments": null,
+  "recordRepository": "https://github.com/yeargun/rehypelil/tree/main/comparison/source-build"
+}
