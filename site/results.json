@@ -22,53 +22,45 @@
     {
       "id": "official",
       "name": "Official rehype@13.0.2 graph",
-      "raw": 415899,
-      "gzip9": 90181,
-      "brotli11": 73110,
+      "raw": 438508,
+      "gzip9": 91765,
+      "brotli11": 74480,
       "note": "esbuild bundle of the published package plus runtime deps",
-      "diagnostic": false
+      "diagnostic": false,
+      "measuredAt": "2026-09-10T13:49:59Z",
+      "artifactSha256": "459895e2acccf3d3a639fb1de6863672aa841c561d948c44f2ff2f8bc73fccbb"
     },
     {
       "id": "official-terser-mangle",
-      "name": "Official · Terser mangle on",
-      "raw": 220821,
-      "gzip9": 68462,
-      "brotli11": 55030,
+      "name": "Official \u00b7 Terser mangle on",
+      "raw": 221170,
+      "gzip9": 67626,
+      "brotli11": 54982,
       "note": "Terser compress of that graph, mangle: true",
-      "baseline": true
-    },
-    {
-      "id": "official-terser-nomangle",
-      "name": "Official · Terser mangle off",
-      "raw": 275162,
-      "gzip9": 74516,
-      "brotli11": 60291,
-      "note": "Terser compress of that graph, mangle: false"
-    },
-    {
-      "id": "official-esbuild",
-      "name": "Official · esbuild minify",
-      "raw": 242089,
-      "gzip9": 69759,
-      "brotli11": 56957,
-      "note": "esbuild minify of that graph"
+      "baseline": true,
+      "measuredAt": "2026-09-10T13:49:59Z",
+      "artifactSha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
     },
     {
       "id": "itslil",
-      "name": "@itslil/rehype · library",
-      "raw": 173322,
-      "gzip9": 62185,
-      "brotli11": 51696,
-      "note": "LilScript js-module, extern_fields true. The npm ESM.",
-      "primary": true
+      "name": "@itslil/rehype \u00b7 library",
+      "raw": 168122,
+      "gzip9": 60640,
+      "brotli11": 50819,
+      "note": "Fresh packaged ESM, rebuilt with compiler 63c2896a71.",
+      "primary": true,
+      "measuredAt": "2026-09-10T13:49:59Z",
+      "artifactSha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
     },
     {
       "id": "itslil-closed",
-      "name": "@itslil/rehype · closed",
-      "raw": 173146,
-      "gzip9": 62119,
-      "brotli11": 51726,
-      "note": "Same source, extern_fields false; diagnostic only"
+      "name": "@itslil/rehype \u00b7 closed",
+      "raw": 165772,
+      "gzip9": 60631,
+      "brotli11": 51135,
+      "note": "Same source, extern_fields false; diagnostic only",
+      "measuredAt": "2026-09-10T13:49:59Z",
+      "artifactSha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
     }
   ],
   "throughput": [
@@ -82,5 +74,8 @@
       "name": "@itslil/rehype",
       "documentMs": 0.213832999999795
     }
-  ]
+  ],
+  "sizeMeasuredAt": "2026-09-10T13:49:59Z",
+  "buildAudit": "./build-audit.json",
+  "runtimeEvidenceStatus": "Historical; runtime throughput was not republished as a measurement of this compiler."
 }

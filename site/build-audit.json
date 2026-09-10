@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "name": "rehypelil",
+  "measuredAt": "2026-09-10T13:49:59Z",
+  "status": "verified",
+  "buildPassed": true,
+  "summary": "The fresh artifact was checked against the repository test command.",
+  "sourceCommit": "18092d446404134707385f6ba13d52b5b3a3a92a",
+  "previousPublicCommit": "85805149de4d1634f2afc29816ae1d5626fd7da4",
+  "compiler": {
+    "commit": "63c2896a71e60cbcca7870fe979f9d6ecaff3452",
+    "sha256": "2319462ef7d858c8e2a5a767260aa4f80d325e0045afa0cc86cc122d1299b059",
+    "profile": "release",
+    "dirty": false
+  },
+  "machine": {
+    "cpu": "AMD EPYC 9V45 96-Core Processor",
+    "logicalCpus": 16,
+    "affinityCpus": 16,
+    "memoryBytes": 33648431104,
+    "os": "Ubuntu 24.04.4 LTS",
+    "kernel": "6.17.0-1022-azure",
+    "architecture": "x86_64",
+    "node": "v22.23.2",
+    "rayonThreads": 16,
+    "provider": "Azure",
+    "instanceClass": "Standard_D16als_v7",
+    "parallelPortBuildsOnMachine": 1,
+    "loadAtStart": [
+      1.61669921875,
+      2.896484375,
+      1.9951171875
+    ],
+    "loadAtEnd": [
+      1.548828125,
+      2.32666015625,
+      2.046875
+    ],
+    "concurrencyNote": "The audit scheduled one port per worker, but this is a shared pool. Outside compiler jobs were observed during the run; timings are contextual wall times, not controlled speedup benchmarks."
+  },
+  "upstream": {
+    "name": "rehypelil",
+    "package": "rehype",
+    "pinned": "13.0.2",
+    "latest": "13.0.2",
+    "source": "https://www.npmjs.com/package/rehype"
+  },
+  "comparisonScope": "rehype@13.0.2 public ESM runtime graph; dependency installation excluded; this is a comparison bundle build, not the upstream vendor release pipeline Sizes use canonical zlib 1.3.1 gzip-9 and Google Brotli 1.1.0 quality 11.",
+  "sizes": {
+    "previous": {
+      "id": "itslil",
+      "name": "@itslil/rehype \u00b7 library",
+      "raw": 173322,
+      "gzip9": 62185,
+      "brotli11": 51696,
+      "note": "LilScript js-module, extern_fields true. The npm ESM.",
+      "primary": true
+    },
+    "current": {
+      "path": "dist/rehype.esm.js",
+      "raw": 168122,
+      "gzip9": 60640,
+      "brotli11": 50819,
+      "sha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
+    },
+    "upstream": {
+      "path": ".page-audit/upstream/official.esm.js",
+      "raw": 221170,
+      "gzip9": 67626,
+      "brotli11": 54982,
+      "sha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
+    }
+  },
+  "officialArtifacts": [
+    {
+      "path": ".page-audit/upstream/official.esm.js",
+      "raw": 221170,
+      "gzip9": 67626,
+      "brotli11": 54982,
+      "sha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
+    },
+    {
+      "path": ".page-audit/upstream/official.unminified.js",
+      "raw": 438508,
+      "gzip9": 91765,
+      "brotli11": 74480,
+      "sha256": "459895e2acccf3d3a639fb1de6863672aa841c561d948c44f2ff2f8bc73fccbb"
+    }
+  ],
+  "candidateArtifacts": [
+    {
+      "path": "dist/rehype.cjs",
+      "raw": 168608,
+      "gzip9": 60826,
+      "brotli11": 51169,
+      "sha256": "6370f2462869d5254d8065c09a9bac3e081b134f178376b5dafa0ae0ac5e7582"
+    },
+    {
+      "path": "dist/rehype.esm.js",
+      "raw": 168122,
+      "gzip9": 60640,
+      "brotli11": 50819,
+      "sha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
+    },
+    {
+      "path": "dist/rehype.closed.js",
+      "raw": 165772,
+      "gzip9": 60631,
+      "brotli11": 51135,
+      "sha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
+    },
+    {
+      "path": "dist/rehype.umd.js",
+      "raw": 168972,
+      "gzip9": 60942,
+      "brotli11": 51262,
+      "sha256": "9cf57a6689db53fdae2a074a714550ce18172124591757e2196de409a60166de"
+    },
+    {
+      "path": ".page-audit/upstream/official.esm.js",
+      "raw": 221170,
+      "gzip9": 67626,
+      "brotli11": 54982,
+      "sha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
+    }
+  ],
+  "timing": {
+    "primaryCompilerSeconds": 251.79317355155945,
+    "primaryScope": "One real compiler process, including code generation and codec-guided search; excludes subsequent package wrapping.",
+    "packageSeconds": 279.720017685,
+    "packageScope": "node scripts/build.mjs --compile --force; 2 successful compiler invocations plus package generation.",
+    "upstreamSeconds": 0.649354119,
+    "upstreamScope": "rehype@13.0.2 public ESM runtime graph; dependency installation excluded; this is a comparison bundle build, not the upstream vendor release pipeline",
+    "protocol": "Same shared worker for both lanes; one fresh LilScript package build; median of three sequential upstream ESM builds (PlayCanvas records one native reference build). Outside compiler jobs were observed in the pool, so contention is not excluded. Dependencies, tests and compression measurement are outside these build times.",
+    "upstreamSamples": [
+      {
+        "bundleSeconds": 0.017392245000000004,
+        "wallSeconds": 0.888395506
+      },
+      {
+        "bundleSeconds": 0.015879707000000052,
+        "wallSeconds": 0.649354119
+      },
+      {
+        "bundleSeconds": 0.018093210999999883,
+        "wallSeconds": 0.5922461219999998
+      }
+    ]
+  },
+  "behavior": {
+    "command": "npm run check:types && node --test test/*.test.mjs test/official/api.js test/official/parse-error.js",
+    "summary": "Repository test command passed (exit 0). # tests 159 \u00b7 # pass 159 \u00b7 # fail 0",
+    "before": {
+      "exitCode": 0,
+      "failures": [],
+      "logSha256": "33c7ebbb819a7d5313248fd5defc3534ee08acbc0de9fe1a7ea64f21a7e2bcc2"
+    },
+    "after": {
+      "exitCode": 0,
+      "failures": [],
+      "tail": "t: noncharacter-in-input-stream\n    ok 48 - noncharacter-in-input-stream\n      ---\n      duration_ms: 1.678941\n      type: 'test'\n      ...\n    # Subtest: null-character-reference\n    ok 49 - null-character-reference\n      ---\n      duration_ms: 0.564571\n      type: 'test'\n      ...\n    # Subtest: open-elements-left-after-eof\n    ok 50 - open-elements-left-after-eof\n      ---\n      duration_ms: 0.501668\n      type: 'test'\n      ...\n    # Subtest: surrogate-character-reference\n    ok 51 - surrogate-character-reference\n      ---\n      duration_ms: 0.640655\n      type: 'test'\n      ...\n    # Subtest: unexpected-character-after-doctype-system-identifier\n    ok 52 - unexpected-character-after-doctype-system-identifier\n      ---\n      duration_ms: 0.657399\n      type: 'test'\n      ...\n    # Subtest: unexpected-character-in-attribute-name\n    ok 53 - unexpected-character-in-attribute-name\n      ---\n      duration_ms: 0.737439\n      type: 'test'\n      ...\n    # Subtest: unexpected-character-in-unquoted-attribute-value\n    ok 54 - unexpected-character-in-unquoted-attribute-value\n      ---\n      duration_ms: 0.661541\n      type: 'test'\n      ...\n    # Subtest: unexpected-equals-sign-before-attribute-name\n    ok 55 - unexpected-equals-sign-before-attribute-name\n      ---\n      duration_ms: 0.870563\n      type: 'test'\n      ...\n    # Subtest: unexpected-null-character\n    ok 56 - unexpected-null-character\n      ---\n      duration_ms: 0.702227\n      type: 'test'\n      ...\n    # Subtest: unexpected-question-mark-instead-of-tag-name\n    ok 57 - unexpected-question-mark-instead-of-tag-name\n      ---\n      duration_ms: 0.552153\n      type: 'test'\n      ...\n    # Subtest: unexpected-solidus-in-tag\n    ok 58 - unexpected-solidus-in-tag\n      ---\n      duration_ms: 0.569829\n      type: 'test'\n      ...\n    # Subtest: unknown-named-character-reference\n    ok 59 - unknown-named-character-reference\n      ---\n      duration_ms: 0.760543\n      type: 'test'\n      ...\n    # Subtest: surrogate-in-input-stream\n    ok 60 - surrogate-in-input-stream\n      ---\n      duration_ms: 0.243102\n      type: 'test'\n      ...\n    1..60\nok 6 - parse errors\n  ---\n  duration_ms: 68.525155\n  type: 'test'\n  ...\n# Subtest: isolated parse5 LilScript modules\n    # Subtest: matches all parse-error codes and reverse attribute lookup\n    ok 1 - matches all parse-error codes and reverse attribute lookup\n      ---\n      duration_ms: 1.107701\n      type: 'test'\n      ...\n    # Subtest: matches HTML tag IDs and element sets\n    ok 2 - matches HTML tag IDs and element sets\n      ---\n      duration_ms: 0.811149\n      type: 'test'\n      ...\n    # Subtest: matches doctype conformance and document mode\n    ok 3 - matches doctype conformance and document mode\n      ---\n      duration_ms: 0.580284\n      type: 'test'\n      ...\n    # Subtest: matches Unicode and entity code-point handling\n    ok 4 - matches Unicode and entity code-point handling\n      ---\n      duration_ms: 230.534176\n      type: 'test'\n      ...\n    # Subtest: matches complete and incrementally supplied entity references\n    ok 5 - matches complete and incrementally supplied entity references\n      ---\n      duration_ms: 6.42976\n      type: 'test'\n      ...\n    # Subtest: matches foreign-content adjustment and integration rules\n    ok 6 - matches foreign-content adjustment and integration rules\n      ---\n      duration_ms: 1.701075\n      type: 'test'\n      ...\n    # Subtest: matches preprocessing across malformed input and chunk boundaries\n    ok 7 - matches preprocessing across malformed input and chunk boundaries\n      ---\n      duration_ms: 13.505422\n      type: 'test'\n      ...\n    # Subtest: matches preprocessor lookahead, insertion, and buffer dropping\n    ok 8 - matches preprocessor lookahead, insertion, and buffer dropping\n      ---\n      duration_ms: 0.425434\n      type: 'test'\n      ...\n    # Subtest: matches the default tree adapter's mutation semantics\n    ok 9 - matches the default tree adapter's mutation semantics\n      ---\n      duration_ms: 0.422069\n      type: 'test'\n      ...\n    # Subtest: matches active-formatting-list ordering and Noah's Ark enforcement\n    ok 10 - matches active-formatting-list ordering and Noah's Ark enforcement\n      ---\n      duration_ms: 0.754264\n      type: 'test'\n      ...\n    # Subtest: matches open-element-stack mutation, scope, and callback ordering\n    ok 11 - matches open-element-stack mutation, scope, and callback ordering\n      ---\n      duration_ms: 0.821103\n      type: 'test'\n      ...\n    1..11\nok 7 - isolated parse5 LilScript modules\n  ---\n  duration_ms: 258.00158\n  type: 'suite'\n  ...\n# Subtest: site\n    # Subtest: has a markedlil-style lab with receipts\n    ok 1 - has a markedlil-style lab with receipts\n      ---\n      duration_ms: 0.540115\n      type: 'test'\n      ...\n    1..1\nok 8 - site\n  ---\n  duration_ms: 1.058327\n  type: 'suite'\n  ...\n1..8\n# tests 159\n# suites 5\n# pass 159\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 765.867187\n",
+      "logSha256": "b4d0778e354c130a2396501f568d7a623d5310849b8fbd3b3c6d08292f1d13f8"
+    }
+  },
+  "findings": [
+    "5 committed port changes were absent from GitHub at the start of the audit.",
+    "Published-to-fresh Brotli drift: -877 bytes (-1.70%). This includes port source/config changes and compiler changes.",
+    "The root checkout compiler (54e1948) rejects config field name_ordering; today's migration/target-tree compiler is required."
+  ],
+  "primaryArtifact": "dist/rehype.esm.js",
+  "beforePage": {
+    "url": "https://yeargun.github.io/rehypelil/",
+    "status": 200,
+    "sha256": "461f3dfb9022c44cdbb643d84498384cb966a8483ef118561f7bb2905c25464b",
+    "lastModified": "Wed, 02 Sep 2026 15:25:11 GMT"
+  },
+  "codecSha256": "9257fd055728895c11b9c4b0d882895d7d11bb3dd3495f560123879ca2bc3cd6",
+  "publicationArtifacts": [
+    {
+      "path": "dist/rehype.cjs",
+      "sha256": "6370f2462869d5254d8065c09a9bac3e081b134f178376b5dafa0ae0ac5e7582"
+    },
+    {
+      "path": "dist/rehype.esm.js",
+      "sha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
+    },
+    {
+      "path": "dist/rehype.closed.js",
+      "sha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
+    },
+    {
+      "path": "dist/rehype.umd.js",
+      "sha256": "9cf57a6689db53fdae2a074a714550ce18172124591757e2196de409a60166de"
+    }
+  ],
+  "publicationPolicy": "Promote freshly tested distribution",
+  "publicationBase": "18092d446404134707385f6ba13d52b5b3a3a92a",
+  "publicationSourceFingerprint": "04d524ad1861dbee14b3d0ca63d2621774763ec44d32cd5a235c8b6c71d1debb"
+}
