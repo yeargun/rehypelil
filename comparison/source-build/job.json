@@ -7,9 +7,9 @@
     "directory": "packages/rehype"
   },
   "portSource": {
-    "commit": "18092d446404134707385f6ba13d52b5b3a3a92a"
+    "commit": "831fa43f19d2a23b8a6299c0ee936ba23e52b8b3"
   },
-  "compilerCommit": "4dc4e3337d9ffd758d65e3852682d6e13d9331c1",
+  "compilerCommit": "249686599dc3bf1b6bf70dc9a030081b755bbb24",
   "install": [
     "npm",
     "install",

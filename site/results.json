@@ -27,7 +27,7 @@
       "brotli11": 74485,
       "note": "esbuild bundle of the published package plus runtime deps",
       "diagnostic": false,
-      "measuredAt": "2026-09-10T20:38:27Z",
+      "measuredAt": "2026-09-27T16:11:00Z",
       "artifactSha256": "a9904637282b3c1c0fb99beee08ac985136d56cd06221ce298c4245f722b5670"
     },
     {
@@ -38,29 +38,29 @@
       "brotli11": 54982,
       "note": "Terser compress of that graph, mangle: true",
       "baseline": true,
-      "measuredAt": "2026-09-10T20:38:27Z",
+      "measuredAt": "2026-09-27T16:11:00Z",
       "artifactSha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
     },
     {
       "id": "itslil",
       "name": "@itslil/rehype \u00b7 library",
-      "raw": 168124,
-      "gzip9": 60643,
-      "brotli11": 50866,
-      "note": "ESM output from LilScript 4dc4e33.",
+      "raw": 177053,
+      "gzip9": 58524,
+      "brotli11": 49345,
+      "note": "ESM output from LilScript 2496865.",
       "primary": true,
-      "measuredAt": "2026-09-10T20:38:27Z",
-      "artifactSha256": "d568afe29305b6a66ad18a2e4e6c81a77b919f7210201064f8ffc7dc06103f0a"
+      "measuredAt": "2026-09-27T16:11:00Z",
+      "artifactSha256": "2e71bc49b3945842cdb9e051ca81537d3cc123de7ac0e4e0caf2d5c25c6ef4ec"
     },
     {
       "id": "itslil-closed",
       "name": "@itslil/rehype \u00b7 closed",
-      "raw": 165772,
-      "gzip9": 60631,
-      "brotli11": 51135,
-      "note": "ESM output from LilScript 4dc4e33.",
-      "measuredAt": "2026-09-10T20:38:27Z",
-      "artifactSha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
+      "raw": 177145,
+      "gzip9": 58551,
+      "brotli11": 49282,
+      "note": "ESM output from LilScript 2496865.",
+      "measuredAt": "2026-09-27T16:11:00Z",
+      "artifactSha256": "2320dbd25645a86fa2f18168cea3458e4ee3296517257a1a28da894382978657"
     }
   ],
   "throughput": [
@@ -75,5 +75,5 @@
       "documentMs": 0.213832999999795
     }
   ],
-  "sizeMeasuredAt": "2026-09-10T20:38:27Z"
+  "sizeMeasuredAt": "2026-09-27T16:11:00Z"
 }

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "measuredAt": "2026-09-10T20:38:27Z",
+  "measuredAt": "2026-09-27T16:11:00Z",
   "name": "rehypelil",
   "compiler": {
-    "commit": "4dc4e3337d9ffd758d65e3852682d6e13d9331c1",
-    "sha256": "0616048498eb9eb2e4bd75b39e8e6a083733ada647e16108edfee30ad183beeb"
+    "commit": "249686599dc3bf1b6bf70dc9a030081b755bbb24",
+    "sha256": "47048e41164027e92d3bf1d1840d8d83e04c60532c031ceb3346222e194b3041"
   },
   "upstream": {
     "package": "rehype",
@@ -21,30 +21,38 @@
   "buildComplete": true,
   "machine": {
     "provider": "Azure",
-    "instanceClass": "Standard_D16als_v7",
-    "cpu": "AMD EPYC 9V45 96-Core Processor",
-    "logicalCpus": 16,
-    "memoryBytes": 33648431104,
-    "os": "Ubuntu 24.04.4 LTS",
-    "kernel": "6.17.0-1022-azure",
+    "instanceClass": "Standard_B8als_v2",
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "logicalCpus": 8,
+    "memoryBytes": 16706420736,
+    "os": "Ubuntu 24.04.3 LTS",
+    "kernel": "7.0.0-1014-azure",
     "node": "v24.11.1",
     "rayonThreads": 8,
     "loadAtStart": [
-      1.42333984375,
-      1.8759765625,
-      2.0458984375
+      11.01025390625,
+      22.80859375,
+      18.7451171875
     ],
     "loadAtEnd": [
-      1.3681640625,
-      1.63818359375,
-      1.8798828125
+      5.255859375,
+      8.916015625,
+      11.54833984375
     ]
   },
   "build": {
-    "compilerSeconds": null,
-    "packageSeconds": 278.6467387829998,
-    "originalSeconds": 1.5670577139999295,
-    "originalEsmSeconds": 0.5481688929999999,
+    "compilerSeconds": 970.4554495811462,
+    "compilerInvocations": 2,
+    "compilerScope": "Sum of the wall times of the compiler invocations in one package build, median of three clean builds.",
+    "primaryCompilerSeconds": 536.124849319458,
+    "primaryCompilerRange": [
+      472.2087228298187,
+      685.3497698307037
+    ],
+    "primaryCompilerScope": "The lilscript.toml invocation that writes the published ESM, median of three clean builds.",
+    "packageSeconds": 971.1846787270042,
+    "originalSeconds": 10.715716389007866,
+    "originalEsmSeconds": 1.225121559,
     "packageScope": "node scripts/build.mjs --compile --force",
     "originalScope": "npm run build",
     "protocol": {
@@ -52,15 +60,15 @@
       "cleanOutputs": true,
       "dependencyInstallationTimedSeparately": true,
       "sourceArchives": "Pinned Git checkouts; original repository package build commands, followed by production ESM assembly.",
-      "workerUse": "Both implementations use the same machine and Node version. This shared build pool also runs unrelated jobs; timings are contextual wall times, with CPU time recorded separately."
+      "workerUse": "Both implementations use the same machine and Node version. The machine is a burstable Azure VM that also runs unrelated jobs; timings are contextual wall times, with CPU time recorded separately."
     }
   },
   "esm": {
     "lilscript": {
-      "raw": 168124,
-      "gzip9": 60643,
-      "brotli11": 50866,
-      "sha256": "d568afe29305b6a66ad18a2e4e6c81a77b919f7210201064f8ffc7dc06103f0a",
+      "raw": 177053,
+      "gzip9": 58524,
+      "brotli11": 49345,
+      "sha256": "2e71bc49b3945842cdb9e051ca81537d3cc123de7ac0e4e0caf2d5c25c6ef4ec",
       "file": "./esm-comparison/lilscript.js"
     },
     "original": {
@@ -74,9 +82,9 @@
   "sourceBuild": {
     "original": {
       "complete": true,
-      "medianSeconds": 1.5670577139999295,
-      "minimumSeconds": 1.5668921699998464,
-      "maximumSeconds": 1.6165584469999885,
+      "medianSeconds": 10.715716389007866,
+      "minimumSeconds": 5.144255863968283,
+      "maximumSeconds": 13.512278880982194,
       "samples": [
         {
           "command": [
@@ -84,8 +92,8 @@
             "run",
             "build"
           ],
-          "wallSeconds": 1.6165584469999885,
-          "cpuSeconds": 3.0709720000000003,
+          "wallSeconds": 5.144255863968283,
+          "cpuSeconds": 7.8238319999999995,
           "exitCode": 0,
           "timedOut": false,
           "log": "original-build-1.log",
@@ -97,8 +105,8 @@
             "run",
             "build"
           ],
-          "wallSeconds": 1.5668921699998464,
-          "cpuSeconds": 2.9502130000000593,
+          "wallSeconds": 10.715716389007866,
+          "cpuSeconds": 8.849582999999972,
           "exitCode": 0,
           "timedOut": false,
           "log": "original-build-2.log",
@@ -110,8 +118,8 @@
             "run",
             "build"
           ],
-          "wallSeconds": 1.5670577139999295,
-          "cpuSeconds": 2.91497199999994,
+          "wallSeconds": 13.512278880982194,
+          "cpuSeconds": 8.95489999999998,
           "exitCode": 0,
           "timedOut": false,
           "log": "original-build-3.log",
@@ -121,9 +129,9 @@
     },
     "lilscript": {
       "complete": true,
-      "medianSeconds": 278.6467387829998,
-      "minimumSeconds": 278.55146057300044,
-      "maximumSeconds": 279.15066288900016,
+      "medianSeconds": 971.1846787270042,
+      "minimumSeconds": 897.5461386310053,
+      "maximumSeconds": 1054.3702924060053,
       "samples": [
         {
           "command": [
@@ -131,8 +139,8 @@
             "-c",
             "node scripts/build.mjs --compile --force"
           ],
-          "wallSeconds": 279.15066288900016,
-          "cpuSeconds": 557.8227410000001,
+          "wallSeconds": 897.5461386310053,
+          "cpuSeconds": 807.076295,
           "exitCode": 0,
           "timedOut": false,
           "log": "lilscript-build-1.log",
@@ -144,8 +152,8 @@
             "-c",
             "node scripts/build.mjs --compile --force"
           ],
-          "wallSeconds": 278.6467387829998,
-          "cpuSeconds": 559.3061049999999,
+          "wallSeconds": 1054.3702924060053,
+          "cpuSeconds": 862.2805700000001,
           "exitCode": 0,
           "timedOut": false,
           "log": "lilscript-build-2.log",
@@ -157,8 +165,8 @@
             "-c",
             "node scripts/build.mjs --compile --force"
           ],
-          "wallSeconds": 278.55146057300044,
-          "cpuSeconds": 556.7226470000002,
+          "wallSeconds": 971.1846787270042,
+          "cpuSeconds": 843.6399240000001,
           "exitCode": 0,
           "timedOut": false,
           "log": "lilscript-build-3.log",
