@@ -32,7 +32,7 @@
     },
     {
       "id": "official-terser-mangle",
-      "name": "Official \u00b7 Terser mangle on",
+      "name": "Official · Terser mangle on",
       "raw": 221170,
       "gzip9": 67626,
       "brotli11": 54982,
@@ -43,7 +43,7 @@
     },
     {
       "id": "itslil",
-      "name": "@itslil/rehype \u00b7 library",
+      "name": "@itslil/rehype · library",
       "raw": 177053,
       "gzip9": 58524,
       "brotli11": 49345,
@@ -54,7 +54,7 @@
     },
     {
       "id": "itslil-closed",
-      "name": "@itslil/rehype \u00b7 closed",
+      "name": "@itslil/rehype · closed",
       "raw": 177145,
       "gzip9": 58551,
       "brotli11": 49282,
@@ -63,17 +63,7 @@
       "artifactSha256": "2320dbd25645a86fa2f18168cea3458e4ee3296517257a1a28da894382978657"
     }
   ],
-  "throughput": [
-    {
-      "id": "official",
-      "name": "rehype@13.0.2",
-      "documentMs": 2.5199999999986176
-    },
-    {
-      "id": "itslil",
-      "name": "@itslil/rehype",
-      "documentMs": 0.213832999999795
-    }
-  ],
-  "sizeMeasuredAt": "2026-09-27T16:11:00Z"
+  "throughput": [],
+  "sizeMeasuredAt": "2026-09-27T16:11:00Z",
+  "perfLead": "throughput not measured for this build: the earlier figure had no reproducible benchmark"
 }
