@@ -1,9 +1,5 @@
 # reusable ESM — host-visible names stay
 [javascript]
-# 8.62: the naming that reuses one spelling for one token shape. A per-port
-# option, not a default: measured across ten ports it is +552 as a default and
-# -341 on the five it wins, which is 8.15's rule for a shape that splits.
-name_ordering = "idiom-converged"
 # Measured on this port: the objects it reads are plain data, so a member
 # read is not a coercion hook and the value can nest into its consumer.
 assume_pure_property_reads = true
@@ -16,22 +12,10 @@ optimization_level = 15
 cost_model = "brotli"
 assume_pristine_builtins = true
 strip_console = true
-# 8.19 (measured, fleet sweep of five reserves): the naming reserve picks the
-# basin, not the depth, and the curve is not monotone -- 8:+11, 16:+111, 32:+11, 64:-77
-# against the declared 48. Re-measure it after any emitter change.
-local_name_reserve = 64
 candidate_search = "always"
-# 8.24 (measured, fleet): the `function` spelling is -132 Brotli here -- the
-# keyword is a long shared prefix the codec matches at every site. It is the
-# other way on five ports (jquerylil +214, remarklil +286, markedlil +115),
-# so it is declared per port.
-function_spelling = "function"
-public_aggregate_abi = "named"
 candidate_byte_budget = 33554432
 
 [mangle]
 identifiers = true
 properties = true
-exports = false
-extern_fields = true
 pool_strings = true

@@ -62,7 +62,7 @@ Attribute[] attributesFromValue(JsValue value) {
   int i = 0;
   while (i < length) {
     JsValue item = value[i];
-    Attribute attr = Attribute{JS.string(JS.get(item, "name")), JS.string(JS.get(item, "value")), null, null};
+    Attribute attr = new Attribute(JS.string(JS.get(item, "name")), JS.string(JS.get(item, "value")), null, null);
     JsValue namespace = JS.get(item, "namespace");
     JsValue prefix = JS.get(item, "prefix");
     if (namespace is string) attr.namespace = namespace;
@@ -155,11 +155,11 @@ export class Parser {
     this.stopped = false;
     this.currentTokenType = TokenType.Eof;
     this.currentTokenLocation = null;
-    this.currentTagToken = TagToken{TokenType.Character, "", TagId.Unknown, false, false, [], null, JS.undefined()};
-    this.currentCharacterToken = CharacterToken{TokenType.Character, "", null};
-    this.currentCommentToken = CommentToken{TokenType.Comment, "", null};
-    this.currentDoctypeToken = DoctypeToken{TokenType.Doctype, null, false, null, null, null};
-    this.currentEofToken = EofToken{TokenType.Eof, null};
+    this.currentTagToken = new TagToken(TokenType.Character, "", TagId.Unknown, false, false, [], null, JS.undefined());
+    this.currentCharacterToken = new CharacterToken(TokenType.Character, "", null);
+    this.currentCommentToken = new CommentToken(TokenType.Comment, "", null);
+    this.currentDoctypeToken = new DoctypeToken(TokenType.Doctype, null, false, null, null, null);
+    this.currentEofToken = new EofToken(TokenType.Eof, null);
 
     Parser parser = this;
     JsValue tokenizerHandler = JS.object("onParseError", JS.undefined());
@@ -355,7 +355,7 @@ export class Parser {
   }
 
   void insertFakeElement(string tagName, TagId tagID) {
-    TagToken token = TagToken{TokenType.StartTag, tagName, tagID, false, false, [], null, JS.undefined()};
+    TagToken token = new TagToken(TokenType.StartTag, tagName, tagID, false, false, [], null, JS.undefined());
     this.insertElement(token, namespaceUri(Namespace.Html));
   }
 
