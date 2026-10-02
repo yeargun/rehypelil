@@ -1,202 +1,109 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="@itslil/rehype is rehype@13.0.2 rewritten in LilScript. Size is versus the official runtime graph minified by Terser and esbuild." />
-    <meta name="theme-color" content="#c9a227" />
-    <title>itslil/rehype — rehype@13.0.2 through LilScript</title>
-    
-    <link rel="stylesheet" href="./styles.css" />
-    <script type="module" src="./app.js"></script>
-  </head>
-  <body>
-    <div class="progress" aria-hidden="true"></div>
-    <header class="nav shell">
-      <a class="wordmark" href="#top" aria-label="itslil/rehype home">
-        <span class="mark">rh</span>
-        <span>itslil/rehype</span>
-      </a>
-      <nav aria-label="Main navigation">
-        
-        <a href="#performance">performance</a>
-        <a href="#lab">playground</a>
-        <a href="#evidence">size</a>
-        <a href="https://github.com/yeargun/rehypelil">GitHub ↗</a>
-      </nav>
-    </header>
-    <main id="top">
-      <section class="hero shell">
-        <div class="hero-copy">
-          <p class="eyebrow"><span class="live-dot"></span> rehype@13.0.2 · LilScript port · @itslil/rehype</p>
-          <h1>HTML,<br /><em>as a tree</em></h1>
-          <p class="lede">Official <code>rehype@13.0.2</code> algorithms rewritten in LilScript. Runtime checks: 159/159 pass. Not affiliated with upstream. Official rows are published <code>rehype@13</code> plus its graph, then Terser and esbuild.</p>
-          <div class="install-row">
-            <code>npm install @itslil/rehype</code>
-            <button class="copy" data-copy="npm install @itslil/rehype" type="button">copy</button>
-          </div>
-          <div class="hero-actions">
-            <a class="button primary" href="#performance">Numbers</a>
-            <a class="button secondary" href="https://www.npmjs.com/package/@itslil/rehype">npm ↗</a>
-          </div>
-        </div>
-        <div class="scoreboard" aria-label="Compression and performance results">
-          <div class="score-main">
-            <span class="score-label">Bytes over the wire, Brotli-11, against Terser of the official runtime graph</span>
-            <strong id="hero-ratio">—<span>smaller</span></strong>
-            <p id="hero-bytes"></p>
-          </div>
-          <div class="score-grid">
-            <div><strong id="hero-shipped">—</strong><span>Brotli-11 you ship, vs Terser</span></div>
-            <div><strong id="hero-gzip">—</strong><span>gzip-9 vs Terser</span></div>
-            <div><strong id="hero-raw">—</strong><span>raw vs Terser</span></div>
-            <div><strong id="hero-spec">—</strong><span>repository checks</span></div>
-          </div>
-          <p class="score-note">
-            Official rows are one esbuild bundle of <code>rehype@13.0.2</code> plus the packages it needs at runtime, then Terser or esbuild.
-            The shipped ESM is the Brotli-scored compile bundled by esbuild with whitespace and identifier minification (no syntax minification). Closed LilScript is the same source built from <code>lilscript.closed.toml</code>; this compiler renames no properties, so extern keys keep their names in both. Runtime checks: 159/159 pass.</p>
-        </div>
-      </section>
-      <section class="ticker" aria-label="Supported features">
-        <div>rehype() <span>✦</span> from-html <span>✦</span> to-html <span>✦</span> processSync <span>✦</span> tree-shake</div>
-      </section>
-<section class="performance shell" id="performance">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Measured in Node</p>
-            <h2>Same work,<br />two runtimes.</h2>
-          </div>
-          <p>
-            Not Playwright — Node v22.21.1 on this machine, quiet median after warmup.
-            Race 10× in the playground for a browser number. Runtime checks: 159/159 pass.
-          </p>
-        </div>
-        <div class="perf-cards" id="perf-cards"></div>
-        <div class="table-wrap light">
-          <table>
-            <thead>
-              <tr>
-                <th>Lane</th>
-                <th>median</th>
-                <th>vs official</th>
-              </tr>
-            </thead>
-            <tbody id="perf-body"></tbody>
-          </table>
-        </div>
-        <p class="perf-note" id="perf-note"></p>
-      </section>
-      <section class="lab shell" id="lab">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">The compiled runtime, in the browser</p>
-            <h2>Live<br />lab.</h2>
-          </div>
-          <p>
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="rehypelil: current LilScript raw, gzip and Brotli objective builds versus minified upstream, with build times and live examples." name="description"/>
+<meta content="#c9a227" name="theme-color"/>
+<title>itslil/rehype — rehype@13.0.2 through LilScript</title>
+<link href="./styles.css" rel="stylesheet"/>
+<script src="./app.js" type="module"></script>
+<link href="./objective-comparison.css" rel="stylesheet"/></head>
+<body>
+<div aria-hidden="true" class="progress"></div>
+<header class="nav shell">
+<a aria-label="itslil/rehype home" class="wordmark" href="#top">
+<span class="mark">rh</span>
+<span>itslil/rehype</span>
+</a>
+<nav aria-label="Main navigation">
+<a href="#compiler">build time</a>
+<a href="#lab">playground</a>
+<a href="#evidence">size</a>
+<a href="https://github.com/yeargun/rehypelil">GitHub ↗</a>
+</nav>
+</header>
+<main id="top">
+<section class="hero shell">
+<div class="hero-copy">
+<p class="eyebrow"><span class="live-dot"></span> rehype@13.0.2 · LilScript port · @itslil/rehype</p>
+<h1>HTML,<br/><em>as a tree</em></h1>
+<p class="lede">Official <code>rehype@13.0.2</code> algorithms rewritten in LilScript. Official test suite 136/136. Not affiliated with upstream. Official rows are published <code>rehype@13</code> plus its graph, then Terser and esbuild.</p>
+<div class="install-row">
+<code>npm install @itslil/rehype</code>
+<button class="copy" data-copy="npm install @itslil/rehype" type="button">copy</button>
+</div>
+<div class="hero-actions">
+<a class="button primary" href="#compiler">build time</a>
+<a class="button secondary" href="https://www.npmjs.com/package/@itslil/rehype">npm ↗</a>
+</div>
+</div>
+<div aria-label="Compression and performance results" class="scoreboard">
+<div class="score-main">
+<span class="score-label">Current LilScript versus minified original · portable ESM</span>
+<strong id="hero-ratio">—<span>smaller</span></strong>
+<p id="hero-bytes"></p>
+</div>
+<div class="score-grid">
+<div><strong id="hero-shipped">—</strong><span>Brotli-11 you ship, vs smallest original</span></div>
+<div><strong id="hero-gzip">—</strong><span>gzip-9 vs smallest original</span></div>
+<div><strong id="hero-raw">—</strong><span>raw vs smallest original</span></div>
+<div><strong id="hero-spec">—</strong><span>official suite</span></div>
+</div>
+<p class="score-note">Raw, gzip and Brotli each use a separate LilScript compilation targeting that objective. The original uses the same export and dependency boundary, then a JavaScript minifier.</p>
+</div>
+</section>
+<section aria-label="Supported features" class="ticker">
+<div>rehype() <span>✦</span> from-html <span>✦</span> to-html <span>✦</span> processSync <span>✦</span> tree-shake</div>
+</section>
+<section class="lab shell" id="lab">
+<div class="section-heading">
+<div>
+<p class="eyebrow">The compiled runtime, in the browser</p>
+<h2>Live<br/>lab.</h2>
+</div>
+<p>
             Left is the editor. Right is @itslil/rehype HTML, or the official rehype@13.0.2 graph when that lane is on.
           </p>
-        </div>
-        <div class="playground">
-          <div class="play-toolbar">
-            <label>
-              <input type="radio" name="engine" value="lil" checked />
+</div>
+<div class="playground">
+<div class="play-toolbar">
+<label>
+<input checked="" name="engine" type="radio" value="lil"/>
               @itslil/rehype
             </label>
-            <label>
-              <input type="radio" name="engine" value="official" />
+<label>
+<input name="engine" type="radio" value="official"/>
               official rehype@13.0.2
             </label>
-            <button type="button" id="race">race 10×</button>
-            <span id="race-out"></span>
-          </div>
-          <div class="samples" id="samples"></div>
-          <div class="play-grid">
-            <textarea id="source" spellcheck="false" aria-label="Source"></textarea>
-            <div>
-              <iframe id="preview" title="Rendered output" sandbox="allow-same-origin"></iframe>
-              <pre id="output" hidden></pre>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section class="evidence" id="evidence">
-        <div class="shell">
-          <div class="section-heading inverse">
-            <div>
-              <p class="eyebrow">The receipts</p>
-              <h2>Raw, gzip,<br />and Brotli.</h2>
-            </div>
-            <p>
-              Official rehype@13.0.2 bundled with its runtime graph, then Terser (mangle on/off) and esbuild minify.
-              The LilScript ESM is the compiler’s output bundled by esbuild with whitespace and identifier minification. Closed LilScript is the Brotli build from <code>lilscript.closed.toml</code>.
-            </p>
-          </div>
-          <div class="codec-block">
-            <h3>Brotli-11</h3>
-            <p class="codec-lead">The wire number. LilScript row is the measured ESM.</p>
-            <div class="total-bar" id="bar-brotli"></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Lane</th><th>Brotli-11</th><th>vs Terser</th></tr></thead>
-                <tbody id="body-brotli"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="codec-block">
-            <h3>gzip-9</h3>
-            <p class="codec-lead">Same files, gzip-9.</p>
-            <div class="total-bar" id="bar-gzip"></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Lane</th><th>gzip-9</th><th>vs Terser</th></tr></thead>
-                <tbody id="body-gzip"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="codec-block">
-            <h3>Raw</h3>
-            <p class="codec-lead">Uncompressed bytes.</p>
-            <div class="total-bar" id="bar-raw"></div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Lane</th><th>Raw</th><th>vs Terser</th></tr></thead>
-                <tbody id="body-raw"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="codec-block">
-            <h3>All three</h3>
-            <p class="codec-lead">Every lane, measured three ways.</p>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Lane</th><th>Raw</th><th>gzip-9</th><th>Brotli-11</th><th>Brotli vs Terser</th></tr></thead>
-                <tbody id="body-matched"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="method-note">
-            <p>
-              <strong>Why this surface.</strong> Comparing against a single published file would hide official dependencies.
-              The fair fight is the runtime graph you actually import, then the same minifiers the JS ecosystem ships.
-              Closed LilScript is the other honest comparison: no JavaScript options object, so those property names mangle.
-            </p>
-            <a href="https://github.com/yeargun/rehypelil">README ↗</a>
-          </div>
-        </div>
-      </section>
-      <section class="closing shell">
-        <p class="eyebrow">Zero runtime dependencies</p>
-        <h2>Install the<br />current port.</h2>
-        <div class="install-row large">
-          <code>npm install @itslil/rehype</code>
-          <button class="copy" data-copy="npm install @itslil/rehype" type="button">copy</button>
-        </div>
-      </section>
-    </main>
-    <footer class="shell">
-      <span>@itslil/rehype · MIT</span>
-      <span>official rehype@13.0.2 algorithms rewritten in LilScript — repository checks 159/159 — not affiliated with upstream</span>
-      <a href="https://github.com/yeargun/rehypelil">source ↗</a>
-    </footer>
-  </body>
+<button id="race" type="button">race 10×</button>
+<span id="race-out"></span>
+</div>
+<div class="samples" id="samples"></div>
+<div class="play-grid">
+<textarea aria-label="Source" id="source" spellcheck="false"></textarea>
+<div>
+<iframe id="preview" sandbox="allow-same-origin" title="Rendered output"></iframe>
+<pre hidden="" id="output"></pre>
+</div>
+</div>
+</div>
+</section>
+<section class="objective-section shell" id="evidence"><p class="eyebrow">Current library · original minified</p><h2>Three objectives.<br/>Measured separately.</h2><div id="compression-comparison"></div></section><section class="objective-section shell" id="compiler"><p class="eyebrow">Same machine · sequential builds</p><h2>Build time.</h2><div id="objective-build-times"></div></section>
+<section class="closing shell">
+<p class="eyebrow">Zero runtime dependencies</p>
+<h2>Install the<br/>current port.</h2>
+<div class="install-row large">
+<code>npm install @itslil/rehype</code>
+<button class="copy" data-copy="npm install @itslil/rehype" type="button">copy</button>
+</div>
+</section>
+</main>
+<footer class="shell">
+<span>@itslil/rehype · MIT</span>
+<span>official rehype@13.0.2 algorithms rewritten in LilScript — official test suite 136/136 — not affiliated with upstream</span>
+<a href="https://github.com/yeargun/rehypelil">source ↗</a>
+</footer>
+</body>
 </html>

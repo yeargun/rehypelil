@@ -1,0 +1,591 @@
+{
+  "compiler": {
+    "baseRevision": "f7d29bd9",
+    "binarySha256": "8ff44fabb92c949e68240ce6541038fd52e2f3c04d1a9ac470031e4238541c3a",
+    "hasLocalSourceChanges": true
+  },
+  "machine": {
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "logicalCpus": 8,
+    "memoryGiB": 15.6,
+    "os": "Linux-7.0.0-1014-azure-x86_64-with-glibc2.39",
+    "node": "v20.19.0"
+  },
+  "lilscript": [
+    {
+      "library": "rehypelil",
+      "objective": "raw",
+      "command": [
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/bin/lilscript",
+        "--config",
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/configs/rehypelil-raw.toml",
+        "--target",
+        "js-module",
+        "--mode",
+        "production",
+        "--jobs",
+        "1",
+        "--out-dir",
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/artifacts/rehypelil/raw",
+        "--explain",
+        "json",
+        "--cache",
+        "off",
+        "--logical-work",
+        "8000000000"
+      ],
+      "wallSeconds": 48.60996293000062,
+      "returncode": 0,
+      "compilerSha256": "8ff44fabb92c949e68240ce6541038fd52e2f3c04d1a9ac470031e4238541c3a",
+      "configSha256": "79b5c2933549423bb3e951ab82f56e0785386a8e16effcf52454f7b553a09576",
+      "measuredAt": "2026-10-02T22:44:25.891572+00:00",
+      "outputSha256": "b77bca746f4db4377c8061d1e7dde6b5f30867305094b189774f7e8e21735d2e",
+      "raw": 159668
+    },
+    {
+      "library": "rehypelil",
+      "objective": "gzip",
+      "command": [
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/bin/lilscript",
+        "--config",
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/configs/rehypelil-gzip.toml",
+        "--target",
+        "js-module",
+        "--mode",
+        "production",
+        "--jobs",
+        "1",
+        "--out-dir",
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/artifacts/rehypelil/gzip",
+        "--explain",
+        "json",
+        "--cache",
+        "off",
+        "--logical-work",
+        "8000000000"
+      ],
+      "wallSeconds": 45.25346003899904,
+      "returncode": 0,
+      "compilerSha256": "8ff44fabb92c949e68240ce6541038fd52e2f3c04d1a9ac470031e4238541c3a",
+      "configSha256": "e0120ef69f43c91756306b0049247dc301ff8262252e6aead7cc0434c9b29ae6",
+      "measuredAt": "2026-10-02T22:45:11.180247+00:00",
+      "outputSha256": "24d2f66b8ac30916c25225110aae8cc49208592cff2d0f1fe3c7b4ef08de6c96",
+      "raw": 168760
+    },
+    {
+      "library": "rehypelil",
+      "objective": "brotli",
+      "command": [
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/bin/lilscript",
+        "--config",
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/configs/rehypelil-brotli.toml",
+        "--target",
+        "js-module",
+        "--mode",
+        "production",
+        "--jobs",
+        "1",
+        "--out-dir",
+        "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/artifacts/rehypelil/brotli",
+        "--explain",
+        "json",
+        "--cache",
+        "off",
+        "--logical-work",
+        "8000000000"
+      ],
+      "wallSeconds": 100.01386607699897,
+      "returncode": 0,
+      "compilerSha256": "8ff44fabb92c949e68240ce6541038fd52e2f3c04d1a9ac470031e4238541c3a",
+      "configSha256": "619b610cb9a33f8f868c691e678b70ed36a39b41c1296831ec840f1a3ad292e4",
+      "measuredAt": "2026-10-02T22:46:51.210248+00:00",
+      "outputSha256": "a8c9d0eddee44bcb392480f9e9b7e3bc19baaa0db35406477958c658f5534066",
+      "raw": 168333
+    }
+  ],
+  "upstream": {
+    "name": "rehypelil",
+    "package": "rehype",
+    "version": "13.0.2",
+    "resolveDir": "/home/azureuser/lilscript-rebuild-reports/2026-10-02-optimization/vendor/rehype/package",
+    "output": "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil",
+    "entry": "export {rehype} from \"/home/azureuser/lilscript-rebuild-reports/2026-10-02-optimization/vendor/rehype/package/index.js\";",
+    "external": [],
+    "sharedExports": [
+      "rehype"
+    ],
+    "excludedExports": [],
+    "additionalExports": [],
+    "resolution": {
+      "platform": "neutral",
+      "conditions": [
+        "production"
+      ],
+      "mainFields": [
+        "module",
+        "main"
+      ],
+      "target": "es2020",
+      "defines": {
+        "process.env.NODE_ENV": "production"
+      }
+    },
+    "minifiers": [
+      {
+        "tool": "Terser",
+        "version": "5.51.2",
+        "esbuild": "0.28.1",
+        "artifact": "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil/terser.mjs",
+        "sha256": "49dbccb16d203af33fa918ff2729411df7808c7262b961e2dc1d9d4ab4888025",
+        "raw": 221185,
+        "imports": [],
+        "wallSeconds": 1.4946333620000005,
+        "command": [
+          "/home/azureuser/.nvm/versions/node/v20.19.0/bin/node",
+          "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream.mjs",
+          "child",
+          "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil/job.json",
+          "Terser"
+        ]
+      },
+      {
+        "tool": "esbuild",
+        "version": "0.28.1",
+        "esbuild": "0.28.1",
+        "artifact": "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil/esbuild.mjs",
+        "sha256": "502e772b0974f9f3faa357dac00c354448f1c1bfe6c14d508d7574d4894ebf4f",
+        "raw": 242680,
+        "imports": [],
+        "wallSeconds": 0.10858941700000105,
+        "command": [
+          "/home/azureuser/.nvm/versions/node/v20.19.0/bin/node",
+          "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream.mjs",
+          "child",
+          "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil/job.json",
+          "esbuild"
+        ]
+      },
+      {
+        "tool": "Oxc",
+        "version": "via Vite 8.2.1",
+        "esbuild": "0.28.1",
+        "artifact": "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil/oxc.mjs",
+        "sha256": "8b9b8f3166f10059a2d83a015476206925aa9ee7c0784fd5f336880af9f47438",
+        "raw": 218304,
+        "imports": [],
+        "wallSeconds": 0.21517771399999946,
+        "command": [
+          "/home/azureuser/.nvm/versions/node/v20.19.0/bin/node",
+          "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream.mjs",
+          "child",
+          "/home/azureuser/lilscript-rebuild-reports/2026-10-03-pages/upstream/rehypelil/job.json",
+          "Oxc"
+        ]
+      }
+    ]
+  },
+  "sourceInputs": {
+    "root": 0,
+    "entries": [
+      {
+        "name": "index",
+        "module": 0
+      }
+    ],
+    "modules": [
+      {
+        "path": "/home/azureuser/rehypelil/src/index.lil",
+        "bytes": 550,
+        "sha256": "0a6bdcd93e8983b8333d624a59e0470adfa3c4c3b82960822bc6b3ffc733ca1b",
+        "dependencies": [
+          1,
+          7,
+          33
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/unified/lib/index.lil",
+        "bytes": 14668,
+        "sha256": "2ea3b890efcaa31b19c3549f6f4eab215126aabdf7f307790e76632f633b5312",
+        "dependencies": [
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/unified/host.lil",
+        "bytes": 3054,
+        "sha256": "cf88d6cd112b8a223dd20b0e318ee42b2e58c9accb900cf69ad2a738c9018b3f",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/is-plain-obj/index.lil",
+        "bytes": 1598,
+        "sha256": "c2fcd0ce55949d64864c6ea050af6cfca886187d9c3f982e63227c9b463ac8d1",
+        "dependencies": [
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/extend/index.lil",
+        "bytes": 1937,
+        "sha256": "a678684de1f8eb165a4d85e3a32ad8e4c5783316ad3c015179fbdd050c4634a8",
+        "dependencies": [
+          2,
+          3
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/trough/index.lil",
+        "bytes": 4683,
+        "sha256": "41147378c19c56207d3391ed1e43a886e51acfa11a43dc598452e17a5bc1aad3",
+        "dependencies": [
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/vfile/lib/index.lil",
+        "bytes": 6030,
+        "sha256": "a942412a36c428170ddc1aba937e629b41bb17cf5c3277405e68a58472298422",
+        "dependencies": [
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/rehype-parse/lib/index.lil",
+        "bytes": 2352,
+        "sha256": "ccdd7a0d76927c343eb144c98ae5223ef59cbf5a4375a581d230d111acb09619",
+        "dependencies": [
+          8,
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-from-html/lib/index.lil",
+        "bytes": 6391,
+        "sha256": "bf70363266863ebac9e922ef288f4c873b926d689e6cecdc34f5290d0a8a18a5",
+        "dependencies": [
+          2,
+          9,
+          15,
+          31,
+          32
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-from-parse5/lib/index.lil",
+        "bytes": 7602,
+        "sha256": "39b6ac8cdc2837b1377a8264a0bffb70b9e554533485b90fcc2b7698d88e9be7",
+        "dependencies": [
+          2,
+          10,
+          14,
+          11,
+          13
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hastscript/lib/create-h.lil",
+        "bytes": 8645,
+        "sha256": "db0a1b6b81bf8c1a14737747b731d47f3e90e6bfbe8bc09a380c270b80c60146",
+        "dependencies": [
+          11,
+          13,
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-to-html/lib/schema.lil",
+        "bytes": 3764,
+        "sha256": "7a2728242bd00df8f3fc200978fe16d7adb7ec3386d0e5c8e9dc55597eebd07f",
+        "dependencies": [
+          12,
+          13
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-to-html/lib/schema-data.lil",
+        "bytes": 18501,
+        "sha256": "d8af02546e95f0422caa52f0905cb9fb4fe8bb5138c62ba29f1a16e1536f7ec3",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-to-html/lib/types.lil",
+        "bytes": 5081,
+        "sha256": "a33819143e6b2687e1ef495cee63d0ed6be9cd3945a9f6ba273cc858112ccd2f",
+        "dependencies": [
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/vfile-location/lib/index.lil",
+        "bytes": 695,
+        "sha256": "d7bf62d9c0baeeed8e7bbaa335aa402eb75e504e5e9c1d35e61a06ed2fefedaf",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/parser/index.lil",
+        "bytes": 95390,
+        "sha256": "c88dceade8b84073ef407d7ef83305bad3cec3a981206e04e725b0c7f2cc070b",
+        "dependencies": [
+          2,
+          16,
+          17,
+          18,
+          20,
+          19,
+          21,
+          22,
+          28,
+          29,
+          30
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/common/html.lil",
+        "bytes": 9644,
+        "sha256": "e0954db3bec2e9e1b3f5c309677069b30550093d4fa21ddf4f0626629996bb14",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/common/error-codes.lil",
+        "bytes": 8329,
+        "sha256": "bdd7506db35aa4679fda04852f0b3c9c2f99e4c3f12410d6fda7496908ba4199",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/common/doctype.lil",
+        "bytes": 4758,
+        "sha256": "47de16ad53eea4c441ff2813ee50d35359a11390c6b73a28e6a65c424a0081ba",
+        "dependencies": [
+          16,
+          19
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/common/token.lil",
+        "bytes": 2581,
+        "sha256": "17150a41d136fe8625579dc3c70f48efca27a9251a2fe200e025a53809915233",
+        "dependencies": [
+          16
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/common/foreign-content.lil",
+        "bytes": 6623,
+        "sha256": "54aa63f1ef72f6af13515cd9615561e9bcdc882446fe4cbfc38e5425a76449c3",
+        "dependencies": [
+          16,
+          19
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/common/unicode.lil",
+        "bytes": 2186,
+        "sha256": "1defb9f18f34a34db251d30d55e4ac1dea9c2b052065658926877da93d418046",
+        "dependencies": [
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/tokenizer/index.lil",
+        "bytes": 69981,
+        "sha256": "f6e3f10fcbbd4d75222a4572cad485e89b4b67422cb87738fdb7406514ef3948",
+        "dependencies": [
+          2,
+          17,
+          16,
+          19,
+          21,
+          23,
+          25,
+          27
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/entities/decode.lil",
+        "bytes": 10711,
+        "sha256": "a8ce8ddff3f0921f49b95d27b9e38c65adad9af7d460638305ca17f3f5c9007b",
+        "dependencies": [
+          21,
+          24,
+          25,
+          26,
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/entities/decode-codepoint.lil",
+        "bytes": 848,
+        "sha256": "eef6bc1f1e778822eae806ca069f321198c9893b34867f9ec6639ab27e03112a",
+        "dependencies": [
+          21
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/entities/generated/decode-data-html.lil",
+        "bytes": 27697,
+        "sha256": "1bde6e1d98e5dfb265929c5d03f2a5d51df74dfaf922c9324aa3f1dbc803a54e",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/entities/generated/decode-data-xml.lil",
+        "bytes": 386,
+        "sha256": "42cbe5bc621374900df711bfee301459c8981c6db89fb95a1a6e0e8530b7e155",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/tokenizer/preprocessor.lil",
+        "bytes": 5700,
+        "sha256": "76d87937f9b3fd452a782928862efdb7b8dbd139373f046ddf8b1ba8ca3521f9",
+        "dependencies": [
+          17,
+          21
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/tree-adapters/default.lil",
+        "bytes": 6765,
+        "sha256": "adb6ebc4e3884c3ce5974a20619dd5c0c4d003ad5b645559951a2510e7697364",
+        "dependencies": [
+          2,
+          16
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/parser/formatting-element-list.lil",
+        "bytes": 5412,
+        "sha256": "adaf75ae56b0214d8d427529748e144b846ee7509bdae55182609aed77dfcac6",
+        "dependencies": [
+          19,
+          28
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/parse5/parser/open-element-stack.lil",
+        "bytes": 12412,
+        "sha256": "1244ec4987a946e9927d859f4dc53e3c2a61cbef4f7d99370dfe6ccd87e15889",
+        "dependencies": [
+          16,
+          28,
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-from-html/lib/errors.lil",
+        "bytes": 11198,
+        "sha256": "2dd19e5b037fb6fe8f96ecbb457ef859bc13f0216c343ff8509183b7666d4362",
+        "dependencies": [],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/vfile-message/lib/index.lil",
+        "bytes": 2062,
+        "sha256": "4cfef597eb5d2b0fb624fd5c92732077b361b17294f15189df9de17396580382",
+        "dependencies": [
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/rehype-stringify/lib/index.lil",
+        "bytes": 1359,
+        "sha256": "35bb3742332c8117c3bc70650e1eadad901b043977e8f3c3085040e0bbe14a41",
+        "dependencies": [
+          34,
+          2
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-to-html/lib/index.lil",
+        "bytes": 11978,
+        "sha256": "8243a1e85dc302142e1cb0c43722d5d6e80acf57c4946069b85fbf849254c2f3",
+        "dependencies": [
+          13,
+          35,
+          11,
+          36
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-to-html/lib/entities.lil",
+        "bytes": 4975,
+        "sha256": "2f9e9bf95334a0371ee2f6a9eb1b1df218c46f0f7057ffc8fad4b13b08e971c7",
+        "dependencies": [
+          13
+        ],
+        "dynamic_dependencies": []
+      },
+      {
+        "path": "/home/azureuser/rehypelil/src/hast-util-to-html/lib/omission.lil",
+        "bytes": 10784,
+        "sha256": "f357f9d2f370373dbdab8bcdd09959243360916dbe8b95c3fbbf5449490901c5",
+        "dependencies": [
+          13
+        ],
+        "dynamic_dependencies": []
+      }
+    ],
+    "host_modules": [],
+    "host_reserved": []
+  },
+  "validation": {
+    "checks": 393,
+    "objectives": [
+      {
+        "objective": "raw",
+        "checks": 131,
+        "suite": "upstream-derived/API"
+      },
+      {
+        "objective": "gzip",
+        "checks": 131,
+        "suite": "upstream-derived/API"
+      },
+      {
+        "objective": "brotli",
+        "checks": 131,
+        "suite": "upstream-derived/API"
+      }
+    ],
+    "scope": "Main ESM entry; selected corpora and API checks, not all package formats or complete upstream equivalence."
+  },
+  "workLimit": 8000000000,
+  "timingScope": "One sequential fresh-output build per objective/minifier. Upstream timing is ESM bundling and minification, not original-repository source compilation."
+}

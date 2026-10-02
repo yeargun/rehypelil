@@ -27,3 +27,8 @@ parse5 7.3.0 runtime graph used by rehype is also implemented in LilScript; no
 parse5 or entities JavaScript runtime is bundled. The module inventory and
 corpus commands are recorded in
 [`src/parse5/PORTING.md`](src/parse5/PORTING.md).
+
+
+## Comparison with the original
+
+See [COMPARISON.md](COMPARISON.md) for current size and build-time comparisons against minified upstream.

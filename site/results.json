@@ -1,69 +1,207 @@
 {
-  "pin": "rehype@13.0.2",
-  "package": "@itslil/rehype",
   "file": "rehype",
   "lilExport": "rehype",
   "officialExport": "rehype",
-  "node": "v22.21.1",
-  "codec": "lilscript-codec gzip-9 / brotli-11",
-  "runtime": "Node v22.21.1",
-  "warmupDiscard": 3,
-  "comparison": "Official rows are an esbuild 0.28.1 bundle of the exact rehype@13.0.2 worktree plus its runtime graph, then Terser or esbuild. LilScript is the compiled npm ESM. Closed uses the closed-world config.",
-  "spec": {
-    "total": 159,
-    "pass": 159,
-    "label": "runtime checks"
-  },
   "play": {
     "kind": "html-html",
     "sample": "<h1>rehype</h1><p>Hello <strong>LilScript</strong>.</p>"
   },
-  "size": [
-    {
-      "id": "official",
-      "name": "Official rehype@13.0.2 graph",
-      "raw": 438496,
-      "gzip9": 91769,
-      "brotli11": 74485,
-      "note": "esbuild bundle of the published package plus runtime deps",
-      "diagnostic": false,
-      "measuredAt": "2026-09-27T16:11:00Z",
-      "artifactSha256": "a9904637282b3c1c0fb99beee08ac985136d56cd06221ce298c4245f722b5670"
+  "package": "@itslil/rehype",
+  "pin": "rehype@13.0.2",
+  "objectiveComparison": {
+    "schemaVersion": 4,
+    "name": "rehypelil",
+    "package": "@itslil/rehype",
+    "measuredAt": "2026-10-03T02:05:48.619056+03:00",
+    "compiler": {
+      "baseRevision": "f7d29bd9",
+      "binarySha256": "8ff44fabb92c949e68240ce6541038fd52e2f3c04d1a9ac470031e4238541c3a",
+      "hasLocalSourceChanges": true
     },
-    {
-      "id": "official-terser-mangle",
-      "name": "Official · Terser mangle on",
-      "raw": 221170,
-      "gzip9": 67626,
-      "brotli11": 54982,
-      "note": "Terser compress of that graph, mangle: true",
-      "baseline": true,
-      "measuredAt": "2026-09-27T16:11:00Z",
-      "artifactSha256": "f46c04012469e27a349f441b9db6b0f10ee329785183c3fb1fcfba2bfc1190f7"
+    "upstream": {
+      "package": "rehype",
+      "version": "13.0.2",
+      "external": [],
+      "sharedExports": [
+        "rehype"
+      ],
+      "excludedExports": [],
+      "additionalExports": [],
+      "resolution": {
+        "platform": "neutral",
+        "conditions": [
+          "production"
+        ],
+        "mainFields": [
+          "module",
+          "main"
+        ],
+        "target": "es2020",
+        "defines": {
+          "process.env.NODE_ENV": "production"
+        }
+      }
     },
-    {
-      "id": "itslil",
-      "name": "@itslil/rehype · library",
-      "raw": 177053,
-      "gzip9": 58524,
-      "brotli11": 49345,
-      "note": "ESM output from LilScript 2496865.",
-      "primary": true,
-      "measuredAt": "2026-09-27T16:11:00Z",
-      "artifactSha256": "2e71bc49b3945842cdb9e051ca81537d3cc123de7ac0e4e0caf2d5c25c6ef4ec"
+    "scope": "Portable main-entry ESM with matching shared named exports and external imports. The original uses production/default package conditions, keeping data-based entity decoding rather than relying on the DOM.",
+    "machine": {
+      "cpu": "AMD EPYC 7763 64-Core Processor",
+      "logicalCpus": 8,
+      "memoryGiB": 15.6,
+      "os": "Linux-7.0.0-1014-azure-x86_64-with-glibc2.39",
+      "node": "v20.19.0"
     },
-    {
-      "id": "itslil-closed",
-      "name": "@itslil/rehype · closed",
-      "raw": 177145,
-      "gzip9": 58551,
-      "brotli11": 49282,
-      "note": "ESM output from LilScript 2496865.",
-      "measuredAt": "2026-09-27T16:11:00Z",
-      "artifactSha256": "2320dbd25645a86fa2f18168cea3458e4ee3296517257a1a28da894382978657"
+    "objectives": [
+      {
+        "objective": "raw",
+        "metric": "raw",
+        "lilscript": {
+          "artifact": "./comparison-artifacts/lilscript-raw.mjs",
+          "sizes": {
+            "raw": 159668,
+            "gzip9": 58068,
+            "brotli11": 49879
+          },
+          "sha256": "b77bca746f4db4377c8061d1e7dde6b5f30867305094b189774f7e8e21735d2e",
+          "buildSeconds": 48.60996293000062,
+          "config": "./comparison-artifacts/lilscript-raw.toml",
+          "configSha256": "79b5c2933549423bb3e951ab82f56e0785386a8e16effcf52454f7b553a09576"
+        },
+        "original": {
+          "tool": "Oxc",
+          "version": "via Vite 8.2.1",
+          "artifact": "./comparison-artifacts/original-oxc.mjs",
+          "sizes": {
+            "raw": 218304,
+            "gzip9": 67720,
+            "brotli11": 55329
+          },
+          "sha256": "8b9b8f3166f10059a2d83a015476206925aa9ee7c0784fd5f336880af9f47438",
+          "buildSeconds": 0.21517771399999946
+        },
+        "ratio": 0.7314020815010261
+      },
+      {
+        "objective": "gzip",
+        "metric": "gzip9",
+        "lilscript": {
+          "artifact": "./comparison-artifacts/lilscript-gzip.mjs",
+          "sizes": {
+            "raw": 168760,
+            "gzip9": 57442,
+            "brotli11": 48194
+          },
+          "sha256": "24d2f66b8ac30916c25225110aae8cc49208592cff2d0f1fe3c7b4ef08de6c96",
+          "buildSeconds": 45.25346003899904,
+          "config": "./comparison-artifacts/lilscript-gzip.toml",
+          "configSha256": "e0120ef69f43c91756306b0049247dc301ff8262252e6aead7cc0434c9b29ae6"
+        },
+        "original": {
+          "tool": "Terser",
+          "version": "5.51.2",
+          "artifact": "./comparison-artifacts/original-terser.mjs",
+          "sizes": {
+            "raw": 221185,
+            "gzip9": 67636,
+            "brotli11": 54909
+          },
+          "sha256": "49dbccb16d203af33fa918ff2729411df7808c7262b961e2dc1d9d4ab4888025",
+          "buildSeconds": 1.4946333620000005
+        },
+        "ratio": 0.849281447749719
+      },
+      {
+        "objective": "brotli",
+        "metric": "brotli11",
+        "lilscript": {
+          "artifact": "./comparison-artifacts/lilscript-brotli.mjs",
+          "sizes": {
+            "raw": 168333,
+            "gzip9": 57711,
+            "brotli11": 48371
+          },
+          "sha256": "a8c9d0eddee44bcb392480f9e9b7e3bc19baaa0db35406477958c658f5534066",
+          "buildSeconds": 100.01386607699897,
+          "config": "./comparison-artifacts/lilscript-brotli.toml",
+          "configSha256": "619b610cb9a33f8f868c691e678b70ed36a39b41c1296831ec840f1a3ad292e4"
+        },
+        "original": {
+          "tool": "Terser",
+          "version": "5.51.2",
+          "artifact": "./comparison-artifacts/original-terser.mjs",
+          "sizes": {
+            "raw": 221185,
+            "gzip9": 67636,
+            "brotli11": 54909
+          },
+          "sha256": "49dbccb16d203af33fa918ff2729411df7808c7262b961e2dc1d9d4ab4888025",
+          "buildSeconds": 1.4946333620000005
+        },
+        "ratio": 0.8809302664408385
+      }
+    ],
+    "minifiers": [
+      {
+        "tool": "Terser",
+        "version": "5.51.2",
+        "artifact": "./comparison-artifacts/original-terser.mjs",
+        "sizes": {
+          "raw": 221185,
+          "gzip9": 67636,
+          "brotli11": 54909
+        },
+        "sha256": "49dbccb16d203af33fa918ff2729411df7808c7262b961e2dc1d9d4ab4888025",
+        "buildSeconds": 1.4946333620000005
+      },
+      {
+        "tool": "esbuild",
+        "version": "0.28.1",
+        "artifact": "./comparison-artifacts/original-esbuild.mjs",
+        "sizes": {
+          "raw": 242680,
+          "gzip9": 69096,
+          "brotli11": 57062
+        },
+        "sha256": "502e772b0974f9f3faa357dac00c354448f1c1bfe6c14d508d7574d4894ebf4f",
+        "buildSeconds": 0.10858941700000105
+      },
+      {
+        "tool": "Oxc",
+        "version": "via Vite 8.2.1",
+        "artifact": "./comparison-artifacts/original-oxc.mjs",
+        "sizes": {
+          "raw": 218304,
+          "gzip9": 67720,
+          "brotli11": 55329
+        },
+        "sha256": "8b9b8f3166f10059a2d83a015476206925aa9ee7c0784fd5f336880af9f47438",
+        "buildSeconds": 0.21517771399999946
+      }
+    ],
+    "validation": {
+      "checks": 393,
+      "objectives": [
+        {
+          "objective": "raw",
+          "checks": 131,
+          "suite": "upstream-derived/API"
+        },
+        {
+          "objective": "gzip",
+          "checks": 131,
+          "suite": "upstream-derived/API"
+        },
+        {
+          "objective": "brotli",
+          "checks": 131,
+          "suite": "upstream-derived/API"
+        }
+      ],
+      "scope": "Main ESM entry; selected corpora and API checks, not all package formats or complete upstream equivalence."
     }
-  ],
-  "throughput": [],
-  "sizeMeasuredAt": "2026-09-27T16:11:00Z",
-  "perfLead": "throughput not measured for this build: the earlier figure had no reproducible benchmark"
+  },
+  "spec": {
+    "pass": 393,
+    "total": 393,
+    "label": "current main-entry checks"
+  }
 }
