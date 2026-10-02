@@ -115,7 +115,7 @@ export bool unescapedText(string name, bool scriptingEnabled) {
 }
 
 DoctypeToken doctypeToken(string name, bool hasName, string publicId, bool hasPublicId, string systemId, bool hasSystemId) {
-  DoctypeToken token = DoctypeToken{TokenType.Doctype, null, false, null, null, null};
+  DoctypeToken token = new DoctypeToken(TokenType.Doctype, null, false, null, null, null);
   if (hasName) token.name = name;
   token.forceQuirks = false;
   if (hasPublicId) token.publicId = publicId;
@@ -196,11 +196,11 @@ export bool undefinedCodePoint(int codePoint) {
 }
 
 Attribute attribute(string name, string value) {
-  return Attribute{name, value, null, null};
+  return new Attribute(name, value, null, null);
 }
 
 TagToken tagToken(string name, string attrName, string attrValue) {
-  TagToken token = TagToken{TokenType.StartTag, name, getTagID(name), false, false, [], null, JS.undefined()};
+  TagToken token = new TagToken(TokenType.StartTag, name, getTagID(name), false, false, [], null, JS.undefined());
   if (attrName.length > 0) token.attrs.push(attribute(attrName, attrValue));
   return token;
 }

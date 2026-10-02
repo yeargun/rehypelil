@@ -12,11 +12,18 @@ export enum TokenType {
   Hibernation
 }
 
-export struct Attribute {
+export class Attribute {
   string name;
   string value;
   string? namespace;
   string? prefix;
+
+  init(string name, string value, string? namespace, string? prefix) {
+    this.name = name;
+    this.value = value;
+    this.namespace = namespace;
+    this.prefix = prefix;
+  }
 }
 
 export class Location {
@@ -32,16 +39,25 @@ export class TagLocation extends Location {
   Map<string, Location> attrs;
 }
 
-export struct DoctypeToken {
+export class DoctypeToken {
   TokenType type;
   string? name;
   bool forceQuirks;
   string? publicId;
   string? systemId;
   Location? location;
+
+  init(TokenType type, string? name, bool forceQuirks, string? publicId, string? systemId, Location? location) {
+    this.type = type;
+    this.name = name;
+    this.forceQuirks = forceQuirks;
+    this.publicId = publicId;
+    this.systemId = systemId;
+    this.location = location;
+  }
 }
 
-export struct TagToken {
+export class TagToken {
   TokenType type;
   string tagName;
   TagId tagID;
@@ -50,23 +66,51 @@ export struct TagToken {
   Attribute[] attrs;
   TagLocation? location;
   JsValue serializedLocation;
+
+  init(TokenType type, string tagName, TagId tagID, bool selfClosing, bool ackSelfClosing, Attribute[] attrs, TagLocation? location, JsValue serializedLocation) {
+    this.type = type;
+    this.tagName = tagName;
+    this.tagID = tagID;
+    this.selfClosing = selfClosing;
+    this.ackSelfClosing = ackSelfClosing;
+    this.attrs = attrs;
+    this.location = location;
+    this.serializedLocation = serializedLocation;
+  }
 }
 
-export struct CommentToken {
+export class CommentToken {
   TokenType type;
   string data;
   Location? location;
+
+  init(TokenType type, string data, Location? location) {
+    this.type = type;
+    this.data = data;
+    this.location = location;
+  }
 }
 
-export struct CharacterToken {
+export class CharacterToken {
   TokenType type;
   string chars;
   Location? location;
+
+  init(TokenType type, string chars, Location? location) {
+    this.type = type;
+    this.chars = chars;
+    this.location = location;
+  }
 }
 
-export struct EofToken {
+export class EofToken {
   TokenType type;
   Location? location;
+
+  init(TokenType type, Location? location) {
+    this.type = type;
+    this.location = location;
+  }
 }
 
 export pure string? getTokenAttr(TagToken token, string attrName) {

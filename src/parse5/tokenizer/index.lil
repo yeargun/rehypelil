@@ -312,12 +312,12 @@ export class Tokenizer {
     this.entityStartPos = 0;
     this.consumedAfterSnapshot = -1;
     this.currentLocation = null;
-    this.currentCharacterToken = CharacterToken{TokenType.Character, "", null};
+    this.currentCharacterToken = new CharacterToken(TokenType.Character, "", null);
     this.hasCharacterToken = false;
-    this.currentTagToken = TagToken{TokenType.Character, "", TagId.Unknown, false, false, [], null, JS.undefined()};
-    this.currentCommentToken = CommentToken{TokenType.Comment, "", null};
-    this.currentDoctypeToken = DoctypeToken{TokenType.Doctype, null, false, null, null, null};
-    this.currentAttr = Attribute{"", "", null, null};
+    this.currentTagToken = new TagToken(TokenType.Character, "", TagId.Unknown, false, false, [], null, JS.undefined());
+    this.currentCommentToken = new CommentToken(TokenType.Comment, "", null);
+    this.currentDoctypeToken = new DoctypeToken(TokenType.Doctype, null, false, null, null, null);
+    this.currentAttr = new Attribute("", "", null, null);
     this.preprocessor = new Preprocessor(handler);
     this.currentLocation = this.getCurrentLocation(-1);
     Tokenizer tokenizer = this;
@@ -439,33 +439,33 @@ export class Tokenizer {
   }
 
   void createStartTagToken() {
-    TagToken token = TagToken{TokenType.StartTag, "", TagId.Unknown, false, false, [], this.getCurrentTagLocation(1), JS.undefined()};
+    TagToken token = new TagToken(TokenType.StartTag, "", TagId.Unknown, false, false, [], this.getCurrentTagLocation(1), JS.undefined());
     this.currentTagToken = token;
   }
 
   void createEndTagToken() {
-    TagToken token = TagToken{TokenType.EndTag, "", TagId.Unknown, false, false, [], this.getCurrentTagLocation(2), JS.undefined()};
+    TagToken token = new TagToken(TokenType.EndTag, "", TagId.Unknown, false, false, [], this.getCurrentTagLocation(2), JS.undefined());
     this.currentTagToken = token;
   }
 
   void createCommentToken(int offset) {
-    CommentToken token = CommentToken{TokenType.Comment, "", this.getCurrentLocation(offset)};
+    CommentToken token = new CommentToken(TokenType.Comment, "", this.getCurrentLocation(offset));
     this.currentCommentToken = token;
   }
 
   void createDoctypeToken(string? initialName) {
-    DoctypeToken token = DoctypeToken{TokenType.Doctype, initialName, false, null, null, this.currentLocation};
+    DoctypeToken token = new DoctypeToken(TokenType.Doctype, initialName, false, null, null, this.currentLocation);
     this.currentDoctypeToken = token;
   }
 
   void createCharacterToken(TokenType type, string chars) {
-    CharacterToken token = CharacterToken{type, chars, this.currentLocation};
+    CharacterToken token = new CharacterToken(type, chars, this.currentLocation);
     this.currentCharacterToken = token;
     this.hasCharacterToken = true;
   }
 
   void createAttr(string firstCharacter) {
-    this.currentAttr = Attribute{firstCharacter, "", null, null};
+    this.currentAttr = new Attribute(firstCharacter, "", null, null);
     this.currentLocation = this.getCurrentLocation(0);
   }
 
@@ -593,7 +593,7 @@ export class Tokenizer {
       location.endOffset = location.startOffset;
     }
     this.emitCurrentCharacterToken(location);
-    EofToken token = EofToken{TokenType.Eof, location};
+    EofToken token = new EofToken(TokenType.Eof, location);
     this.typedHandler.onEof(token);
     this.active = false;
   }

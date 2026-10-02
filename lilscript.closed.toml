@@ -1,18 +1,31 @@
-# closed LilScript world — extern class keys may mangle
+# Compiler-owned delivery; no JavaScript post-minifier or export rewriting.
+[policy]
+version = 3
 [javascript]
 priority = "size-first"
-optimization_level = 12
-cost_model = "brotli"
+# Assumes unpatched platform builtins; disable when consumers replace them.
 assume_pristine_builtins = true
-strip_console = true
-local_name_reserve = 48
-candidate_search = "always"
-function_spelling = "arrow"
-public_aggregate_abi = "named"
+# Remove debugLog instrumentation; ordinary print and host console effects remain.
+strip_debug = true
 
+# Preserved effort setting. 13 favors size; 14/15 allow more expensive marginal searches.
+[effort]
+level = 12
+
+# Optimize the delivered files for this codec, independently of raw/gzip objectives.
+[objective]
+codecs = "brotli"
 [mangle]
 identifiers = true
 properties = true
-exports = false
-extern_fields = false
 pool_strings = true
+
+# All runtime files and format bindings are written by the compiler.
+[delivery]
+mode = "single"
+directory = "."
+host_modules = "embed"
+select = ["index"]
+entry_names = "rehype.closed.js"
+[delivery.entries]
+index = "src/index.lil"
