@@ -1,21 +1,55 @@
-# reusable ESM — host-visible names stay
+# Compiler-owned delivery; no JavaScript post-minifier or export rewriting.
+[policy]
+version = 3
 [javascript]
-# Measured on this port: the objects it reads are plain data, so a member
-# read is not a coercion hook and the value can nest into its consumer.
+# Plain-data reads must not run getters; disable for effectful accessor integrations.
 assume_pure_property_reads = true
 priority = "size-first"
-# 8.20 (measured, fleet sweep of four budgets with the level clamp bypassed):
-# this port wants a 32 MiB candidate pool -- 2 MiB -78, 32 MiB -403 against the
-# default -- and only level 15 escapes the clamp that pins the budget at 512 KiB
-# for level 12. The two are declared together because neither works alone.
-optimization_level = 15
-cost_model = "brotli"
+# Assumes unpatched platform builtins; disable when consumers replace them.
 assume_pristine_builtins = true
-strip_console = true
-candidate_search = "always"
-candidate_byte_budget = 33554432
+# Remove debugLog instrumentation; ordinary print and host console effects remain.
+strip_debug = true
 
+# Preserved effort setting. 13 favors size; 14/15 allow more expensive marginal searches.
+[effort]
+level = 15
+
+# Optimize the delivered files for this codec, independently of raw/gzip objectives.
+[objective]
+codecs = "brotli"
 [mangle]
 identifiers = true
 properties = true
 pool_strings = true
+
+# All runtime files and format bindings are written by the compiler.
+[delivery]
+mode = "single"
+directory = "."
+host_modules = "embed"
+select = ["index"]
+entry_names = "rehype.esm.js"
+[delivery.entries]
+index = "src/index.lil"
+browser = "src/browser.lil"
+
+[[delivery.also]]
+name = "cjs"
+format = "cjs"
+entries = ["index"]
+entry_names = "rehype.cjs"
+
+[[delivery.also]]
+name = "browser"
+format = "iife"
+entries = ["browser"]
+exports = "default"
+global = "rehype"
+global_binding = "property"
+entry_names = "rehype.umd.js"
+
+[policy.resources]
+logical_work = 8000000000
+
+[execution]
+jobs = 1

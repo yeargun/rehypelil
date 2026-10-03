@@ -1,0 +1,2 @@
+import {rehype} from "./index.lil";
+export {rehype as default};

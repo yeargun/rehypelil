@@ -1,0 +1,505 @@
+{
+  "version": 5,
+  "outputs": [
+    {
+      "mode": "single",
+      "format": "esm",
+      "entries": [
+        {
+          "name": "browser",
+          "file": "rehype.esm.js",
+          "dynamic": false,
+          "closure": [
+            "rehype.esm.js"
+          ],
+          "row": 48371,
+          "raw_row": 168333
+        }
+      ],
+      "files": [
+        {
+          "file": "rehype.esm.js",
+          "role": "entry",
+          "source_map_for": null,
+          "label": [
+            "browser"
+          ],
+          "modules": [
+            "browser.lil",
+            "index.lil",
+            "unified/lib/index.lil",
+            "unified/host.lil",
+            "is-plain-obj/index.lil",
+            "extend/index.lil",
+            "trough/index.lil",
+            "vfile/lib/index.lil",
+            "rehype-parse/lib/index.lil",
+            "hast-util-from-html/lib/index.lil",
+            "hast-util-from-parse5/lib/index.lil",
+            "hastscript/lib/create-h.lil",
+            "hast-util-to-html/lib/schema.lil",
+            "hast-util-to-html/lib/schema-data.lil",
+            "hast-util-to-html/lib/types.lil",
+            "vfile-location/lib/index.lil",
+            "parse5/parser/index.lil",
+            "parse5/common/html.lil",
+            "parse5/common/error-codes.lil",
+            "parse5/common/doctype.lil",
+            "parse5/common/token.lil",
+            "parse5/common/foreign-content.lil",
+            "parse5/common/unicode.lil",
+            "parse5/tokenizer/index.lil",
+            "parse5/entities/decode.lil",
+            "parse5/entities/decode-codepoint.lil",
+            "parse5/entities/generated/decode-data-html.lil",
+            "parse5/entities/generated/decode-data-xml.lil",
+            "parse5/tokenizer/preprocessor.lil",
+            "parse5/tree-adapters/default.lil",
+            "parse5/parser/formatting-element-list.lil",
+            "parse5/parser/open-element-stack.lil",
+            "hast-util-from-html/lib/errors.lil",
+            "vfile-message/lib/index.lil",
+            "rehype-stringify/lib/index.lil",
+            "hast-util-to-html/lib/index.lil",
+            "hast-util-to-html/lib/entities.lil",
+            "hast-util-to-html/lib/omission.lil"
+          ],
+          "anchored": true,
+          "imports": [],
+          "dynamic_imports": [],
+          "bytes": 168333,
+          "codec_bytes": 48371,
+          "sha256": "a8c9d0eddee44bcb392480f9e9b7e3bc19baaa0db35406477958c658f5534066"
+        }
+      ],
+      "side_effects": [
+        "rehype.esm.js"
+      ],
+      "codec_total": 48371,
+      "rows_total": 48371,
+      "setters": 0,
+      "output": "public/primary",
+      "codec": "brotli",
+      "codec_settings": {
+        "brotli": {
+          "quality": 11,
+          "window": 22,
+          "mode": "generic"
+        },
+        "gzip": {
+          "level": 9,
+          "window": 15
+        }
+      },
+      "policy_fingerprint": [
+        217,
+        176,
+        6,
+        209,
+        217,
+        94,
+        93,
+        147,
+        104,
+        124,
+        245,
+        83,
+        86,
+        202,
+        164,
+        211,
+        65,
+        117,
+        64,
+        114,
+        223,
+        43,
+        201,
+        45,
+        71,
+        220,
+        151,
+        196,
+        223,
+        89,
+        162,
+        157
+      ]
+    },
+    {
+      "mode": "single",
+      "format": "iife",
+      "entries": [
+        {
+          "name": "browser",
+          "file": "rehype.umd.js",
+          "dynamic": false,
+          "closure": [
+            "rehype.umd.js"
+          ],
+          "row": 48429,
+          "raw_row": 168804
+        }
+      ],
+      "files": [
+        {
+          "file": "rehype.umd.js",
+          "role": "entry",
+          "source_map_for": null,
+          "label": [
+            "browser"
+          ],
+          "modules": [
+            "index.lil",
+            "unified/lib/index.lil",
+            "unified/host.lil",
+            "is-plain-obj/index.lil",
+            "extend/index.lil",
+            "trough/index.lil",
+            "vfile/lib/index.lil",
+            "rehype-parse/lib/index.lil",
+            "hast-util-from-html/lib/index.lil",
+            "hast-util-from-parse5/lib/index.lil",
+            "hastscript/lib/create-h.lil",
+            "hast-util-to-html/lib/schema.lil",
+            "hast-util-to-html/lib/schema-data.lil",
+            "hast-util-to-html/lib/types.lil",
+            "vfile-location/lib/index.lil",
+            "parse5/parser/index.lil",
+            "parse5/common/html.lil",
+            "parse5/common/error-codes.lil",
+            "parse5/common/doctype.lil",
+            "parse5/common/token.lil",
+            "parse5/common/foreign-content.lil",
+            "parse5/common/unicode.lil",
+            "parse5/tokenizer/index.lil",
+            "parse5/entities/decode.lil",
+            "parse5/entities/decode-codepoint.lil",
+            "parse5/entities/generated/decode-data-html.lil",
+            "parse5/entities/generated/decode-data-xml.lil",
+            "parse5/tokenizer/preprocessor.lil",
+            "parse5/tree-adapters/default.lil",
+            "parse5/parser/formatting-element-list.lil",
+            "parse5/parser/open-element-stack.lil",
+            "hast-util-from-html/lib/errors.lil",
+            "vfile-message/lib/index.lil",
+            "rehype-stringify/lib/index.lil",
+            "hast-util-to-html/lib/index.lil",
+            "hast-util-to-html/lib/entities.lil",
+            "hast-util-to-html/lib/omission.lil"
+          ],
+          "anchored": true,
+          "imports": [],
+          "dynamic_imports": [],
+          "bytes": 168804,
+          "codec_bytes": 48429,
+          "sha256": "9060c4dc1c4af57b269178be2692a0be715a2fef0b367bc5954735e7ff416b6a"
+        }
+      ],
+      "side_effects": [
+        "rehype.umd.js"
+      ],
+      "codec_total": 48429,
+      "rows_total": 48429,
+      "setters": 0,
+      "output": "public/browser",
+      "codec": "brotli",
+      "codec_settings": {
+        "brotli": {
+          "quality": 11,
+          "window": 22,
+          "mode": "generic"
+        },
+        "gzip": {
+          "level": 9,
+          "window": 15
+        }
+      },
+      "policy_fingerprint": [
+        142,
+        28,
+        15,
+        192,
+        48,
+        211,
+        119,
+        221,
+        251,
+        174,
+        55,
+        76,
+        37,
+        66,
+        249,
+        200,
+        122,
+        185,
+        160,
+        112,
+        76,
+        224,
+        56,
+        151,
+        143,
+        247,
+        90,
+        126,
+        32,
+        221,
+        164,
+        164
+      ]
+    },
+    {
+      "mode": "single",
+      "format": "cjs",
+      "entries": [
+        {
+          "name": "index",
+          "file": "rehype.cjs",
+          "dynamic": false,
+          "closure": [
+            "rehype.cjs"
+          ],
+          "row": 48368,
+          "raw_row": 168275
+        }
+      ],
+      "files": [
+        {
+          "file": "rehype.cjs",
+          "role": "entry",
+          "source_map_for": null,
+          "label": [
+            "index"
+          ],
+          "modules": [
+            "index.lil",
+            "unified/lib/index.lil",
+            "unified/host.lil",
+            "is-plain-obj/index.lil",
+            "extend/index.lil",
+            "trough/index.lil",
+            "vfile/lib/index.lil",
+            "rehype-parse/lib/index.lil",
+            "hast-util-from-html/lib/index.lil",
+            "hast-util-from-parse5/lib/index.lil",
+            "hastscript/lib/create-h.lil",
+            "hast-util-to-html/lib/schema.lil",
+            "hast-util-to-html/lib/schema-data.lil",
+            "hast-util-to-html/lib/types.lil",
+            "vfile-location/lib/index.lil",
+            "parse5/parser/index.lil",
+            "parse5/common/html.lil",
+            "parse5/common/error-codes.lil",
+            "parse5/common/doctype.lil",
+            "parse5/common/token.lil",
+            "parse5/common/foreign-content.lil",
+            "parse5/common/unicode.lil",
+            "parse5/tokenizer/index.lil",
+            "parse5/entities/decode.lil",
+            "parse5/entities/decode-codepoint.lil",
+            "parse5/entities/generated/decode-data-html.lil",
+            "parse5/entities/generated/decode-data-xml.lil",
+            "parse5/tokenizer/preprocessor.lil",
+            "parse5/tree-adapters/default.lil",
+            "parse5/parser/formatting-element-list.lil",
+            "parse5/parser/open-element-stack.lil",
+            "hast-util-from-html/lib/errors.lil",
+            "vfile-message/lib/index.lil",
+            "rehype-stringify/lib/index.lil",
+            "hast-util-to-html/lib/index.lil",
+            "hast-util-to-html/lib/entities.lil",
+            "hast-util-to-html/lib/omission.lil"
+          ],
+          "anchored": true,
+          "imports": [],
+          "dynamic_imports": [],
+          "bytes": 168275,
+          "codec_bytes": 48368,
+          "sha256": "8a7946973e02a50ae14b7dc65ed1953bd7e735537206f92a688cc74bcf823653"
+        }
+      ],
+      "side_effects": [
+        "rehype.cjs"
+      ],
+      "codec_total": 48368,
+      "rows_total": 48368,
+      "setters": 0,
+      "output": "public/cjs",
+      "codec": "brotli",
+      "codec_settings": {
+        "brotli": {
+          "quality": 11,
+          "window": 22,
+          "mode": "generic"
+        },
+        "gzip": {
+          "level": 9,
+          "window": 15
+        }
+      },
+      "policy_fingerprint": [
+        137,
+        173,
+        237,
+        110,
+        119,
+        113,
+        6,
+        239,
+        82,
+        207,
+        70,
+        80,
+        174,
+        145,
+        41,
+        126,
+        1,
+        182,
+        11,
+        230,
+        196,
+        84,
+        95,
+        30,
+        136,
+        133,
+        119,
+        39,
+        10,
+        10,
+        158,
+        31
+      ]
+    },
+    {
+      "mode": "single",
+      "format": "esm",
+      "entries": [
+        {
+          "name": "index",
+          "file": "rehype.closed.js",
+          "dynamic": false,
+          "closure": [
+            "rehype.closed.js"
+          ],
+          "row": 48283,
+          "raw_row": 168704
+        }
+      ],
+      "files": [
+        {
+          "file": "rehype.closed.js",
+          "role": "entry",
+          "source_map_for": null,
+          "label": [
+            "index"
+          ],
+          "modules": [
+            "index.lil",
+            "unified/lib/index.lil",
+            "unified/host.lil",
+            "is-plain-obj/index.lil",
+            "extend/index.lil",
+            "trough/index.lil",
+            "vfile/lib/index.lil",
+            "rehype-parse/lib/index.lil",
+            "hast-util-from-html/lib/index.lil",
+            "hast-util-from-parse5/lib/index.lil",
+            "hastscript/lib/create-h.lil",
+            "hast-util-to-html/lib/schema.lil",
+            "hast-util-to-html/lib/schema-data.lil",
+            "hast-util-to-html/lib/types.lil",
+            "vfile-location/lib/index.lil",
+            "parse5/parser/index.lil",
+            "parse5/common/html.lil",
+            "parse5/common/error-codes.lil",
+            "parse5/common/doctype.lil",
+            "parse5/common/token.lil",
+            "parse5/common/foreign-content.lil",
+            "parse5/common/unicode.lil",
+            "parse5/tokenizer/index.lil",
+            "parse5/entities/decode.lil",
+            "parse5/entities/decode-codepoint.lil",
+            "parse5/entities/generated/decode-data-html.lil",
+            "parse5/entities/generated/decode-data-xml.lil",
+            "parse5/tokenizer/preprocessor.lil",
+            "parse5/tree-adapters/default.lil",
+            "parse5/parser/formatting-element-list.lil",
+            "parse5/parser/open-element-stack.lil",
+            "hast-util-from-html/lib/errors.lil",
+            "vfile-message/lib/index.lil",
+            "rehype-stringify/lib/index.lil",
+            "hast-util-to-html/lib/index.lil",
+            "hast-util-to-html/lib/entities.lil",
+            "hast-util-to-html/lib/omission.lil"
+          ],
+          "anchored": true,
+          "imports": [],
+          "dynamic_imports": [],
+          "bytes": 168704,
+          "codec_bytes": 48283,
+          "sha256": "53934e6645465667fe226fd5fef5eb9a0f30d986977637933f5a7a2838b65d63"
+        }
+      ],
+      "side_effects": [
+        "rehype.closed.js"
+      ],
+      "codec_total": 48283,
+      "rows_total": 48283,
+      "setters": 0,
+      "output": "closed/primary",
+      "codec": "brotli",
+      "codec_settings": {
+        "brotli": {
+          "quality": 11,
+          "window": 22,
+          "mode": "generic"
+        },
+        "gzip": {
+          "level": 9,
+          "window": 15
+        }
+      },
+      "policy_fingerprint": [
+        128,
+        253,
+        78,
+        101,
+        164,
+        228,
+        25,
+        248,
+        203,
+        244,
+        118,
+        127,
+        19,
+        253,
+        213,
+        133,
+        103,
+        94,
+        199,
+        162,
+        21,
+        141,
+        183,
+        210,
+        89,
+        253,
+        44,
+        155,
+        87,
+        211,
+        119,
+        9
+      ]
+    }
+  ],
+  "aliases": {},
+  "providers": [],
+  "source_sha256": "0d801a0e0987b8e504fcc452535ecf7b7610fc986e38306f686a8d83d6f04cd9"
+}

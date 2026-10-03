@@ -32,3 +32,5 @@ corpus commands are recorded in
 ## Comparison with the original
 
 See [COMPARISON.md](COMPARISON.md) for current size and build-time comparisons against minified upstream.
+
+[Download the checked repository package](https://yeargun.github.io/rehypelil/downloads/package.tgz) · [Package files, hashes and validation](https://yeargun.github.io/rehypelil/package-build.json). npm publication is independent.

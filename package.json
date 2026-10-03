@@ -47,7 +47,12 @@
     "NOTICE.md",
     "README.md"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/rehype.cjs",
+    "./dist/rehype.closed.js",
+    "./dist/rehype.esm.js",
+    "./dist/rehype.umd.js"
+  ],
   "engines": {
     "node": ">=18"
   },
