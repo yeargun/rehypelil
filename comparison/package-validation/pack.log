@@ -1,0 +1,5 @@
+
+> @itslil/rehype@13.0.4 check:pack
+> node scripts/check-pack.mjs
+
+npm pack: 48 files, 327498 bytes packed, 1082365 bytes unpacked

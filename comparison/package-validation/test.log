@@ -1,0 +1,850 @@
+
+> @itslil/rehype@13.0.4 check:types
+> tsc --noEmit
+
+TAP version 13
+# Subtest: rehype
+    # Subtest: exposes the upstream public API
+    ok 1 - exposes the upstream public API
+      ---
+      duration_ms: 13.718361
+      ...
+    # Subtest: processSync stringifies html
+    ok 2 - processSync stringifies html
+      ---
+      duration_ms: 7.174046
+      ...
+    # Subtest: passes string input to the embedded parser and decodes Uint8Array input
+    ok 3 - passes string input to the embedded parser and decodes Uint8Array input
+      ---
+      duration_ms: 1.249562
+      ...
+    # Subtest: returns a VFile-compatible artifact
+    ok 4 - returns a VFile-compatible artifact
+      ---
+      duration_ms: 1.003952
+      ...
+    # Subtest: keeps processor methods on the shared prototype
+    ok 5 - keeps processor methods on the shared prototype
+      ---
+      duration_ms: 0.27256
+      ...
+    # Subtest: exposes and uses the same own processor state as unified
+    ok 6 - exposes and uses the same own processor state as unified
+      ---
+      duration_ms: 56.165722
+      ...
+    # Subtest: coerces parser files with String and Symbol.toPrimitive
+    ok 7 - coerces parser files with String and Symbol.toPrimitive
+      ---
+      duration_ms: 0.440926
+      ...
+    # Subtest: applies character-reference settings to text and attributes
+    ok 8 - applies character-reference settings to text and attributes
+      ---
+      duration_ms: 2.353531
+      ...
+    # Subtest: keeps pinned processor keys in the library artifact
+    ok 9 - keeps pinned processor keys in the library artifact
+      ---
+      duration_ms: 1.475335
+      ...
+    # Subtest: keeps upstream module paths and omits build intermediates
+    ok 10 - keeps upstream module paths and omits build intermediates
+      ---
+      duration_ms: 0.522088
+      ...
+    # Subtest: loads the UMD artifact as the rehype factory
+    ok 11 - loads the UMD artifact as the rehype factory
+      ---
+      duration_ms: 15.076367
+      ...
+    1..11
+ok 1 - rehype
+  ---
+  duration_ms: 101.519536
+  type: 'suite'
+  ...
+# Subtest: rehype closed
+    # Subtest: ships a closed artifact with named exports
+    ok 1 - ships a closed artifact with named exports
+      ---
+      duration_ms: 10.154412
+      ...
+    1..1
+ok 2 - rehype closed
+  ---
+  duration_ms: 11.936843
+  type: 'suite'
+  ...
+# Subtest: parse5 differential
+    # Subtest: matches malformed selectors and case-sensitive SVG tag names
+    ok 1 - matches malformed selectors and case-sensitive SVG tag names
+      ---
+      duration_ms: 21.404908
+      ...
+    # Subtest: matches the installed upstream graph on every rehype fixture
+    ok 2 - matches the installed upstream graph on every rehype fixture
+      ---
+      duration_ms: 163.903455
+      ...
+    # Subtest: matches the installed upstream graph on every parse-error fixture
+    ok 3 - matches the installed upstream graph on every parse-error fixture
+      ---
+      duration_ms: 52.198042
+      ...
+    # Subtest: matches deterministic malformed HTML fuzz cases
+    ok 4 - matches deterministic malformed HTML fuzz cases
+      ---
+      duration_ms: 896.565753
+      ...
+    1..4
+ok 3 - parse5 differential
+  ---
+  duration_ms: 1136.138881
+  type: 'suite'
+  ...
+# Subtest: rehype
+    # Subtest: should expose the public api of `rehype`
+    ok 1 - should expose the public api of `rehype`
+      ---
+      duration_ms: 2.093744
+      ...
+    # Subtest: should expose the public api of `rehype-parse`
+    ok 2 - should expose the public api of `rehype-parse`
+      ---
+      duration_ms: 0.472616
+      ...
+    # Subtest: should expose the public api of `rehype-stringify`
+    ok 3 - should expose the public api of `rehype-stringify`
+      ---
+      duration_ms: 0.374702
+      ...
+    # Subtest: should accept a `string`
+    ok 4 - should accept a `string`
+      ---
+      duration_ms: 5.535435
+      ...
+    # Subtest: should prefer options given to `rehypeParse` over `settings`
+    ok 5 - should prefer options given to `rehypeParse` over `settings`
+      ---
+      duration_ms: 1.676312
+      ...
+    # Subtest: should prefer options given to `rehypeStringify` over `settings`
+    ok 6 - should prefer options given to `rehypeStringify` over `settings`
+      ---
+      duration_ms: 10.885966
+      ...
+    # Subtest: should parse self-closing elements
+    ok 7 - should parse self-closing elements
+      ---
+      duration_ms: 1.345602
+      ...
+    # Subtest: should not close unknown elements by default
+    ok 8 - should not close unknown elements by default
+      ---
+      duration_ms: 0.81669
+      ...
+    # Subtest: should throw when `tree` is not a valid node
+    ok 9 - should throw when `tree` is not a valid node
+      ---
+      duration_ms: 1.062101
+      ...
+    # Subtest: should escape character references
+    ok 10 - should escape character references
+      ---
+      duration_ms: 1.506092
+      ...
+    # Subtest: should encode character references (numbered by default)
+    ok 11 - should encode character references (numbered by default)
+      ---
+      duration_ms: 0.2831
+      ...
+    # Subtest: should encode character references (named)
+    ok 12 - should encode character references (named)
+      ---
+      duration_ms: 0.2402
+      ...
+    # Subtest: should not close self-closing elements
+    ok 13 - should not close self-closing elements
+      ---
+      duration_ms: 0.357911
+      ...
+    # Subtest: should close self-closing elements if `closeSelfClosing` is given
+    ok 14 - should close self-closing elements if `closeSelfClosing` is given
+      ---
+      duration_ms: 0.376265
+      ...
+    # Subtest: should not close unknown elements by default
+    ok 15 - should not close unknown elements by default
+      ---
+      duration_ms: 0.278893
+      ...
+    # Subtest: should close given `voids`
+    ok 16 - should close given `voids`
+      ---
+      duration_ms: 0.348724
+      ...
+    # Subtest: should not emit parse errors by default
+    ok 17 - should not emit parse errors by default
+      ---
+      duration_ms: 1.71252
+      ...
+    # Subtest: should emit parse errors when `emitParseErrors: true`
+    ok 18 - should emit parse errors when `emitParseErrors: true`
+      ---
+      duration_ms: 1.914268
+      ...
+    # Subtest: should ignore parse errors when the specific rule is turned off
+    ok 19 - should ignore parse errors when the specific rule is turned off
+      ---
+      duration_ms: 0.600776
+      ...
+    # Subtest: should emit parse errors when the specific rule is turned on
+    ok 20 - should emit parse errors when the specific rule is turned on
+      ---
+      duration_ms: 0.590307
+      ...
+    # Subtest: should emit fatal parse errors when the specific rule is `2`
+    ok 21 - should emit fatal parse errors when the specific rule is `2`
+      ---
+      duration_ms: 0.640952
+      ...
+    # Subtest: should emit warning parse errors when the specific rule is `1`
+    ok 22 - should emit warning parse errors when the specific rule is `1`
+      ---
+      duration_ms: 0.537066
+      ...
+    1..22
+ok 4 - rehype
+  ---
+  duration_ms: 39.482452
+  ...
+# Subtest: fixtures
+    # Subtest: adoption
+    ok 1 - adoption
+      ---
+      duration_ms: 7.348482
+      ...
+    # Subtest: aria
+    ok 2 - aria
+      ---
+      duration_ms: 11.028874
+      ...
+    # Subtest: body-body-attributes
+    ok 3 - body-body-attributes
+      ---
+      duration_ms: 4.865168
+      ...
+    # Subtest: body-html-attributes
+    ok 4 - body-html-attributes
+      ---
+      duration_ms: 6.528213
+      ...
+    # Subtest: character-data
+    ok 5 - character-data
+      ---
+      duration_ms: 6.962653
+      ...
+    # Subtest: comment
+    ok 6 - comment
+      ---
+      duration_ms: 5.535882
+      ...
+    # Subtest: comments
+    ok 7 - comments
+      ---
+      duration_ms: 3.22819
+      ...
+    # Subtest: directive-in-fragment
+    ok 8 - directive-in-fragment
+      ---
+      duration_ms: 2.766856
+      ...
+    # Subtest: doctype
+    ok 9 - doctype
+      ---
+      duration_ms: 3.79883
+      ...
+    # Subtest: doctype-almost-standards
+    ok 10 - doctype-almost-standards
+      ---
+      duration_ms: 2.529241
+      ...
+    # Subtest: doctype-legacy-double
+    ok 11 - doctype-legacy-double
+      ---
+      duration_ms: 3.47882
+      ...
+    # Subtest: doctype-legacy-single
+    ok 12 - doctype-legacy-single
+      ---
+      duration_ms: 3.868984
+      ...
+    # Subtest: doctype-nameless
+    ok 13 - doctype-nameless
+      ---
+      duration_ms: 2.757615
+      ...
+    # Subtest: doctype-quirksmode-ibm
+    ok 14 - doctype-quirksmode-ibm
+      ---
+      duration_ms: 2.590004
+      ...
+    # Subtest: doctype-quirksmode-xml
+    ok 15 - doctype-quirksmode-xml
+      ---
+      duration_ms: 2.2836
+      ...
+    # Subtest: doctype-quotes-double
+    ok 16 - doctype-quotes-double
+      ---
+      duration_ms: 2.669773
+      ...
+    # Subtest: doctype-quotes-single
+    ok 17 - doctype-quotes-single
+      ---
+      duration_ms: 2.849744
+      ...
+    # Subtest: element
+    ok 18 - element
+      ---
+      duration_ms: 15.241506
+      ...
+    # Subtest: element-attributes
+    ok 19 - element-attributes
+      ---
+      duration_ms: 20.554615
+      ...
+    # Subtest: element-attributes-names
+    ok 20 - element-attributes-names
+      ---
+      duration_ms: 5.123402
+      ...
+    # Subtest: element-auto-close-document
+    ok 21 - element-auto-close-document
+      ---
+      duration_ms: 3.590189
+      ...
+    # Subtest: element-auto-close-fragment
+    ok 22 - element-auto-close-fragment
+      ---
+      duration_ms: 5.166032
+      ...
+    # Subtest: element-broken-close
+    ok 23 - element-broken-close
+      ---
+      duration_ms: 2.148576
+      ...
+    # Subtest: element-children
+    ok 24 - element-children
+      ---
+      duration_ms: 4.06554
+      ...
+    # Subtest: element-closing
+    ok 25 - element-closing
+      ---
+      duration_ms: 2.875369
+      ...
+    # Subtest: element-closing-attributes
+    ok 26 - element-closing-attributes
+      ---
+      duration_ms: 2.421538
+      ...
+    # Subtest: element-empty
+    ok 27 - element-empty
+      ---
+      duration_ms: 1.936258
+      ...
+    # Subtest: element-loose-close-document
+    ok 28 - element-loose-close-document
+      ---
+      duration_ms: 3.824238
+      ...
+    # Subtest: element-loose-close-fragment
+    ok 29 - element-loose-close-fragment
+      ---
+      duration_ms: 3.888996
+      ...
+    # Subtest: element-opening
+    ok 30 - element-opening
+      ---
+      duration_ms: 2.9233
+      ...
+    # Subtest: element-void
+    ok 31 - element-void
+      ---
+      duration_ms: 5.080522
+      ...
+    # Subtest: element-void-close
+    ok 32 - element-void-close
+      ---
+      duration_ms: 2.263893
+      ...
+    # Subtest: empty-document
+    ok 33 - empty-document
+      ---
+      duration_ms: 2.62526
+      ...
+    # Subtest: empty-fragment
+    ok 34 - empty-fragment
+      ---
+      duration_ms: 3.064143
+      ...
+    # Subtest: entities
+    ok 35 - entities
+      ---
+      duration_ms: 2.56641
+      ...
+    # Subtest: entities-in-literals
+    ok 36 - entities-in-literals
+      ---
+      duration_ms: 6.398412
+      ...
+    # Subtest: html-in-svg-in-html
+    ok 37 - html-in-svg-in-html
+      ---
+      duration_ms: 5.349536
+      ...
+    # Subtest: mathml
+    ok 38 - mathml
+      ---
+      duration_ms: 6.621243
+      ...
+    # Subtest: noscript
+    ok 39 - noscript
+      ---
+      duration_ms: 3.609004
+      ...
+    # Subtest: processing-instruction
+    ok 40 - processing-instruction
+      ---
+      duration_ms: 1.83544
+      ...
+    # Subtest: quirksmode-off
+    ok 41 - quirksmode-off
+      ---
+      duration_ms: 3.266101
+      ...
+    # Subtest: quirksmode-on
+    ok 42 - quirksmode-on
+      ---
+      duration_ms: 2.954858
+      ...
+    # Subtest: svg
+    ok 43 - svg
+      ---
+      duration_ms: 3.839426
+      ...
+    # Subtest: svg-in-html
+    ok 44 - svg-in-html
+      ---
+      duration_ms: 8.010222
+      ...
+    # Subtest: verbose
+    ok 45 - verbose
+      ---
+      duration_ms: 4.478935
+      ...
+    # Subtest: xhtml
+    ok 46 - xhtml
+      ---
+      duration_ms: 2.615652
+      ...
+    1..46
+ok 5 - fixtures
+  ---
+  duration_ms: 245.822572
+  ...
+# Subtest: parse errors
+    # Subtest: abandoned-head-element-child
+    ok 1 - abandoned-head-element-child
+      ---
+      duration_ms: 10.916688
+      ...
+    # Subtest: abrupt-closing-of-empty-comment
+    ok 2 - abrupt-closing-of-empty-comment
+      ---
+      duration_ms: 4.85015
+      ...
+    # Subtest: abrupt-doctype-public-identifier
+    ok 3 - abrupt-doctype-public-identifier
+      ---
+      duration_ms: 3.275913
+      ...
+    # Subtest: abrupt-doctype-system-identifier
+    ok 4 - abrupt-doctype-system-identifier
+      ---
+      duration_ms: 2.823582
+      ...
+    # Subtest: absence-of-digits-in-numeric-character-reference
+    ok 5 - absence-of-digits-in-numeric-character-reference
+      ---
+      duration_ms: 2.836155
+      ...
+    # Subtest: cdata-in-html-content
+    ok 6 - cdata-in-html-content
+      ---
+      duration_ms: 4.168753
+      ...
+    # Subtest: character-reference-outside-unicode-range
+    ok 7 - character-reference-outside-unicode-range
+      ---
+      duration_ms: 3.213673
+      ...
+    # Subtest: closing-of-element-with-open-child-elements
+    ok 8 - closing-of-element-with-open-child-elements
+      ---
+      duration_ms: 5.388029
+      ...
+    # Subtest: control-character-in-input-stream
+    ok 9 - control-character-in-input-stream
+      ---
+      duration_ms: 2.494344
+      ...
+    # Subtest: control-character-reference
+    ok 10 - control-character-reference
+      ---
+      duration_ms: 2.11815
+      ...
+    # Subtest: disallowed-content-in-noscript-in-head
+    ok 11 - disallowed-content-in-noscript-in-head
+      ---
+      duration_ms: 2.135923
+      ...
+    # Subtest: duplicate-attribute
+    ok 12 - duplicate-attribute
+      ---
+      duration_ms: 2.000479
+      ...
+    # Subtest: end-tag-with-attributes
+    ok 13 - end-tag-with-attributes
+      ---
+      duration_ms: 2.637003
+      ...
+    # Subtest: end-tag-with-trailing-solidus
+    ok 14 - end-tag-with-trailing-solidus
+      ---
+      duration_ms: 2.279523
+      ...
+    # Subtest: end-tag-without-matching-open-element
+    ok 15 - end-tag-without-matching-open-element
+      ---
+      duration_ms: 1.653589
+      ...
+    # Subtest: eof-before-tag-name
+    ok 16 - eof-before-tag-name
+      ---
+      duration_ms: 3.858281
+      ...
+    # Subtest: eof-in-cdata
+    ok 17 - eof-in-cdata
+      ---
+      duration_ms: 1.900091
+      ...
+    # Subtest: eof-in-comment
+    ok 18 - eof-in-comment
+      ---
+      duration_ms: 1.484623
+      ...
+    # Subtest: eof-in-doctype
+    ok 19 - eof-in-doctype
+      ---
+      duration_ms: 1.896194
+      ...
+    # Subtest: eof-in-element-that-can-contain-only-text
+    ok 20 - eof-in-element-that-can-contain-only-text
+      ---
+      duration_ms: 1.668567
+      ...
+    # Subtest: eof-in-script-html-comment-like-text
+    ok 21 - eof-in-script-html-comment-like-text
+      ---
+      duration_ms: 1.782631
+      ...
+    # Subtest: eof-in-tag
+    ok 22 - eof-in-tag
+      ---
+      duration_ms: 1.778063
+      ...
+    # Subtest: incorrectly-closed-comment
+    ok 23 - incorrectly-closed-comment
+      ---
+      duration_ms: 1.463974
+      ...
+    # Subtest: incorrectly-opened-comment
+    ok 24 - incorrectly-opened-comment
+      ---
+      duration_ms: 1.61159
+      ...
+    # Subtest: invalid-character-sequence-after-doctype-name
+    ok 25 - invalid-character-sequence-after-doctype-name
+      ---
+      duration_ms: 1.390746
+      ...
+    # Subtest: invalid-first-character-of-tag-name
+    ok 26 - invalid-first-character-of-tag-name
+      ---
+      duration_ms: 1.576775
+      ...
+    # Subtest: misplaced-doctype
+    ok 27 - misplaced-doctype
+      ---
+      duration_ms: 1.487889
+      ...
+    # Subtest: misplaced-start-tag-for-head-element
+    ok 28 - misplaced-start-tag-for-head-element
+      ---
+      duration_ms: 1.129086
+      ...
+    # Subtest: missing-attribute-value
+    ok 29 - missing-attribute-value
+      ---
+      duration_ms: 3.255241
+      ...
+    # Subtest: missing-doctype
+    ok 30 - missing-doctype
+      ---
+      duration_ms: 1.401396
+      ...
+    # Subtest: missing-doctype-name
+    ok 31 - missing-doctype-name
+      ---
+      duration_ms: 1.373905
+      ...
+    # Subtest: missing-doctype-public-identifier
+    ok 32 - missing-doctype-public-identifier
+      ---
+      duration_ms: 1.621727
+      ...
+    # Subtest: missing-doctype-system-identifier
+    ok 33 - missing-doctype-system-identifier
+      ---
+      duration_ms: 1.600519
+      ...
+    # Subtest: missing-end-tag-name
+    ok 34 - missing-end-tag-name
+      ---
+      duration_ms: 1.510441
+      ...
+    # Subtest: missing-quote-before-doctype-public-identifier
+    ok 35 - missing-quote-before-doctype-public-identifier
+      ---
+      duration_ms: 1.480494
+      ...
+    # Subtest: missing-quote-before-doctype-system-identifier
+    ok 36 - missing-quote-before-doctype-system-identifier
+      ---
+      duration_ms: 1.335513
+      ...
+    # Subtest: missing-semicolon-after-character-reference
+    ok 37 - missing-semicolon-after-character-reference
+      ---
+      duration_ms: 1.373374
+      ...
+    # Subtest: missing-whitespace-after-doctype-public-keyword
+    ok 38 - missing-whitespace-after-doctype-public-keyword
+      ---
+      duration_ms: 1.245574
+      ...
+    # Subtest: missing-whitespace-after-doctype-system-keyword
+    ok 39 - missing-whitespace-after-doctype-system-keyword
+      ---
+      duration_ms: 1.454646
+      ...
+    # Subtest: missing-whitespace-before-doctype-name
+    ok 40 - missing-whitespace-before-doctype-name
+      ---
+      duration_ms: 1.155546
+      ...
+    # Subtest: missing-whitespace-between-attributes
+    ok 41 - missing-whitespace-between-attributes
+      ---
+      duration_ms: 2.221053
+      ...
+    # Subtest: missing-whitespace-between-doctype-public-and-system-identifiers
+    ok 42 - missing-whitespace-between-doctype-public-and-system-identifiers
+      ---
+      duration_ms: 1.202714
+      ...
+    # Subtest: nested-comment
+    ok 43 - nested-comment
+      ---
+      duration_ms: 1.154073
+      ...
+    # Subtest: nested-noscript-in-head
+    ok 44 - nested-noscript-in-head
+      ---
+      duration_ms: 1.306338
+      ...
+    # Subtest: non-conforming-doctype
+    ok 45 - non-conforming-doctype
+      ---
+      duration_ms: 1.03493
+      ...
+    # Subtest: non-void-html-element-start-tag-with-trailing-solidus
+    ok 46 - non-void-html-element-start-tag-with-trailing-solidus
+      ---
+      duration_ms: 1.371691
+      ...
+    # Subtest: noncharacter-character-reference
+    ok 47 - noncharacter-character-reference
+      ---
+      duration_ms: 1.444868
+      ...
+    # Subtest: noncharacter-in-input-stream
+    ok 48 - noncharacter-in-input-stream
+      ---
+      duration_ms: 1.421644
+      ...
+    # Subtest: null-character-reference
+    ok 49 - null-character-reference
+      ---
+      duration_ms: 1.347415
+      ...
+    # Subtest: open-elements-left-after-eof
+    ok 50 - open-elements-left-after-eof
+      ---
+      duration_ms: 1.211451
+      ...
+    # Subtest: surrogate-character-reference
+    ok 51 - surrogate-character-reference
+      ---
+      duration_ms: 1.258849
+      ...
+    # Subtest: unexpected-character-after-doctype-system-identifier
+    ok 52 - unexpected-character-after-doctype-system-identifier
+      ---
+      duration_ms: 1.050659
+      ...
+    # Subtest: unexpected-character-in-attribute-name
+    ok 53 - unexpected-character-in-attribute-name
+      ---
+      duration_ms: 1.60651
+      ...
+    # Subtest: unexpected-character-in-unquoted-attribute-value
+    ok 54 - unexpected-character-in-unquoted-attribute-value
+      ---
+      duration_ms: 1.217883
+      ...
+    # Subtest: unexpected-equals-sign-before-attribute-name
+    ok 55 - unexpected-equals-sign-before-attribute-name
+      ---
+      duration_ms: 2.766195
+      ...
+    # Subtest: unexpected-null-character
+    ok 56 - unexpected-null-character
+      ---
+      duration_ms: 1.134967
+      ...
+    # Subtest: unexpected-question-mark-instead-of-tag-name
+    ok 57 - unexpected-question-mark-instead-of-tag-name
+      ---
+      duration_ms: 1.028107
+      ...
+    # Subtest: unexpected-solidus-in-tag
+    ok 58 - unexpected-solidus-in-tag
+      ---
+      duration_ms: 1.202343
+      ...
+    # Subtest: unknown-named-character-reference
+    ok 59 - unknown-named-character-reference
+      ---
+      duration_ms: 1.355914
+      ...
+    # Subtest: surrogate-in-input-stream
+    ok 60 - surrogate-in-input-stream
+      ---
+      duration_ms: 0.387747
+      ...
+    1..60
+ok 6 - parse errors
+  ---
+  duration_ms: 134.958536
+  ...
+# Subtest: isolated parse5 LilScript modules
+    # Subtest: matches all parse-error codes and reverse attribute lookup
+    ok 1 - matches all parse-error codes and reverse attribute lookup
+      ---
+      duration_ms: 3.177896
+      ...
+    # Subtest: matches HTML tag IDs and element sets
+    ok 2 - matches HTML tag IDs and element sets
+      ---
+      duration_ms: 2.748982
+      ...
+    # Subtest: matches doctype conformance and document mode
+    ok 3 - matches doctype conformance and document mode
+      ---
+      duration_ms: 1.56378
+      ...
+    # Subtest: matches Unicode and entity code-point handling
+    ok 4 - matches Unicode and entity code-point handling
+      ---
+      duration_ms: 625.617647
+      ...
+    # Subtest: matches complete and incrementally supplied entity references
+    ok 5 - matches complete and incrementally supplied entity references
+      ---
+      duration_ms: 19.196263
+      ...
+    # Subtest: matches foreign-content adjustment and integration rules
+    ok 6 - matches foreign-content adjustment and integration rules
+      ---
+      duration_ms: 4.928216
+      ...
+    # Subtest: matches preprocessing across malformed input and chunk boundaries
+    ok 7 - matches preprocessing across malformed input and chunk boundaries
+      ---
+      duration_ms: 37.403914
+      ...
+    # Subtest: matches preprocessor lookahead, insertion, and buffer dropping
+    ok 8 - matches preprocessor lookahead, insertion, and buffer dropping
+      ---
+      duration_ms: 0.535344
+      ...
+    # Subtest: matches the default tree adapter's mutation semantics
+    ok 9 - matches the default tree adapter's mutation semantics
+      ---
+      duration_ms: 1.101164
+      ...
+    # Subtest: matches active-formatting-list ordering and Noah's Ark enforcement
+    ok 10 - matches active-formatting-list ordering and Noah's Ark enforcement
+      ---
+      duration_ms: 1.181133
+      ...
+    # Subtest: matches open-element-stack mutation, scope, and callback ordering
+    ok 11 - matches open-element-stack mutation, scope, and callback ordering
+      ---
+      duration_ms: 1.596942
+      ...
+    1..11
+ok 7 - isolated parse5 LilScript modules
+  ---
+  duration_ms: 703.125675
+  type: 'suite'
+  ...
+# Subtest: three independently targeted builds have current artifact and config hashes
+ok 8 - three independently targeted builds have current artifact and config hashes
+  ---
+  duration_ms: 6.81409
+  ...
+# Subtest: public comparison describes current versus original and distinguishes build stages
+ok 9 - public comparison describes current versus original and distinguishes build stages
+  ---
+  duration_ms: 0.589665
+  ...
+# Subtest: built Pages artifact contains the current data and measured downloads
+ok 10 - built Pages artifact contains the current data and measured downloads
+  ---
+  duration_ms: 0.579396
+  ...
+1..10
+# tests 161
+# suites 4
+# pass 161
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10878.371707
