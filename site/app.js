@@ -1,3 +1,6 @@
+import {renderComparison} from './objective-comparison.js';
+const currentComparison=await fetch('./comparison.json').then(response=>{if(!response.ok)throw Error('Comparison could not load');return response.json()});
+renderComparison(currentComparison);
 const data = await fetch("./results.json").then((response) => {
   if (!response.ok) throw new Error(`Unable to load results: ${response.status}`)
   return response.json()
@@ -56,7 +59,7 @@ function ms(value) {
 }
 
 function renderCodec(metric, ids, barId, bodyId) {
-  const baseline = data.size.find((lane) => lane.baseline)
+  const baseline = originalBar(metric)
   const lanes = ids.map(laneById).filter(Boolean)
   if (!baseline || lanes.length === 0) return
   const max = Math.max(...lanes.map((lane) => lane[metric]))
@@ -74,77 +77,11 @@ function renderCodec(metric, ids, barId, bodyId) {
     .join("")
 }
 
-function renderHero() {
-  const baseline = data.size.find((lane) => lane.baseline)
-  const itslil = laneById("itslil")
-  if (!baseline || !itslil) return
-  const smaller = smallerThan(itslil.brotli11, baseline.brotli11)
-  document.querySelector("#hero-ratio").innerHTML = `${smaller.amount}<span>${smaller.word}</span>`
-  document.querySelector("#hero-bytes").textContent =
-    `${formatter.format(baseline.brotli11)} B → ${formatter.format(itslil.brotli11)} B Brotli-11`
-  document.querySelector("#hero-shipped").textContent = smaller.text
-  document.querySelector("#hero-gzip").textContent = smallerThan(itslil.gzip9, baseline.gzip9).text
-  document.querySelector("#hero-raw").textContent = smallerThan(itslil.raw, baseline.raw).text
-  document.querySelector("#hero-spec").textContent = data.spec
-    ? `${data.spec.pass}/${data.spec.total}`
-    : "—"
-}
+function renderHero() {}
 
-function renderSize() {
-  const baseline = data.size.find((lane) => lane.baseline)
-  if (!baseline) return
-  const officialIds = data.size.filter((lane) => lane.id.startsWith("official")).map((lane) => lane.id)
-  renderCodec("brotli11", [...officialIds, "itslil", "itslil-closed"], "#bar-brotli", "#body-brotli")
-  renderCodec("gzip9", [...officialIds, "itslil", "itslil-closed"], "#bar-gzip", "#body-gzip")
-  renderCodec("raw", [...officialIds, "itslil", "itslil-closed"], "#bar-raw", "#body-raw")
-  document.querySelector("#body-matched").innerHTML = data.size
-    .map((lane) => {
-      const verdict = smallerThan(lane.brotli11, baseline.brotli11)
-      return `<tr><th scope="row">${lane.name}</th><td>${formatter.format(lane.raw)}</td><td>${formatter.format(lane.gzip9)}</td><td>${formatter.format(lane.brotli11)}</td><td class="verdict ${verdict.state}"><strong>${verdict.text}</strong></td></tr>`
-    })
-    .join("")
-}
+function renderSize() {}
 
-function renderPerf() {
-  const suites = data.throughput ?? []
-  const lil = suites.find((row) => row.id === "itslil")
-  const official = suites.find((row) => row.id === "official")
-  const speed = lil && official ? fasterThan(lil.documentMs, official.documentMs) : null
-  const cards = [
-    {
-      label: data.perfLead ?? "same work, against the official runtime graph",
-      value: speed ? speed.text : "—",
-      win: speed?.state === "win",
-    },
-    {
-      label: "LilScript median",
-      value: lil ? ms(lil.documentMs) : "—",
-    },
-    {
-      label: "official median",
-      value: official ? ms(official.documentMs) : "—",
-    },
-    {
-      label: data.spec?.label ?? "tests passing",
-      value: data.spec ? `${data.spec.pass}/${data.spec.total}` : "—",
-      geo: true,
-    },
-  ]
-  document.querySelector("#perf-cards").innerHTML = cards
-    .map(
-      (card) =>
-        `<article class="perf-card${card.win ? " win" : ""}${card.geo ? " geo" : ""}"><strong>${card.value}</strong><span>${card.label}</span></article>`,
-    )
-    .join("")
-  document.querySelector("#perf-body").innerHTML = suites
-    .map((row) => {
-      const verdict = official ? fasterThan(row.documentMs, official.documentMs) : null
-      return `<tr><th scope="row">${row.name}</th><td>${ms(row.documentMs)}</td><td class="verdict ${verdict ? verdict.state : ""}"><strong>${verdict ? verdict.text : "—"}</strong></td></tr>`
-    })
-    .join("")
-  document.querySelector("#perf-note").textContent =
-    `${data.runtime ?? "Node"}. ${data.codec}. Quiet median after discarding the first ${data.warmupDiscard ?? 3} samples.`
-}
+function renderPerf() {}
 
 function bindCopy() {
   document.addEventListener("click", async (event) => {
@@ -396,3 +333,9 @@ renderSize()
 bindCopy()
 bindProgress()
 bindPlayground()
+
+// Each transport codec has its own strongest original reference.
+function originalBar(metric) {
+  return data.size.filter(row => row.id.startsWith("official-") && !row.diagnostic)
+    .reduce((best, row) => !best || row[metric] < best[metric] ? row : best, null)
+}

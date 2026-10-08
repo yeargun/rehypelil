@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 3,
+  "name": "rehypelil",
+  "measuredAt": "2026-10-01T16:53:02.355Z",
+  "compiler": null,
+  "publicationSourceFingerprint": "04d524ad1861dbee14b3d0ca63d2621774763ec44d32cd5a235c8b6c71d1debb",
+  "publicationArtifacts": [
+    {
+      "path": "dist/rehype.cjs",
+      "sha256": "6370f2462869d5254d8065c09a9bac3e081b134f178376b5dafa0ae0ac5e7582"
+    },
+    {
+      "path": "dist/rehype.closed.js",
+      "sha256": "35090fd8f5ca2c04a7117622cf1d71fa23253e4582c48e7bfbb17dd2f6f43e0e"
+    },
+    {
+      "path": "dist/rehype.esm.js",
+      "sha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
+    },
+    {
+      "path": "dist/rehype.umd.js",
+      "sha256": "9cf57a6689db53fdae2a074a714550ce18172124591757e2196de409a60166de"
+    }
+  ],
+  "comparisonArtifacts": [
+    {
+      "path": "site/esm-comparison/lilscript.js",
+      "sha256": "e2d1ceb9df39fb8f764e0d954d6eb32b456cbdd27458e69c665ef3730d1dd6dc"
+    },
+    {
+      "path": "site/esm-comparison/original.js",
+      "sha256": "a8ac27b9c3b770639324bd24ad3b2511af583f264125f95b4b00e39126a0a5b0"
+    }
+  ],
+  "comparisonScope": "rehype@13.0.2 public runtime graph, browser conditions; original and LilScript keep the same external dependencies (none). Original graph assembled with esbuild 0.28.1; minified separately with Terser 5.51.2 (three passes), Oxc (mangle on/off), and esbuild. Browser DOM-decoder diagnostics, when present, are excluded from the Node comparison baseline. Raw, gzip-9 and Brotli-11 are measured with the same canonical codec. The LilScript lane is the delivered package artifact."
+}
